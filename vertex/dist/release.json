@@ -1,0 +1,14 @@
+{
+  "version": "1.5-demo",
+  "date": "2026-09-29",
+  "mode": "local-demo",
+  "features": [
+    "UZ catalog",
+    "guest-team tasks",
+    "travel packages",
+    "CRM",
+    "rental calendar",
+    "RU/EN",
+    "voice concierge"
+  ]
+}

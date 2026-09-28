@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');const {quote,escape,validTask}=require('../dist/group.js');
+assert.equal(quote({guests:2,days:3,selected:['transfer','meals','guide'],stayPrice:500000,nights:3}).total,4680000);
+assert.equal(quote({guests:4,days:2,selected:['transfer']}).total,180000);
+assert.equal(quote({guests:2,days:3,selected:['rail','bus']}).total,940000);
+assert.equal(quote({guests:2,days:3,selected:[],stayPrice:null,nights:3}).total,null);
+assert.throws(()=>quote({guests:0,days:3,selected:[]}));assert.throws(()=>quote({guests:2,days:0,selected:[]}));assert.throws(()=>quote({guests:2,days:2,selected:['unknown']}));
+assert.equal(escape('<img src=x onerror=alert(1)>'),'&lt;img src=x onerror=alert(1)&gt;');
+assert.equal(validTask({id:'a',ru:'x',en:'x',department:'laundry',status:'new',note:'demo'}),true);
+assert.equal(validTask({id:'a',ru:'x',en:'x',department:'unknown',status:'new',note:'demo'}),false);
+console.log('PASS 10 package arithmetic, validation and escaping checks');

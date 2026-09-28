@@ -1,6 +1,10 @@
 {
+  "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "vertex-app",
+  "account_id": "b3aa874550f12baee308e3e7b4dba309",
   "compatibility_date": "2026-09-28",
+  "workers_dev": true,
+  "preview_urls": true,
   "assets": {
     "directory": "./vertex/dist"
   }

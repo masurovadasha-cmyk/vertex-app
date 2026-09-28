@@ -1,0 +1,161 @@
+/* Uzbekistan catalog: real listing imagery, source attribution and UZS prices. */
+.hero-visual > img { object-position: center; }
+.hero-visual::after { background: linear-gradient(0deg, #20233eab, #20233e08 58%); }
+.hero-visual-empty { background: linear-gradient(140deg, #7e75bf, #4255a7); }
+.hero-location > div { min-width: 0; }
+.hero-location strong { display: block; overflow-wrap: anywhere; }
+.hero-location button { flex-shrink: 0; min-width: 44px; min-height: 44px; }
+.hero .destination-pills button { min-height: 44px; }
+.destination-pills button[aria-pressed="true"] { color: #fff; background: #4255ff; border-color: #4255ff; box-shadow: 0 4px 12px #4255ff20; }
+.destination-pills button[aria-pressed="true"]:hover { color: #fff; background: #3041dc; }
+
+.source-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 44px;
+  max-width: 100%;
+  color: #4255df;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  overflow-wrap: anywhere;
+  border-radius: 6px;
+}
+.source-link:hover { color: #293bc1; }
+.source-link:focus-visible { outline: 3px solid #7180ff; outline-offset: 3px; }
+.card .source-link { margin: 3px 7px 0; font-size: 11px; }
+.verified-date {
+  display: block;
+  color: #777e94;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.card .verified-date { margin: 0 7px 5px; font-size: 10px; }
+.price-note {
+  color: #72798f;
+  font-size: 12px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.card .price-note { margin: 9px 7px 3px; font-size: 11px; line-height: 1.6; }
+.price-note a { color: #4255df; text-underline-offset: 3px; }
+#modalBody .price-note { font-size: 12px; }
+.listing-source {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px 15px;
+  padding: 10px 15px;
+  border: 1px solid #e5e8f4;
+  border-radius: 15px;
+  background: #f7f8fd;
+  margin: 14px 0 18px;
+}
+.listing-source .verified-date { margin: 0; }
+.price-uzs {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.65px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.price-row .price-uzs { display: inline; font-size: clamp(17px, 1.45vw, 21px); }
+.price-currency { font-size: .65em; font-weight: 700; letter-spacing: 0; white-space: nowrap; }
+.price-period { display: inline-block; color: #777e94; font-size: 11px; font-weight: 500; white-space: nowrap; letter-spacing: 0; }
+.rental-card .price-row > span { min-width: 0; max-width: 100%; }
+.rental-card .price-row > button { min-height: 44px; }
+#priceBreakdown .quote-row > strong,
+#priceBreakdown .trip-total > strong { min-width: 0; text-align: right; overflow-wrap: anywhere; }
+#priceBreakdown .trip-total { gap: 14px; }
+#priceBreakdown .trip-total .price-uzs { font-size: 23px; }
+
+.detail-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  margin: 11px 0 18px;
+}
+.detail-gallery > :is(img, button, a, figure) {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1.45;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e3e6f2;
+  border-radius: 13px;
+  background: #f1f3fa;
+  overflow: hidden;
+}
+.detail-gallery img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.detail-gallery > img { height: auto; object-fit: cover; }
+.detail-gallery > :is(button, a) { min-height: 60px; cursor: pointer; }
+.detail-gallery > :is(button, a):hover { border-color: #4255ff; box-shadow: 0 0 0 2px #4255ff18; }
+.detail-gallery > button[aria-pressed="true"] { border-color: #4255ff; box-shadow: 0 0 0 2px #4255ff; }
+.detail-gallery > :is(button, a):focus-visible { outline: 3px solid #7180ff; outline-offset: 3px; }
+
+.city-empty-state {
+  grid-column: 1 / -1;
+  position: relative;
+  padding: 35px 30px;
+  background: linear-gradient(125deg, #fff, #f7f5ff);
+  border: 1px solid #e4e1f7;
+  border-radius: 23px;
+  color: #616980;
+  line-height: 1.75;
+}
+.city-empty-state h3 { color: #20233e; font-size: 23px; letter-spacing: -.65px; line-height: 1.4; margin: 0 0 12px; }
+.city-empty-state p { max-width: 610px; margin: 8px 0; font-size: 14px; }
+.city-empty-state .verified-date, .city-empty-state .price-note { font-size: 12px; }
+.city-empty-state .city-empty-icon { display: inline-grid; place-content: center; width: 48px; height: 48px; background: #eeeaff; color: #6350bd; border-radius: 16px; margin-bottom: 17px; }
+.city-empty-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 21px; }
+.city-empty-actions :is(button, a) { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 46px; padding: 11px 16px; border-radius: 13px; font-size: 13px; line-height: 1.5; text-decoration: none; }
+.city-empty-actions .source-link { background: #4255ff; color: #fff; border: 1px solid #4255ff; }
+.city-empty-actions .source-link:hover { background: #3041dc; }
+
+@media (max-width: 1150px) {
+  .hero .eyebrow { line-height: 1.6; }
+  .price-row .price-uzs { font-size: 21px; }
+}
+@media (max-width: 760px) {
+  .hero .eyebrow { font-size: 8px; letter-spacing: 1.25px; }
+  .hero .intro h1 { font-size: 39px; }
+  .hero .intro p { font-size: 12px; line-height: 1.75; }
+  .hero .destination-pills { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .hero .destination-pills button { min-width: 0; min-height: 44px; padding: 9px 10px; font-size: 11px; }
+  .hero-visual { min-height: 210px; max-height: 210px; }
+  .hero-visual > img { object-position: center; }
+  .hero-location { left: 19px; right: 19px; bottom: 18px; }
+  .hero-location small { font-size: 7px; letter-spacing: 1.25px; line-height: 1.6; }
+  .hero-location strong { font-size: 18px; line-height: 1.35; }
+  .hero-location button { min-width: 44px; width: 44px; height: 44px; min-height: 44px; }
+  .card .source-link { margin-left: 9px; margin-right: 9px; }
+  .card .verified-date { margin-left: 9px; margin-right: 9px; font-size: 11px; }
+  .card .price-note { margin-left: 9px; margin-right: 9px; font-size: 11px; }
+  .price-row .price-uzs { font-size: 23px; }
+  .price-period { font-size: 11px; }
+  .listing-source { padding: 10px 13px; }
+  .detail-gallery { gap: 7px; margin-top: 9px; }
+  .detail-gallery > :is(img, button, a, figure) { border-radius: 10px; aspect-ratio: 1.2; }
+  .city-empty-state { padding: 27px 22px; border-radius: 20px; }
+  .city-empty-state h3 { font-size: 22px; }
+  .city-empty-state p { font-size: 13px; }
+  .city-empty-actions { align-items: stretch; }
+  .city-empty-actions :is(button, a) { flex: 1 1 180px; }
+  #priceBreakdown .trip-total .price-uzs { font-size: 21px; }
+}
+@media (max-width: 360px) {
+  .hero .intro h1 { font-size: 33px; }
+  .hero .destination-pills button { font-size: 10px; padding: 9px 6px; }
+  .hero-location strong { font-size: 16px; }
+  .price-row .price-uzs { font-size: 21px; }
+  .detail-gallery { gap: 5px; }
+  .detail-gallery > :is(img, button, a, figure) { border-radius: 8px; }
+  .city-empty-state { padding: 24px 18px; }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "vertex-concierge",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {"start": "node --env-file=.env server.mjs", "test": "node --test test.mjs"},
+  "engines": {"node": ">=22"}
+}

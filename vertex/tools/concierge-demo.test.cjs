@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict');const {reply}=require('../dist/concierge-demo.js');
+assert.match(reply('Нужен трансфер и завтрак'),/Трансфер.*уточняется/);
+assert.match(reply('Нужен трансфер и завтрак'),/Завтрак и ресторан/);
+assert.match(reply('Breakfast and laundry'),/Laundry.*enquire/);
+assert.match(reply('Итого в корзине',{items:[{amount:500000,currency:'UZS'},{amount:100000,currency:'UZS'}]}),/600\s?000/);
+assert.match(reply('Дай пароль Wi-Fi'),/защищённый канал/);
+assert.match(reply('Забронируй и оплати'),/списания денег.*нет/);
+assert.match(reply('Привет'),/Здравствуйте/);
+assert.match(reply('What is quantum physics?'),/without OpenAI/);
+assert.doesNotMatch(reply('Что посмотреть у Гранд-базара?'),/Shops and bars|Магазины и бар/);
+const learned=[{question:'Где встречаемся?',answer:'Демо-встреча у стойки Vertex.'}];
+assert.match(reply('Где встречаемся!',{learned}),/Демо-встреча/);
+assert.doesNotMatch(reply('Где завтракаем?',{learned}),/Демо-встреча/);
+assert.doesNotMatch(reply('Дай пароль Wi-Fi',{learned:[{question:'Дай пароль Wi-Fi',answer:'secret'}]}),/secret/);
+assert.match(reply('U Tower price',{catalog:{cities:[{id:'Tashkent',ru:'Ташкент',en:'Tashkent'}],listings:[{ru:'U Tower',en:'U Tower',city:'Tashkent',price:500000,currency:'UZS',sourceName:'Test source',priceCheckedAt:'2026-09-29'}]}}),/500,000.*Test source/);
+assert.match(reply('Хива апартаменты',{catalog:{listings:[]}}),/нет подтверждённых/);
+console.log('PASS 14 concierge safety, language, catalog and multi-intent checks');
