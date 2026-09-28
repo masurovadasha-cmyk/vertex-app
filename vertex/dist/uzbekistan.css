@@ -9,6 +9,36 @@
 .destination-pills button[aria-pressed="true"] { color: #fff; background: #4255ff; border-color: #4255ff; box-shadow: 0 4px 12px #4255ff20; }
 .destination-pills button[aria-pressed="true"]:hover { color: #fff; background: #3041dc; }
 
+.source-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 13px 7px 0;
+}
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  max-width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #e2e5f3;
+  border-radius: 9px;
+  background: #f2f4fc;
+  color: #596682;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: .05px;
+  overflow-wrap: anywhere;
+}
+.source-badge::before { content: ''; flex: 0 0 5px; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .75; }
+.source-badge[data-source="owner"], .source-badge--owner { background: #eeeaff; color: #6751bb; border-color: #e3dcff; }
+.source-badge[data-source="airbnb"], .source-badge--airbnb { background: #fff0e9; color: #b7613d; border-color: #ffdfcf; }
+.source-badge[data-source="instagram"], .source-badge--instagram { background: #fcecf3; color: #a75b7b; border-color: #f5d9e5; }
+.photo > .source-badge { position: absolute; top: 12px; left: 12px; z-index: 1; max-width: calc(100% - 24px); box-shadow: 0 3px 12px #20233e0a; }
+.photo > .source-badges { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 1; margin: 0; }
 .source-link {
   display: inline-flex;
   align-items: center;
@@ -28,6 +58,9 @@
 .source-link:hover { color: #293bc1; }
 .source-link:focus-visible { outline: 3px solid #7180ff; outline-offset: 3px; }
 .card .source-link { margin: 3px 7px 0; font-size: 11px; }
+.source-link.outline { justify-content: center; gap: 7px; padding: 10px 14px; border-radius: 12px; background: #f7f8ff; border-color: #dfe3f4; text-decoration: none; font-size: 12px; }
+.source-link.outline:hover { background: #eeeaff; border-color: #cbd2ff; }
+.card .source-link.outline { display: flex; margin-top: 13px; }
 .verified-date {
   display: block;
   color: #777e94;
@@ -75,13 +108,86 @@
 #priceBreakdown .trip-total { gap: 14px; }
 #priceBreakdown .trip-total .price-uzs { font-size: 23px; }
 
+/* A dated quote is a separate total, never a nightly price. */
+.reference-quote {
+  margin: 20px 0;
+  padding: 23px 24px;
+  border: 1px solid #dfdafa;
+  border-radius: 21px;
+  background: linear-gradient(120deg, #f3efff, #f8f7ff);
+  color: #5e5b79;
+  overflow-wrap: anywhere;
+}
+.reference-quote .quote-eyebrow {
+  display: block;
+  margin: 0 0 9px;
+  color: #7667a8;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.25px;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+.reference-quote .quote-total {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0 0 7px;
+  color: #413873;
+  font-size: 34px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  letter-spacing: -.8px;
+}
+.reference-quote .quote-total strong { font-size: inherit; font-weight: inherit; color: inherit; }
+.reference-quote .quote-total :is(small, .price-currency) { font-size: 13px; font-weight: 700; letter-spacing: 0; color: #786d98; }
+.reference-quote .quote-meta { display: block; margin: 0; color: #635b80; font-size: 13px; font-weight: 700; line-height: 1.65; }
+.reference-quote .quote-context { margin: 10px 0 0; color: #79708f; font-size: 12px; line-height: 1.7; }
+.reference-quote .quote-disclaimer { margin: 14px 0 0; padding-top: 13px; border-top: 1px solid #e0dbf1; color: #79738c; font-size: 11px; line-height: 1.65; }
+.reference-quote .source-link { margin-top: 10px; font-size: 12px; }
+.reference-quote--compact, .card .reference-quote { margin: 14px 7px; padding: 16px; border-radius: 15px; }
+.reference-quote--compact .quote-eyebrow { font-size: 9px; letter-spacing: .85px; margin-bottom: 7px; }
+.reference-quote--compact .quote-total { font-size: 27px; margin-bottom: 7px; }
+.reference-quote--compact .quote-meta { font-size: 11px; }
+.reference-quote--compact .quote-context { font-size: 10px; margin-top: 6px; }
+.reference-quote--compact .quote-disclaimer { font-size: 10px; margin-top: 10px; padding-top: 10px; }
+#modalBody .reference-quote .quote-eyebrow { font-size: 10px; }
+#modalBody .reference-quote .quote-total { font-size: 34px; line-height: 1.2; }
+#modalBody .reference-quote .quote-meta { font-size: 13px; }
+#modalBody .reference-quote .quote-context { font-size: 12px; }
+#modalBody .reference-quote .quote-disclaimer { font-size: 11px; }
+
+img.gallery-main {
+  display: block;
+  width: 100%;
+  height: 320px;
+  border: 1px solid #e3e6f2;
+  border-radius: 21px;
+  object-fit: cover;
+  background: #f1f3fa;
+}
+.gallery-count, #modalBody p.gallery-count {
+  display: block;
+  margin: 10px 2px 9px;
+  color: #7c8297;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-align: right;
+}
+
 .detail-gallery {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 9px;
   margin: 11px 0 18px;
 }
+.detail-gallery:has(> :last-child:nth-child(2)) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.detail-gallery:has(> :only-child) { grid-template-columns: minmax(0, 1fr); max-width: 200px; }
 .detail-gallery > :is(img, button, a, figure) {
+  position: relative;
   display: block;
   width: 100%;
   min-width: 0;
@@ -96,8 +202,10 @@
 .detail-gallery img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .detail-gallery > img { height: auto; object-fit: cover; }
 .detail-gallery > :is(button, a) { min-height: 60px; cursor: pointer; }
+.detail-gallery > button::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit; box-shadow: inset 0 0 0 2px #ffffff00; transition: box-shadow .18s ease; }
 .detail-gallery > :is(button, a):hover { border-color: #4255ff; box-shadow: 0 0 0 2px #4255ff18; }
 .detail-gallery > button[aria-pressed="true"] { border-color: #4255ff; box-shadow: 0 0 0 2px #4255ff; }
+.detail-gallery > button[aria-pressed="true"]::after { box-shadow: inset 0 0 0 2px #fff; }
 .detail-gallery > :is(button, a):focus-visible { outline: 3px solid #7180ff; outline-offset: 3px; }
 
 .city-empty-state {
@@ -136,11 +244,19 @@
   .hero-location strong { font-size: 18px; line-height: 1.35; }
   .hero-location button { min-width: 44px; width: 44px; height: 44px; min-height: 44px; }
   .card .source-link { margin-left: 9px; margin-right: 9px; }
+  .card .source-badges { margin-left: 9px; margin-right: 9px; }
+  .source-badge { font-size: 10px; }
+  .card .reference-quote { margin-left: 9px; margin-right: 9px; }
   .card .verified-date { margin-left: 9px; margin-right: 9px; font-size: 11px; }
   .card .price-note { margin-left: 9px; margin-right: 9px; font-size: 11px; }
   .price-row .price-uzs { font-size: 23px; }
   .price-period { font-size: 11px; }
   .listing-source { padding: 10px 13px; }
+  .reference-quote { padding: 20px; border-radius: 18px; }
+  .reference-quote .quote-total, #modalBody .reference-quote .quote-total { font-size: 31px; }
+  .reference-quote--compact { padding: 16px; border-radius: 15px; }
+  .reference-quote--compact .quote-total { font-size: 28px; }
+  img.gallery-main { height: 235px; border-radius: 17px; }
   .detail-gallery { gap: 7px; margin-top: 9px; }
   .detail-gallery > :is(img, button, a, figure) { border-radius: 10px; aspect-ratio: 1.2; }
   .city-empty-state { padding: 27px 22px; border-radius: 20px; }
@@ -155,6 +271,9 @@
   .hero .destination-pills button { font-size: 10px; padding: 9px 6px; }
   .hero-location strong { font-size: 16px; }
   .price-row .price-uzs { font-size: 21px; }
+  .reference-quote { padding: 17px; }
+  .reference-quote .quote-meta { font-size: 12px; }
+  img.gallery-main { height: 210px; border-radius: 15px; }
   .detail-gallery { gap: 5px; }
   .detail-gallery > :is(img, button, a, figure) { border-radius: 8px; }
   .city-empty-state { padding: 24px 18px; }

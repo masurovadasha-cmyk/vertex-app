@@ -14,4 +14,47 @@ assert.doesNotMatch(reply('Где завтракаем?',{learned}),/Демо-в
 assert.doesNotMatch(reply('Дай пароль Wi-Fi',{learned:[{question:'Дай пароль Wi-Fi',answer:'secret'}]}),/secret/);
 assert.match(reply('U Tower price',{catalog:{cities:[{id:'Tashkent',ru:'Ташкент',en:'Tashkent'}],listings:[{ru:'U Tower',en:'U Tower',city:'Tashkent',price:500000,currency:'UZS',sourceName:'Test source',priceCheckedAt:'2026-09-29'}]}}),/500,000.*Test source/);
 assert.match(reply('Хива апартаменты',{catalog:{listings:[]}}),/нет подтверждённых/);
-console.log('PASS 14 concierge safety, language, catalog and multi-intent checks');
+const fs=require('node:fs');const vm=require('node:vm');const path=require('node:path');
+const ownerContext={window:{}};
+vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../dist/views-catalog.js'),'utf8'),ownerContext);
+const owned=ownerContext.window.VertexOwnedStays;
+const modern=owned.find(s=>s.en.includes('Modern Design'));
+const panoramic=owned.find(s=>s.en.includes('Panoramic'));
+const dates={arrival:'2026-10-12',departure:'2026-10-15'};
+const context={lang:'en',catalog:{listings:owned},dates,guests:2};
+const modernReply=reply('Modern Design price',context);
+assert.match(modernReply,/268 USD total/);
+assert.doesNotMatch(modernReply,/804\.00/);
+assert.match(modernReply,/2026-10-12 → 2026-10-15.*guests: 2/);
+assert.match(modernReply,/match your search/);
+assert.match(reply('Modern Design price',{...context,dates:{arrival:'2026-11-01',departure:'2026-11-04'}}),/differ from your search.*new quote/);
+assert.match(reply('Panoramic price',context),/unavailable when checked.*2026-10-12 → 2026-10-15/);
+assert.match(reply('Panoramic price',{...context,dates:{arrival:'2026-11-01',departure:'2026-11-04'}}),/differ from your search.*new quote/);
+assert.match(reply('Apartments',{lang:'en',stays:[{en:'Placeholder',city:'Khiva',price:null,capacity:null}]}),/capacity on request.*Enquire/);
+assert.doesNotMatch(reply('Modern Design price',{...context,guests:3}),/match your search/);
+
+// Expose only pure helpers before the browser UI is installed; never execute app.js.
+const rentalSource=fs.readFileSync(path.join(__dirname,'../dist/rentals.js'),'utf8');
+const marker="  const controls = document.createElement('section');";
+assert.ok(rentalSource.includes(marker),'rental test seam must exist');
+const fields={arrival:{value:dates.arrival},departure:{value:dates.departure},guests:{value:'2'}};
+class FixedDate extends Date {constructor(...args){super(...(args.length?args:['2026-09-29T00:00:00Z']));}}
+const sandbox={window:ownerContext.window,localStorage:{getItem:()=>null},stays:owned,lang:'en',tr:(_ru,en)=>en,URL,Intl,Date:FixedDate,
+  money:(value,currency)=>Number.isFinite(value)?new Intl.NumberFormat('en-US',{style:'currency',currency}).format(value):'Enquire',
+  $:id=>fields[id],modal:()=>{}};
+vm.runInNewContext(rentalSource.replace(marker,'  globalThis.testHelpers={referenceQuote,quoteBlock,sourceLink,breakdown,validate,compareNightly}; return;\n'+marker),sandbox);
+const helpers=sandbox.testHelpers;
+assert.equal(helpers.breakdown(modern,dates.arrival,dates.departure).total,null,'a reference total must not price a booking');
+assert.equal(helpers.breakdown(modern,'2026-11-01','2026-11-08').total,null,'another trip also needs a price');
+assert.match(helpers.quoteBlock(modern,false,'2026-11-01','2026-11-04',2),/268 USD total/);
+assert.match(helpers.quoteBlock(modern,false,'2026-11-01','2026-11-04',2),/differ from your search/);
+assert.match(helpers.validate(panoramic,dates.arrival,dates.departure,2),/unavailable when checked/);
+assert.equal(helpers.validate(panoramic,'2026-11-01','2026-11-04',2),'','dated unavailability must not block other dates');
+assert.equal(helpers.validate({id:'unknown',capacity:null},dates.arrival,dates.departure,4),'','unknown capacity allows an unconfirmed request');
+assert.notEqual(helpers.validate(modern,dates.arrival,dates.departure,3),'','confirmed capacity is enforced');
+assert.equal(helpers.compareNightly(modern,{price:250000,currency:'UZS'},'asc'),1,'USD total is never compared to a UZS nightly rate');
+const originalSource=modern.quote.sourceUrl;
+const sourceLink=helpers.sourceLink(modern,'2026-11-01','2026-11-04',1);
+assert.match(sourceLink,/check_in=2026-11-01.*check_out=2026-11-04.*adults=1/);
+assert.equal(modern.quote.sourceUrl,originalSource,'current source links must not alter the historical quote');
+console.log('PASS concierge behavior and dated quote semantics; rental pricing, capacity and source-link guards');

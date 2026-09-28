@@ -7,7 +7,13 @@
     {id:'Bukhara',ru:'Бухара',en:'Bukhara'},
     {id:'Khiva',ru:'Хива',en:'Khiva'}
   ];
-  const featuredStay = () => (catalog().listings || catalog().stays || [])[0];
+  const catalogStays = () => catalog().listings || catalog().stays || (typeof stays !== 'undefined' ? stays : []);
+  const photoOf = stay => {
+    if (typeof stay?.photo === 'string' && stay.photo) return stay.photo;
+    const first = stay?.photos?.[0];
+    return typeof first === 'string' ? first : (typeof first?.src === 'string' ? first.src : '');
+  };
+  const featuredStay = () => catalogStays().find(stay => stay.ownerConfirmed && photoOf(stay)) || catalogStays().find(stay => photoOf(stay)) || catalogStays()[0];
   const cityName = id => {
     const destination = destinationCities().find(item => item.id === id);
     return destination ? tr(destination.ru, destination.en) : id;
@@ -47,18 +53,20 @@
     const featured = featuredStay();
     const featuredCity = cityName(featured?.city || 'Tashkent');
     const apartment = $('heroApartment');
-    const apartmentPhoto = typeof featured?.photo === 'string' ? featured.photo : '';
+    const apartmentPhoto = photoOf(featured);
+    const apartmentName = (lang === 'en' ? featured?.en || featured?.ru : featured?.ru || featured?.en) || featured?.building || tr('Апартаменты', 'Apartments');
     if (apartmentPhoto && apartment.getAttribute('src') !== apartmentPhoto) apartment.src = apartmentPhoto;
     if (!apartmentPhoto) apartment.removeAttribute('src');
     apartment.hidden = !apartmentPhoto;
-    apartment.alt = featured ? tr('Апартаменты ', 'Apartment at ') + (featured.building || featured.ru || featured.en || '') + ' · ' + featuredCity : '';
+    apartment.alt = featured ? apartmentName + ' · ' + featuredCity : '';
     visual.classList.toggle('hero-visual-empty', !apartmentPhoto);
     $('eyebrow').textContent = tr('БЛИЖЕ К УЗБЕКИСТАНУ', 'MAKE YOURSELF AT HOME IN UZBEKISTAN');
     $('headline').textContent = tr('Почувствуй\nУзбекистан.', 'Feel\nUzbekistan.');
     $('subhead').textContent = tr('Ташкент — Самарканд — Бухара — Хива. Апартаменты и забота о каждой детали поездки.', 'Tashkent — Samarkand — Bukhara — Khiva. Apartments and thoughtful extras for your journey.');
     $('heroSticker').textContent = tr('Твоё место здесь', 'Your place is here');
     $('heroLocationLabel').textContent = tr('АПАРТАМЕНТЫ ДЛЯ ВАШЕЙ ПОЕЗДКИ', 'A PLACE TO FEEL AT HOME');
-    $('heroLocationTitle').textContent = (featured?.building || 'U Tower') + ' · ' + featuredCity;
+    const apartmentCaption = apartmentName.toLocaleLowerCase().includes(featuredCity.toLocaleLowerCase()) ? apartmentName : apartmentName + ' · ' + featuredCity;
+    $('heroLocationTitle').textContent = apartmentCaption;
     $('heroExplore').setAttribute('aria-label', tr('Смотреть апартаменты: ', 'Explore apartments: ') + featuredCity);
     $('searchButton').textContent = tr('Найти жильё', 'Find a stay');
     summary.textContent = tr('Фильтры жилья · цена, тип, Wi-Fi', 'Stay filters · price, type, Wi-Fi');
@@ -66,7 +74,7 @@
     $('tripTitle').textContent = tr('Планы, которые\nвдохновляют.', 'Plans to look\nforward to.');
     $('tripCopy').textContent = tr('Жильё, трансфер и приятные мелочи — собери свою поездку.', 'A stay, a ride and your favourite extras. Bring your trip together.');
     $('viewTrip').textContent = tr('Все поездки и услуги', 'All trips and extras');
-    $('footerText').textContent = tr('Путешествия по Узбекистану · 1.5-demo', 'Travel across Uzbekistan · 1.5-demo');
+    $('footerText').textContent = tr('Путешествия по Узбекистану · 1.6-demo', 'Travel across Uzbekistan · 1.6-demo');
     destinations.replaceChildren(...destinationCities().map(({id,ru,en})=>{
       const button = document.createElement('button');
       button.type = 'button'; button.textContent = tr(ru,en) + ' ↗';
