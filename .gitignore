@@ -1,0 +1,9 @@
+# Local credentials and hosting metadata
+.env
+.env.*
+**/.env
+**/.env.*
+**/.openai/
+
+# Preserved nested repository history
+.vertex-git-backup/
