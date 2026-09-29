@@ -1,0 +1,42 @@
+name: Vertex JARVIS CI
+
+on:
+  push:
+    branches:
+      - vertex-jarvis-foundation
+    paths:
+      - "vertex-jarvis/**"
+      - ".github/workflows/vertex-jarvis-ci.yml"
+  pull_request:
+    paths:
+      - "vertex-jarvis/**"
+      - ".github/workflows/vertex-jarvis-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate JARVIS Worker bundle
+        run: pnpm exec wrangler deploy --dry-run --config vertex-jarvis/wrangler.jsonc
+
+      - name: Static safety checks
+        run: node vertex-jarvis/scripts/check-safety.mjs
