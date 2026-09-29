@@ -1,6 +1,7 @@
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "vertex-jarvis",
+  "account_id": "b3aa874550f12baee308e3e7b4dba309",
   "main": "src/index.ts",
   "compatibility_date": "2026-09-29",
   "workers_dev": true,
@@ -22,5 +23,8 @@
       "tag": "v1",
       "new_sqlite_classes": ["JarvisState"]
     }
-  ]
+  ],
+  "observability": {
+    "enabled": true
+  }
 }
