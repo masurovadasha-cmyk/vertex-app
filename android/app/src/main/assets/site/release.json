@@ -1,9 +1,8 @@
 {
-  "version": "1.10-demo",
+  "version": "1.11-demo",
   "date": "2026-09-29",
   "mode": "local-demo",
   "features": [
-    "Verified owner photos and dated Airbnb quotes",
     "UZ catalog",
     "guest-team tasks",
     "travel packages",
@@ -26,7 +25,14 @@
     "payments and tax settings UI",
     "raised mobile profile navigation",
     "profile menu routes to working modules",
-    "dialog style reset"
+    "dialog style reset",
+    "Vertex Views host console",
+    "host analytics",
+    "host messages",
+    "listing editor",
+    "host calendar",
+    "house rules editor",
+    "Views-branded property sources"
   ],
   "boundaries": [
     "No real payments or payouts",
