@@ -9,7 +9,7 @@ const web=path.join(root,'vertex/dist');
 const android=path.join(root,'android/app/src/main/assets/site');
 const release=JSON.parse(fs.readFileSync(path.join(web,'release.json'),'utf8'));
 
-assert.equal(release.version,'1.10-demo');
+assert.equal(release.version,'1.11-demo');
 assert.equal(release.date,'2026-09-29');
 assert.ok(Array.isArray(release.boundaries)&&release.boundaries.length>=5);
 assert.ok(release.features.includes('property discussions'));
@@ -24,14 +24,17 @@ assert.ok(release.features.includes('internal property request actions'));
 assert.ok(release.features.includes('raised mobile navigation'));
 assert.ok(release.features.includes('profile menu routes to working modules'));
 assert.ok(release.features.includes('dialog style reset'));
+assert.ok(release.features.includes('Vertex Views host console'));
+assert.ok(release.features.includes('host analytics'));
+assert.ok(release.features.includes('listing editor'));
 
 const gradle=fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8');
 assert.match(gradle,/versionCode\s+15\b/);
 assert.match(gradle,/versionName\s+'1\.10-demo'/);
 
 const index=fs.readFileSync(path.join(web,'index.html'),'utf8');
-assert.match(index,/<title>Vertex 1\.10/);
-for(const required of ['views-catalog.js','app.js','mobile.js','business.js','rentals.js','concierge-demo.js','group.js','mobility.js','guest-guide.js','profile-menu.js']) assert.ok(index.includes(required),'missing script '+required);
+assert.match(index,/<title>Vertex 1\.11/);
+for(const required of ['views-catalog.js','app.js','mobile.js','business.js','rentals.js','concierge-demo.js','group.js','mobility.js','guest-guide.js','profile-menu.js','host-console.js','host-console-more.js']) assert.ok(index.includes(required),'missing script '+required);
 
 const mobile=fs.readFileSync(path.join(web,'mobile.js'),'utf8');
 assert.doesNotMatch(mobile,/Vertex-Latest\.apk/);
@@ -58,7 +61,7 @@ assert.match(mobile,/profileFavorites/);
 assert.match(mobile,/profileServices/);
 assert.doesNotMatch(mobile,/signed 1\.9 APK is not published|APK 1\.9 не публикуется/i);
 const profileMenu=fs.readFileSync(path.join(web,'profile-menu.js'),'utf8');
-assert.match(profileMenu,/VertexRentals\?\.showHost/);
+assert.match(profileMenu,/VertexHostConsole\?\.open/);
 assert.match(profileMenu,/VertexRentals\?\.createListing/);
 assert.match(profileMenu,/VertexRentals\?\.showOwnerReport/);
 assert.match(profileMenu,/VertexGroup\?\.requests/);
@@ -67,12 +70,18 @@ assert.match(profileMenu,/\['payment-methods','payment-history','payouts','trans
 assert.match(fs.readFileSync(path.join(web,'design.css'),'utf8'),/bottom:calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
 
 const sw=fs.readFileSync(path.join(web,'sw.js'),'utf8');
-assert.match(sw,/vertex-demo-v110-stability/);
+assert.match(sw,/vertex-demo-v111-host-console/);
 assert.doesNotMatch(sw,/bali\.jpg|istanbul\.jpg/i);
 assert.match(sw,/mobility\.js/);
 assert.match(sw,/mobility\.css/);
 assert.match(sw,/guest-guide\.js/);
 assert.match(sw,/guest-guide\.css/);
+assert.match(sw,/host-console\.js/);
+assert.match(sw,/host-console-more\.js/);
+assert.match(sw,/host-console\.css/);
+const hostCore=fs.readFileSync(path.join(web,'host-console.js'),'utf8');
+assert.match(hostCore,/Сегодня/);assert.match(hostCore,/Календарь/);assert.match(hostCore,/Объявления/);assert.match(hostCore,/Сообщения/);assert.match(hostCore,/Меню/);
+const hostMore=fs.readFileSync(path.join(web,'host-console-more.js'),'utf8');assert.match(hostMore,/Аналитика/);assert.match(hostMore,/Правила дома/);assert.match(hostMore,/Редактор объявления/);
 for(const stale of ['bali.jpg','istanbul.jpg']) {
   assert.equal(fs.existsSync(path.join(web,stale)),false);
   assert.equal(fs.existsSync(path.join(android,stale)),false);
@@ -101,4 +110,4 @@ for(const name of fs.readdirSync(web)){
 const androidRelease=JSON.parse(fs.readFileSync(path.join(android,'release.json'),'utf8'));
 assert.equal(androidRelease.version,release.version);
 
-console.log('PASS Vertex 1.10 release semantics, Uzbekistan catalog, demo boundaries, owner dashboard and discussions');
+console.log('PASS Vertex 1.11 release semantics, Uzbekistan catalog, demo boundaries, owner dashboard and discussions');
