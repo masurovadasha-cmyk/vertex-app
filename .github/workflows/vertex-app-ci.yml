@@ -1,0 +1,27 @@
+name: Vertex App CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install
+      - name: Unit and release checks
+        run: npm test
+      - name: Verify Android asset synchronization
+        run: |
+          npm run sync:android
+          git diff --exit-code -- android/app/src/main/assets/site
+      - name: Cloudflare dry run
+        run: npm run check:deploy
