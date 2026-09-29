@@ -1,0 +1,39 @@
+name: Export Vertex 1.9 preview
+
+on:
+  push:
+    branches: [vertex-preview-1.9-20260929]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: dbeb0a75aaa116e4543ccceb72307b921e3b1d9f
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Verify source and build standalone interactive preview
+        run: |
+          npm test
+          node scripts/package-canva.cjs
+          mkdir -p artifacts/preview/site
+          cp -R vertex/dist/. artifacts/preview/site/
+          cp artifacts/Vertex-Canva-Latest.html artifacts/preview/Vertex-1.9-Interactive.html
+          cp RELEASE-1.9.md VERTEX-TASKS-2026-09-29.md artifacts/preview/
+          printf 'Source: masurovadasha-cmyk/vertex-app\nCommit: dbeb0a75aaa116e4543ccceb72307b921e3b1d9f\nMode: local demo; no hosting deployment performed\n' > artifacts/preview/PROVENANCE.txt
+          cd artifacts/preview
+          find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Vertex-1.9-Preview-dbеб0a75
+          path: artifacts/preview/
+          retention-days: 7
+          if-no-files-found: error
