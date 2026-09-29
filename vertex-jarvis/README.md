@@ -6,15 +6,16 @@ This folder is intentionally isolated from the public Vertex App UI. It is a pro
 
 ## Design principles
 
-- **Principals:** only the two configured owner identities may issue strategic commands.
+- **Principals:** only the two separately authenticated owner identities may issue strategic commands.
 - **Wide autonomy, bounded authority:** routine operations may be automated; legal, banking, employment, ownership, tax filing, debt, and high-value commitments require human approval.
 - **No secrets in Git:** API keys, bank credentials, passkeys, EDS/private signing keys, and owner tokens are never committed.
-- **Law-aware:** legal/tax questions force live-source research and should prioritize official Uzbek sources.
-- **Auditable:** every command, model response, approval, and future external action is logged.
+- **Law-aware:** legal/tax questions force live-source research and restrict search to official Uzbekistan government/legal domains.
+- **Auditable:** every command, model response, source set, approval, kill-switch change, and future external action is logged.
 - **Fail-safe:** if authorization, confidence, data quality, or policy checks fail, JARVIS switches to recommendation-only mode.
-- **Model-portable:** model choice is environment-configurable.
+- **Model router:** Astra for strategic/high-risk work, Sol for normal management, Luna for routine high-volume operations.
+- **Kill switch:** either principal can stop external execution immediately while leaving analysis available.
 
-## Initial runtime
+## Runtime
 
 Cloudflare Worker + Durable Object state + OpenAI Responses API.
 
@@ -23,19 +24,32 @@ Endpoints:
 - `GET /v1/status`
 - `POST /v1/commands`
 - `POST /v1/approvals`
+- `GET /v1/kill-switch`
+- `POST /v1/kill-switch`
 
-The initial build does **not** execute bank transfers, sign documents, terminate staff, submit tax returns, or mutate third-party systems. It prepares and audits decisions so connectors can be added one by one behind approval policies.
+## Authentication
 
-## Local / Cloudflare setup
+Bootstrap authentication uses separate Cloudflare secrets:
+- `JARVIS_FIRDAUS_TOKEN`
+- `JARVIS_DARYA_TOKEN`
 
-1. Create a separate Cloudflare Worker named `vertex-jarvis`.
-2. Add the secrets:
-   - `OPENAI_API_KEY`
-   - `JARVIS_OWNER_TOKEN`
-3. Optional vars:
-   - `OPENAI_MODEL` (default in code: `gpt-6-astra`)
-   - `JARVIS_ENV` = `dev|staging|production`
-4. Deploy with:
-   `npx wrangler deploy --config vertex-jarvis/wrangler.jsonc`
+The API derives the principal identity from the bearer token. A caller cannot simply claim to be the other principal in request JSON.
 
-See `SECURITY.md`, `ARCHITECTURE.md`, and `cloudflare/DEPLOY.md` before production use.
+Production should later move to passkeys / an identity provider while preserving separate principals and revocation.
+
+## Model routing
+
+Defaults:
+- `gpt-6-astra` — strategic, legal, red-zone, difficult finance
+- `gpt-6-sol` — normal operational management
+- `gpt-6-luna` — routine, high-volume green-zone work
+
+All are configurable through Worker variables.
+
+## Current execution boundary
+
+The MVP can think, research, route work, produce recommendations, record approvals, expose sources, and maintain state.
+
+It does **not** yet perform bank transfers, sign documents, terminate staff, submit tax returns, or mutate third-party systems. Each connector will be added behind a policy adapter so permissions stay explicit and auditable.
+
+See `SECURITY.md`, `ARCHITECTURE.md`, `MODEL-ROUTING.md`, and `cloudflare/DEPLOY.md`.
