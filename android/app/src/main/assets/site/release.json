@@ -1,5 +1,5 @@
 {
-  "version": "1.6-demo",
+  "version": "1.7-demo",
   "date": "2026-09-29",
   "mode": "local-demo",
   "features": [
@@ -9,7 +9,16 @@
     "travel packages",
     "CRM",
     "rental calendar",
+    "property discussions",
+    "owner operations dashboard",
     "RU/EN",
     "voice concierge"
+  ],
+  "boundaries": [
+    "No real payments or payouts",
+    "No OpenAI/LLM connection",
+    "No OTA/channel synchronization",
+    "No cross-device account synchronization",
+    "Owner/staff roles are demonstrational and not authentication"
   ]
 }
