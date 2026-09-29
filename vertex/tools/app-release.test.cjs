@@ -20,6 +20,8 @@ assert.ok(release.features.includes('payment preference selector'));
 assert.ok(release.features.includes('guest guide'));
 assert.ok(release.features.includes('check-in and house rules'));
 assert.ok(release.features.includes('guest service shortcuts'));
+assert.ok(release.features.includes('internal property request actions'));
+assert.ok(release.features.includes('raised mobile navigation'));
 
 const gradle=fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8');
 assert.match(gradle,/versionCode\s+13\b/);
@@ -54,7 +56,7 @@ assert.match(mobile,/profileServices/);
 assert.match(fs.readFileSync(path.join(web,'design.css'),'utf8'),/bottom:calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
 
 const sw=fs.readFileSync(path.join(web,'sw.js'),'utf8');
-assert.match(sw,/vertex-demo-v19/);
+assert.match(sw,/vertex-demo-v19-internal-actions/);
 assert.doesNotMatch(sw,/bali\.jpg|istanbul\.jpg/i);
 assert.match(sw,/mobility\.js/);
 assert.match(sw,/mobility\.css/);
