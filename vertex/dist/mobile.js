@@ -36,7 +36,7 @@ function bottomNavigation() {
     activeTab=b.dataset.tab;bottomNavigation();
     if(activeTab==='trips')return window.VertexRentals ? window.VertexRentals.showTrips() : showCart();
     if(activeTab==='explore')return showMap();
-    if(activeTab==='profile')return showProfile();
+    if(activeTab==='profile')return window.VertexProfileMenu ? window.VertexProfileMenu.menu() : showProfile();
     category=activeTab==='services'?'all':'stays';render();
     $('sectionHeading').scrollIntoView({behavior:'smooth',block:'start'});
   });

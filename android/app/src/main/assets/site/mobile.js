@@ -36,7 +36,7 @@ function bottomNavigation() {
     activeTab=b.dataset.tab;bottomNavigation();
     if(activeTab==='trips')return window.VertexRentals ? window.VertexRentals.showTrips() : showCart();
     if(activeTab==='explore')return showMap();
-    if(activeTab==='profile')return showProfile();
+    if(activeTab==='profile')return window.VertexProfileMenu ? window.VertexProfileMenu.menu() : showProfile();
     category=activeTab==='services'?'all':'stays';render();
     $('sectionHeading').scrollIntoView({behavior:'smooth',block:'start'});
   });
@@ -77,7 +77,7 @@ function showProfile(){
   $('profileGuestGuide').onclick=()=>window.VertexGuestGuide?.open();
 }
 async function showInstall(){
-  if(location.hostname==='appassets.androidplatform.net'){modal(tr('Vertex на телефоне','Vertex on your phone'),'<p>'+tr('Приложение уже установлено. Версия 1.9-demo.','The app is already installed. Version 1.9-demo.')+'</p>');return;}
+  if(location.hostname==='appassets.androidplatform.net'){modal(tr('Vertex на телефоне','Vertex on your phone'),'<p>'+tr('Приложение уже установлено. Версия 1.10-demo.','The app is already installed. Version 1.10-demo.')+'</p>');return;}
 
   if(installPrompt){const p=installPrompt;installPrompt=null;await p.prompt();await p.userChoice;return;}
   const installed=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
