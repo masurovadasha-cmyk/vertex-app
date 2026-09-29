@@ -2,6 +2,7 @@ import { DurableObject } from "cloudflare:workers";
 import { AGENTS, chooseAgent, type AgentId } from "./agents";
 import { classifyRisk, needsTwoKey, type RiskTier } from "./policy";
 import { JARVIS_INSTRUCTIONS } from "./prompt";
+import { redactSecrets, sanitizeForAudit } from "./redact";
 
 type PrincipalId = "FIRDAUS" | "DARYA";
 
@@ -311,14 +312,14 @@ export default {
         return json({ error: "secrets are not allowed in JARVIS memory" }, 400);
       }
 
-      const payload = {
+      const payload = sanitizeForAudit({
         key,
         category,
         value: body?.value ?? null,
         sensitivity: body?.sensitivity === "confidential" ? "confidential" : "internal",
         updatedBy: principalId,
         updatedAt: new Date().toISOString()
-      };
+      });
 
       return state.fetch(new Request("https://state/memory", {
         method: "POST",
@@ -358,8 +359,8 @@ export default {
         agentId,
         risk,
         twoKey,
-        command: body.command,
-        recommendation: ai.text,
+        command: redactSecrets(body.command),
+        recommendation: redactSecrets(ai.text),
         sources: ai.sources,
         model: ai.model,
         modelResponseId: ai.rawId,
@@ -378,6 +379,31 @@ export default {
       return json(decision, execution === "approval_required" ? 202 : 200);
     }
 
+    if (url.pathname === "/v1/outcomes" && request.method === "POST") {
+      const body = await request.json<any>();
+      const allowed = new Set(["success", "partial", "failed", "cancelled"]);
+      if (!body?.decisionId || !allowed.has(body?.status)) {
+        return json({ error: "decisionId and valid status are required" }, 400);
+      }
+
+      const outcome = sanitizeForAudit({
+        id: crypto.randomUUID(),
+        createdAt: new Date().toISOString(),
+        decisionId: String(body.decisionId).slice(0, 100),
+        principalId,
+        status: body.status,
+        metrics: body.metrics ?? null,
+        note: typeof body.note === "string" ? body.note.slice(0, 5000) : "",
+        approvedForLearning: body.approvedForLearning === true
+      });
+
+      return state.fetch(new Request("https://state/outcomes", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(outcome)
+      }));
+    }
+
     if (url.pathname === "/v1/approvals" && request.method === "POST") {
       const approval = await request.json<any>();
       if (!approval?.decisionId || typeof approval?.approved !== "boolean") {
@@ -390,7 +416,7 @@ export default {
         decisionId: String(approval.decisionId),
         principalId,
         approved: approval.approved,
-        note: typeof approval.note === "string" ? approval.note.slice(0, 2000) : ""
+        note: typeof approval.note === "string" ? redactSecrets(approval.note.slice(0, 2000)) : ""
       };
 
       const response = await state.fetch(new Request("https://state/approvals", {
@@ -562,6 +588,32 @@ export class JarvisState extends DurableObject<Env> {
       }
 
       return json({ items, approximateCharacters: chars });
+    }
+
+    if (url.pathname === "/outcomes" && request.method === "POST") {
+      const outcome = sanitizeForAudit(await request.json<any>());
+      this.insertEvent("outcome", outcome);
+
+      if (outcome?.approvedForLearning === true && outcome?.decisionId) {
+        this.ctx.storage.sql.exec(
+          "INSERT INTO memory (key, category, value, sensitivity, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?) " +
+          "ON CONFLICT(key) DO UPDATE SET category = excluded.category, value = excluded.value, sensitivity = excluded.sensitivity, updated_by = excluded.updated_by, updated_at = excluded.updated_at",
+          `outcome.${String(outcome.decisionId).slice(0, 100)}`,
+          "decision-outcome",
+          JSON.stringify({
+            decisionId: outcome.decisionId,
+            status: outcome.status,
+            metrics: outcome.metrics ?? null,
+            note: outcome.note ?? "",
+            recordedAt: outcome.createdAt
+          }),
+          "internal",
+          outcome.principalId,
+          outcome.createdAt
+        );
+      }
+
+      return json({ ok: true, outcome });
     }
 
     if (url.pathname === "/approvals" && request.method === "POST") {
