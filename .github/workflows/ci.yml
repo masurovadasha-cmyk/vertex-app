@@ -16,7 +16,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: "npm"
       - run: npm install
       - name: Check Vertex App Worker
         run: npm run check:deploy
