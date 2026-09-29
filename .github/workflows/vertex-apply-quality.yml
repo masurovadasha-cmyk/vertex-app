@@ -1,0 +1,72 @@
+name: Apply and verify Vertex quality revision
+
+on:
+  push:
+    branches: [vertex-quality-20260929]
+    paths: ['.ci/vertex-quality/**', '.github/workflows/vertex-apply-quality.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-vertex-quality
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.repository == 'masurovadasha-cmyk/vertex-app' && github.ref == 'refs/heads/vertex-quality-20260929'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore exact reviewed source with before and after hashes
+        run: python .ci/vertex-quality/apply.py
+      - name: Synchronize Android source assets
+        run: npm run sync:android
+      - name: Install verification dependencies
+        run: |
+          npm install
+          python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3
+          python -m playwright install --with-deps chromium
+      - name: Unit, server, and static release checks
+        run: |
+          mkdir -p artifacts/quality
+          set -o pipefail
+          npm test 2>&1 | tee artifacts/quality/node-tests.log
+      - name: Browser DOM regressions and screenshots
+        run: python scripts/browser-quality.py
+      - name: Cloudflare dry-run without publishing
+        run: |
+          set -o pipefail
+          npm run check:deploy 2>&1 | tee artifacts/quality/cloudflare-dry-run.log
+      - name: Package exact current app for Canva
+        run: |
+          set -o pipefail
+          node scripts/package-canva.cjs 2>&1 | tee artifacts/quality/canva-package.log
+      - name: Commit only verified source to the quality branch
+        run: |
+          git config user.name 'Vertex Quality'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add concierge-server docs/ARCHITECTURE-QUALITY.md package.json scripts/browser-quality.py vertex/dist vertex/tools/concierge-demo.test.cjs vertex/tools/rental-domain.test.cjs android/app/src/main/assets/site
+          git rm -r .ci/vertex-quality
+          git commit -m 'fix: unify host console, validate persisted data, repair calendars and atomic writes'
+          git archive --format=zip HEAD -o artifacts/Vertex-Quality-Source.zip
+          git rev-parse HEAD > artifacts/quality/source-commit.txt
+          sha256sum artifacts/Vertex-Quality-Source.zip artifacts/Vertex-Canva-Latest.html > artifacts/quality/SHA256SUMS.txt
+          git push origin HEAD:vertex-quality-20260929
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vertex-quality-results
+          path: |
+            artifacts/quality/
+            artifacts/Vertex-Canva-Latest.html
+            artifacts/Vertex-Quality-Source.zip
+          retention-days: 14
+          if-no-files-found: error
