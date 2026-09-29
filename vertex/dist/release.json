@@ -35,8 +35,13 @@
     "validated rental storage recovery",
     "editable local demo listings",
     "host analytics",
-    "video-reference host experience",
-    "host earnings summary from local requests"
+    "video-reference host redesign",
+    "booking detail and saved local notes",
+    "message search unread and starred filters",
+    "month and currency demo reports with CSV export",
+    "accessible full-screen host navigation",
+    "functional local accessibility settings",
+    "catalog photo lightbox"
   ],
   "boundaries": [
     "No real payments or payouts",
@@ -47,5 +52,6 @@
     "Only local demo listings are editable; confirmed catalog and photo uploads are read-only",
     "Host messages are local property discussions, not a connected guest inbox"
   ],
-  "revision": "video-ui"
+  "revision": "studio-webfix1",
+  "web_entry": "https://vertex-app.masurovadasha.workers.dev/"
 }

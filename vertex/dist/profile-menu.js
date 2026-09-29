@@ -22,6 +22,8 @@ const gm={privacy:['Конфиденциальность','Privacy','Локал�
 function generic(id,x){const parent=['payment-methods','payment-history','payouts','transactions'].includes(id)?'payments':['privacy','booking','business','access'].includes(id)?'account':'menu';screen(t(x[0],x[1]),back(parent)+'<div class="vx-page-title"><h2>'+t(x[0],x[1])+'</h2><p>'+t(x[2],x[3])+'</p></div><button class="vx-primary" data-safe>'+t('Продолжить внутри Vertex','Continue inside Vertex')+'</button>');}
 function notice(msg){screen('Vertex','<p class="notice">'+msg+'</p>'+row('menu','←','Вернуться в меню','Back to menu'));}
 function open(id){
+  const hostRoutes={menu:'menu',account:'account',profile:'personal',personal:'personal',security:'security',privacy:'privacy',notifications:'notifications',payments:'payments',translate:'language',access:'access',tax:'tax',earnings:'earnings',analytics:'analytics',booking:'permissions',business:'business',company:'company'};
+  if(hostRoutes[id]&&root.VertexHostConsole?.open)return root.VertexHostConsole.open(hostRoutes[id]);
   if(id==='menu')return menu();
   if(id==='account')return account();
   if(id==='profile')return profile();
@@ -38,5 +40,5 @@ function open(id){
   if(id==='help'&&root.VertexGuestGuide?.open)return root.VertexGuestGuide.open();
   return generic(id,gm[id]||['Vertex','Vertex','Раздел готовится.','Section is being prepared.']);
 }
-root.VertexProfileMenu={open,menu};
+root.VertexProfileMenu={open,menu:()=>open('menu')};
 })(typeof window==='undefined'?globalThis:window);

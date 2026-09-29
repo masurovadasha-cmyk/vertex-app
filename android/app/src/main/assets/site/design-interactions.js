@@ -154,7 +154,7 @@
   }
 
   function animate(el, keyframes, options) {
-    if (motion.matches || !el.animate || !el.isConnected) return;
+    if (motion.matches || document.documentElement.classList.contains('vertex-reduce-motion') || !el.animate || !el.isConnected) return;
     runningAnimations.get(el)?.cancel();
     const animation = el.animate(keyframes, {...options, fill:'backwards'});
     runningAnimations.set(el, animation);
@@ -220,7 +220,7 @@
     const y = event.clientY === undefined ? rect.height / 2 : event.clientY - rect.top;
     Object.assign(ripple.style, {position:'absolute', left:`${x-diameter/2}px`, top:`${y-diameter/2}px`, width:`${diameter}px`, height:`${diameter}px`, borderRadius:'50%', background:'currentColor', opacity:'.12', pointerEvents:'none'});
     button.append(ripple);
-    if (ripple.animate) {
+    if (ripple.animate && !motion.matches && !document.documentElement.classList.contains('vertex-reduce-motion')) {
       const wave = ripple.animate([{transform:'scale(0)', opacity:.16}, {transform:'scale(1)', opacity:0}], {duration:420, easing:'cubic-bezier(.16,1,.3,1)'});
       wave.finished.then(() => ripple.remove(), () => ripple.remove());
     } else ripple.remove();
