@@ -31,3 +31,7 @@
 Владелец прислал с телефона снимки Airbnb Firdavsiy / Views Hotel & Apartments и Instagram `@viewshotelandresidences`. Профили: https://www.airbnb.com/users/profile/1768741518707293355 и https://www.instagram.com/viewshotelandresidences/ . Проверенные источники фотографий перечислены в `artifacts/catalog/views-sources.json`, каталог — `vertex/dist/views-catalog.js`.
 
 Цены Airbnb — наблюдённые суммы на конкретные даты и число гостей. Не превращать их в постоянный тариф и не использовать для расчёта другой поездки. Наличие фотографий в Instagram не подтверждает текущую доступность. Название Urban Garden не подтверждает расположение в Gardens Residence; не связывать разные объявления без доказательств.
+
+## Owner update: red web theme and Vertex Taxi (29.09.2026)
+
+The owner rejected the sand-coloured published web app and explicitly requested the red theme and their own taxi service inside Vertex. Keep the current Host Studio features; do not deploy the older conflicting red branch over them. `brand-red.css` is the last palette stylesheet; `studio-theme.css` is layout only. Taxi is a local demonstration, split into pure `taxi-domain.js`, fail-closed `taxi-store.js` and `taxi.js` UI. Only the owner's C16 x2 / C01 x2 fleet is represented. Fare: up to 5 km $5, up to 10 km $10, beyond 10 km $10 + $1.50 per additional km. Do not claim live driver notification, GPS routing, payment or role enforcement until authenticated backend adapters are connected. Never store door codes, real guest addresses or credentials in committed demo fixtures.

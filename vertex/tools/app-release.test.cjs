@@ -70,7 +70,7 @@ assert.match(profileMenu,/\['payment-methods','payment-history','payouts','trans
 assert.match(fs.readFileSync(path.join(web,'design.css'),'utf8'),/bottom:calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
 
 const sw=fs.readFileSync(path.join(web,'sw.js'),'utf8');
-assert.match(sw,/vertex-demo-v112-studio-webfix1/);
+assert.match(sw,/vertex-demo-v112-studio-red-taxi1/);
 assert.doesNotMatch(sw,/bali\.jpg|istanbul\.jpg/i);
 assert.match(sw,/mobility\.js/);
 assert.match(sw,/mobility\.css/);
