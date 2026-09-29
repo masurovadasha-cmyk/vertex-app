@@ -9,6 +9,11 @@ for name,record in changes.items():
     target=root/name
     if target.is_symlink() or not target.resolve().is_relative_to(root): raise RuntimeError('Unsafe path')
     before=target.read_bytes()
+    if name.startswith('.github/workflows/'):
+        # Workflow files are saved explicitly by the authorized GitHub connector.
+        # The Actions token must never create, edit or delete workflow files.
+        if hashlib.sha256(before).hexdigest()!=record['after']: raise RuntimeError('Workflow revision mismatch: '+name)
+        continue
     if hashlib.sha256(before).hexdigest()!=record['before']: raise RuntimeError('Concurrent source change: '+name)
     text=before.decode('utf-8')
     for start,end,value in reversed(record['edits']):

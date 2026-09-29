@@ -38,18 +38,24 @@ jobs:
           python scripts/browser-quality.py 2>&1 | tee artifacts/quality/red-browser-base.log
           python scripts/browser-red.py 2>&1 | tee artifacts/quality/red-browser-extra.log
           npm run check:deploy 2>&1 | tee artifacts/quality/red-cloudflare-dry-run.log
-      - name: Commit only tested source to the isolated branch
+      - name: Record dependency audit without changing versions
+        run: |
+          status=0
+          npm audit --json > artifacts/quality/dependency-audit.json || status=$?
+          echo "$status" > artifacts/quality/dependency-audit-exit-code.txt
+          if [ "$status" -gt 1 ]; then exit "$status"; fi
+      - name: Package and commit tested source without workflow mutations
         run: |
           git config user.name 'Vertex Quality'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add AGENTS.md package.json scripts/browser-red.py vertex/dist vertex/tools/app-release.test.cjs android/app/build.gradle android/app/src/main/assets/site .github/workflows/vertex-app-ci.yml .github/workflows/build-android-apk.yml
-          git rm -r .ci/red .github/workflows/vertex-red-apply.yml
+          git add AGENTS.md package.json scripts/browser-red.py vertex/dist vertex/tools/app-release.test.cjs android/app/build.gradle android/app/src/main/assets/site
+          git rm -r .ci/red
           git commit -m 'feat: apply approved red Canva theme and unify host navigation in Vertex 1.13'
-          git push origin HEAD:vertex-red-canva-20260929
           git archive --format=zip HEAD -o artifacts/Vertex-Red-Source.zip
           git rev-parse HEAD > artifacts/quality/red-source-commit.txt
           node scripts/package-canva.cjs
           sha256sum artifacts/Vertex-Canva-Latest.html artifacts/Vertex-Red-Source.zip > artifacts/quality/red-SHA256SUMS.txt
+          git push origin HEAD:vertex-red-canva-20260929
       - uses: actions/upload-artifact@v4
         if: always()
         with:

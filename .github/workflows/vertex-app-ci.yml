@@ -37,7 +37,9 @@ jobs:
           npm run sync:android
           git diff --exit-code -- android/app/src/main/assets/site
       - name: Browser DOM regressions and screenshots
-        run: python scripts/browser-quality.py
+        run: |
+          python scripts/browser-quality.py
+          python scripts/browser-red.py
       - name: Cloudflare dry run without deployment
         run: |
           set -o pipefail
