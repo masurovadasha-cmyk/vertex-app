@@ -1,0 +1,151 @@
+from pathlib import Path
+import base64, json, re, os, sys, calendar
+from bs4 import BeautifulSoup
+from playwright.sync_api import sync_playwright
+ROOT=Path(__file__).resolve().parents[1]/'vertex/dist'
+OUT=Path(__file__).resolve().parents[1]/'artifacts/quality';OUT.mkdir(parents=True,exist_ok=True)
+def bundle(root,seed=None,fail_write=False):
+    html=(root/'index.html').read_text()
+    soup=BeautifulSoup(html,'html.parser')
+    for tag in soup.find_all('link'):
+        if 'stylesheet' in tag.get('rel',[]):
+            css=(root/tag['href']).read_text()
+            css=re.sub(r'@import[^;]+;', '',css)
+            style=soup.new_tag('style');style.string=css;tag.replace_with(style)
+        else: tag.decompose()
+    def images(text):
+        def replace(m):
+            f=root/m[2]
+            if not f.is_file(): return m[0]
+            mime={'.jpg':'image/jpeg','.png':'image/png','.avif':'image/avif','.svg':'image/svg+xml'}.get(f.suffix,'application/octet-stream')
+            return m[1]+'data:'+mime+';base64,'+base64.b64encode(f.read_bytes()).decode()+m[1]
+        return re.sub(r'''(['"])([a-zA-Z0-9_.-]+\.(?:jpg|png|avif|svg))\1''',replace,text)
+    inject=soup.new_tag('script'); inject.string='''window.__testData=SEED; window.__testFail=FAIL; window.__testStore={getItem(k){return Object.hasOwn(__testData,k)?__testData[k]:null},setItem(k,v){if(window.__testFail) throw new DOMException('Full','QuotaExceededError');__testData[k]=String(v)},removeItem(k){delete __testData[k]}}; if(!crypto.randomUUID)crypto.randomUUID=()=>('test-'+crypto.getRandomValues(new Uint32Array(4)).join('-'));'''.replace('SEED',json.dumps(seed or {},ensure_ascii=False)).replace('FAIL',str(fail_write).lower())
+    soup.head.append(inject)
+    for tag in soup.find_all('script',src=True):
+        js=(root/tag['src']).read_text().replace('navigator.serviceWorker.register(\'./sw.js\')','Promise.resolve(null)').replace('localStorage','window.__testStore')
+        del tag['src'];tag.string=images(js).replace('</script','<\\/script')
+    return str(soup)
+
+def run():
+    checks=[]
+    def check(name,condition):
+        checks.append({'name':name,'pass':bool(condition)})
+        if not condition: raise AssertionError(name)
+    with sync_playwright() as p:
+        executable=os.environ.get('CHROMIUM_PATH','/usr/bin/chromium')
+        launch={'headless':True,'args':['--no-sandbox']}
+        if Path(executable).exists(): launch['executable_path']=executable
+        browser=p.chromium.launch(**launch)
+        def new(seed=None,width=390,timezone='Asia/Tashkent'):
+            page=browser.new_page(viewport={'width':width,'height':844},locale='ru-RU',timezone_id=timezone,reduced_motion='reduce')
+            page.set_default_timeout(6000)
+            errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            page.set_content(bundle(ROOT,seed),wait_until='load')
+            page.wait_for_timeout(100)
+            return page,errors
+        try:
+            page,errors=new()
+            check('all main modules boot without JavaScript errors',not errors and page.evaluate('!!(VertexRentals && VertexHostConsole && VertexGroup)'))
+            page.screenshot(path=str(OUT/'01-home.png'))
+            check('no horizontal overflow on 390px home',page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
+            page.evaluate("VertexHostConsole.open('calendar')")
+            check('one calendar has every day of the current month',page.locator('.cal-day').count()==page.evaluate('new Date(new Date().getFullYear(),new Date().getMonth()+1,0).getDate()'))
+            initial=page.locator('.calendar-month h3').inner_text();page.locator('#nextMonth').click()
+            check('calendar next month is functional',page.locator('.calendar-month h3').inner_text()!=initial)
+            page.locator('#prevMonth').click()
+            check('calendar previous month returns correctly',page.locator('.calendar-month h3').inner_text()==initial)
+            page.locator('#calendarListing').select_option('utower')
+            check('calendar property selector is functional',page.locator('#calendarListing').input_value()=='utower')
+            page.screenshot(path=str(OUT/'03-calendar.png'))
+            page.evaluate("VertexHostConsole.open('today')")
+            check('empty host panel does not invent guests or earnings','Tarkan' not in page.locator('#modalBody').inner_text() and '2 970' not in page.locator('#modalBody').inner_text())
+            page.wait_for_timeout(100)
+            check('host buttons are not decorated twice',page.locator('.vh-shell .vx-icon').count()==0)
+            page.screenshot(path=str(OUT/'02-host.png'))
+            check('host console has an accessible close action',page.locator('.vh-close').is_visible())
+            page.locator('.vh-close').click();check('host close exits dialog',not page.locator('#modal').evaluate('(el)=>el.open'))
+            page.evaluate("VertexHostConsole.open('today');VertexRentals.showTrips()")
+            check('host styles do not leak to trips',not page.locator('#modal').evaluate("el=>el.classList.contains('vh-modal')"))
+            page.evaluate("VertexHostConsole.open('listings')")
+            page.locator('#hostListingSearch').fill('___missing___')
+            check('listing search empty state works',page.locator('#hostSearchEmpty').is_visible() and page.locator('[data-hl]:visible').count()==0)
+            page.locator('#hostListingSearch').fill('')
+            check('clearing search restores listings',page.locator('[data-hl]:visible').count()==page.evaluate('VertexRentals.getSnapshot().properties.length'))
+            page.screenshot(path=str(OUT/'04-properties.png'))
+            page.evaluate('VertexRentals.createListing()')
+            page.locator('#listingForm [name=name]').fill('QA demo apartment')
+            page.locator('#listingForm [name=price]').fill('500000')
+            page.locator('#listingForm [name=host]').fill('QA owner')
+            page.locator('#listingForm [name=description]').fill('Synthetic regression fixture, not a real listing.')
+            page.locator('#listingForm button[type=submit]').click()
+            listing_id=page.evaluate('VertexRentals.getSnapshot().listings[0].id')
+            check('creating a listing updates canonical catalog',page.evaluate('VertexRentals.getSnapshot().listings.length')==1)
+            page.evaluate('id=>VertexRentals.editListing(id)',listing_id)
+            page.locator('#listingForm [name=name]').fill('QA edited apartment')
+            page.locator('#listingForm button[type=submit]').click()
+            check('local listing editor actually saves',page.evaluate('VertexRentals.getSnapshot().listings[0].ru')=='QA edited apartment')
+            page.evaluate('id=>VertexHostConsole.listing(id)',listing_id)
+            page.locator('[data-ha=calendar]').click()
+            check('selected property is preserved into calendar',page.locator('#calendarListing').input_value()==listing_id)
+            future=page.evaluate("(()=>{const date=new Date();date.setDate(date.getDate()+7);return VertexRentalDomain.localDate(date)})()")
+            page.locator('#calendarForm [name=from]').fill(future);page.locator('#calendarForm [name=to]').fill(future)
+            page.locator('#calendarForm [value=block]').click()
+            check('blocking a day updates rental state',page.evaluate('(id)=>VertexRentals.getSnapshot().blocks.some(x=>x.listingId===id)',listing_id))
+            page.evaluate('id=>VertexRentals.showDiscussion(id)',listing_id)
+            page.locator('#discussionForm [name=message]').fill('<img src=x onerror=alert(1)> Literal text')
+            page.locator('#discussionForm button').click()
+            check('message text is escaped, not injected HTML',page.locator('#discussionMessages img').count()==0 and '<img' in page.locator('#discussionMessages').inner_text())
+            page.evaluate("VertexHostConsole.open('messages')")
+            check('host messages derive from real local discussions',page.locator('[data-thread]').count()==1)
+            page.locator('[data-thread]').click()
+            check('message route keeps the correct property','QA edited apartment' in page.locator('#modalBody').inner_text())
+            before=page.evaluate('JSON.stringify(VertexRentals.getSnapshot().threads)')
+            page.evaluate('window.__testFail=true')
+            page.locator('#discussionForm [name=message]').fill('Must not be saved')
+            page.locator('#discussionForm button').click()
+            check('message write failure rolls back the full thread',page.evaluate('JSON.stringify(VertexRentals.getSnapshot().threads)')==before)
+            page.evaluate('window.__testFail=false;VertexGroup.request("cleaning")')
+            page.locator('#groupNote').fill('Must not create phantom task')
+            page.evaluate('window.__testFail=true');page.locator('#groupRequestForm button').click()
+            check('service write failure rolls back and warns',page.locator('.group-list .group-card').count()==0 and page.locator('#modalBody [role=alert]').count()==1)
+            page.evaluate('window.__testFail=false;document.querySelector("#modal").close()')
+            check('no JavaScript errors during mutations',not errors)
+            page.close()
+            for width in [320,390,768,1440]:
+                page,errors=new(width=width)
+                check(f'home width {width}px has no horizontal overflow',page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
+                page.evaluate("VertexHostConsole.open('listings')")
+                check(f'host width {width}px has no horizontal overflow',page.locator('#modal').evaluate('el=>el.scrollWidth<=el.clientWidth+1'))
+                if width==1440:page.screenshot(path=str(OUT/'05-desktop.png'))
+                check(f'no startup errors at {width}px',not errors);page.close()
+            for bad_key in ['listings','bookings','blocks','threads']:
+                value={'listings':[],'bookings':[],'favorites':[],'blocks':[],'threads':[]};value[bad_key]=[None]
+                original=json.dumps(value)
+                page,errors=new({'vertex-rentals-v1':original})
+                check('corrupt '+bad_key+' does not crash rental module',not errors and page.evaluate('!!VertexRentals'))
+                check('corrupt '+bad_key+' is not overwritten on load',page.evaluate('__testStore.getItem("vertex-rentals-v1")')==original)
+                check('corrupt '+bad_key+' recovery is visible',page.locator('#rentalRecovery').count()==1)
+                page.close()
+            page,errors=new({'vertex-rentals-v1':'{broken json'})
+            check('invalid JSON recovers without crashing',not errors and page.evaluate('!!VertexRentals'))
+            page.close()
+            page,errors=new({'vertex-crm-v1':json.dumps([{'id':'qa-client','name':'QA client','city':'Tashkent','messages':[None],'calls':[None]}])})
+            page.locator('[data-open=chat]').click();page.locator('#bizBody [data-client]').click()
+            check('CRM malformed messages cannot crash conversation',not errors and page.locator('#messageForm').count()==1)
+            page.locator('#businessDialog [data-screen=calls]').click();page.locator('#bizBody [data-client]').click()
+            check('CRM malformed calls cannot crash call history',not errors and page.locator('#demoCall').count()==1)
+            page.close()
+            page,errors=new(timezone='America/New_York')
+            page.evaluate('VertexGroup.builder()')
+            start=page.evaluate('VertexRentalDomain.localDate(new Date())')
+            end=page.evaluate('(()=>{const d=new Date();d.setDate(d.getDate()+1);return VertexRentalDomain.localDate(d)})()')
+            page.locator('#groupStart').fill(start);page.locator('#groupEnd').fill(end);page.locator('[name=groupOption][value=transfer]').check()
+            check('same-day package accepted west of UTC','Итого:' in page.locator('#groupQuote').inner_text())
+            check('timezone test has no JS errors',not errors);page.close()
+        finally:
+            browser.close()
+            (OUT/'browser-tests.json').write_text(json.dumps({'mode':'isolated DOM with explicit in-memory storage test double, not deployed-site verification','checks':checks},ensure_ascii=False,indent=2))
+    print(f'PASS {len(checks)} browser assertions; screenshots in {OUT}')
+if __name__=='__main__':
+    run()

@@ -1,3 +1,4 @@
+import {createAtomicStore} from './atomic-store.mjs';
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -9,15 +10,15 @@ const host=process.env.HOST||'127.0.0.1', port=Number(process.env.PORT||8787);
 const origin=process.env.PUBLIC_ORIGIN||`http://${host}:${port}`;
 const secure=origin.startsWith('https:');
 const password=process.env.OPERATOR_PASSWORD||'';
-if(password.length<16||password==='replace-with-a-unique-long-password')throw Error('Set a unique OPERATOR_PASSWORD with at least 16 characters.');
+if(password.length<16||password.length>256||password==='replace-with-a-unique-long-password')throw Error('Set a unique OPERATOR_PASSWORD with 16 to 256 characters.');
 const passwordHash=scryptSync(password,'vertex-operator-v1',32);
 const directory=path.resolve(root,process.env.DATA_DIR||'.data');
 await fs.mkdir(directory,{recursive:true,mode:0o700});
 const statePath=path.join(directory,'state.json');
 let state={rooms:[]};
 try{state=JSON.parse(await fs.readFile(statePath,'utf8'));if(!Array.isArray(state.rooms))throw Error('Invalid state');}catch(e){if(e.code!=='ENOENT')throw e;}
-let writing=Promise.resolve();
-function save(){const json=JSON.stringify(state);writing=writing.then(async()=>{await fs.writeFile(statePath+'.tmp',json,{mode:0o600});await fs.rename(statePath+'.tmp',statePath);});return writing;}
+const store=createAtomicStore({initial:state,file:statePath});
+async function transact(mutator){const result=await store.transact(mutator);state=store.read();return result;}
 const sessions=new Map(),streams=new Set(),attempts=new Map();
 const token=()=>randomBytes(32).toString('base64url');
 const digest=s=>createHash('sha256').update(s).digest('hex');
@@ -25,10 +26,11 @@ function session(req){const match=(req.headers.cookie||'').match(/(?:^|;\s*)vert
 function setSession(res,role,room){const raw=token();const s={id:token(),role,room,expires:Date.now()+12*3600000};sessions.set(digest(raw),s);res.setHeader('Set-Cookie',`vertex_session=${raw}; HttpOnly; SameSite=Strict; Path=/; Max-Age=43200${secure?'; Secure':''}`);return s;}
 function json(res,status,data){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));}
 function fail(status,message){const e=Error(message);e.status=status;throw e;}
-async function body(req){let size=0,chunks=[];for await(const c of req){size+=c.length;if(size>32768)fail(413,'Request too large');chunks.push(c);}try{return JSON.parse(Buffer.concat(chunks).toString()||'{}');}catch{fail(400,'Invalid JSON');}}
+async function body(req){let size=0,chunks=[];for await(const c of req){size+=c.length;if(size>32768)fail(413,'Request too large');chunks.push(c);}try{const value=JSON.parse(Buffer.concat(chunks).toString()||'{}');if(!value||typeof value!=='object'||Array.isArray(value))fail(400,'JSON object required');return value;}catch{fail(400,'Invalid JSON object');}}
 const text=(value,max=2000)=>typeof value==='string'?value.trim().slice(0,max):'';
-function roomFor(id,s){const room=state.rooms.find(r=>r.id===id);if(!room||s.role==='guest'&&s.room!==id)fail(404,'Room not found');if(room.status!=='ready'||Date.parse(room.expires)<=Date.now())fail(410,'Guest access expired');return room;}
-function notify(room,event,exclude){for(const stream of streams){if(stream.s.id===exclude)continue;if(stream.s.role==='operator'||stream.s.room===room)stream.res.write(`data: ${JSON.stringify({room,...event})}\n\n`);}}
+function roomFor(id,s,source=state){const room=source.rooms.find(r=>r.id===id);if(!room||s.role==='guest'&&s.room!==id)fail(404,'Room not found');if(room.status!=='ready'||Date.parse(room.expires)<=Date.now())fail(410,'Guest access expired');return room;}
+function liveSession(s){return s.expires>Date.now()&&[...sessions.values()].some(value=>value.id===s.id)&&(s.role==='operator'||state.rooms.some(room=>room.id===s.room&&room.status==='ready'&&Date.parse(room.expires)>Date.now()));}
+function notify(room,event,exclude){for(const stream of streams){if(!liveSession(stream.s)){stream.res.end();continue;}if(stream.s.id===exclude)continue;if(stream.s.role==='operator'||stream.s.room===room)stream.res.write(`data: ${JSON.stringify({room,...event})}\n\n`);}}
 function view(room){return {id:room.id,guest:room.guest,title:room.title,status:room.status,expires:room.expires,info:room.info,messages:room.messages};}
 const api=http.createServer(async(req,res)=>{
   res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('Referrer-Policy','no-referrer');res.setHeader('X-Frame-Options','DENY');
@@ -41,7 +43,7 @@ const api=http.createServer(async(req,res)=>{
     if(req.method==='POST'&&(route==='/api/login'||route==='/api/guest-login')){
       const ip=req.socket.remoteAddress;let counter=attempts.get(ip);if(!counter||counter.until<Date.now()){counter={count:0,until:Date.now()+15*60000};attempts.set(ip,counter);}if(++counter.count>15)fail(429,'Too many attempts; try later');
       const b=await body(req);
-      if(route==='/api/login'){if(!timingSafeEqual(scryptSync(text(b.password,256),'vertex-operator-v1',32),passwordHash))fail(401,'Invalid credentials');setSession(res,'operator');}
+      if(route==='/api/login'){if(!timingSafeEqual(scryptSync(typeof b.password==='string'&&b.password.length<=256?b.password:'','vertex-operator-v1',32),passwordHash))fail(401,'Invalid credentials');setSession(res,'operator');}
       else{const room=state.rooms.find(r=>r.inviteHash===digest(text(b.token,100))&&r.status==='ready'&&Date.parse(r.expires)>Date.now());if(!room)fail(401,'Invalid or expired invitation');setSession(res,'guest',room.id);}
       json(res,200,{ok:true});return;
     }
@@ -54,14 +56,14 @@ const api=http.createServer(async(req,res)=>{
     if(req.method==='GET'&&route==='/api/rooms'){json(res,200,{rooms:state.rooms.filter(r=>s.role==='operator'||r.id===s.room).map(r=>({id:r.id,guest:r.guest,title:r.title,status:r.status,expires:r.expires}))});return;}
     if(req.method==='POST'&&route==='/api/rooms'){
       if(s.role!=='operator')fail(403,'Operator only');const b=await body(req);const guest=text(b.guest,100),title=text(b.title,120),expires=text(b.expires,40);if(!guest||!title||!Number.isFinite(Date.parse(expires))||Date.parse(expires)<=Date.now())fail(400,'Guest, apartment and future expiry are required');
-      const invite=token();const room={id:token().slice(0,16),guest,title,expires,status:'ready',inviteHash:digest(invite),info:{address:text(b.address,300),floor:text(b.floor,20),apartment:text(b.apartment,30),doorCode:text(b.doorCode,100),wifiName:text(b.wifiName,100),wifiPassword:text(b.wifiPassword,100),instructions:text(b.instructions,4000),phone:text(b.phone,100)},messages:[{id:token().slice(0,12),side:'system',text:'Здравствуйте! Апартаменты готовы. Памятка заселения доступна в разделе «Данные проживания». По вопросам напишите консьержу.',at:new Date().toISOString()}]};state.rooms.push(room);await save();notify(room.id,{type:'rooms'});json(res,201,{room:view(room),inviteUrl:origin+'/#invite='+invite});return;
+      const invite=token();const room={id:token().slice(0,16),guest,title,expires,status:'ready',inviteHash:digest(invite),info:{address:text(b.address,300),floor:text(b.floor,20),apartment:text(b.apartment,30),doorCode:text(b.doorCode,100),wifiName:text(b.wifiName,100),wifiPassword:text(b.wifiPassword,100),instructions:text(b.instructions,4000),phone:text(b.phone,100)},messages:[{id:token().slice(0,12),side:'system',text:'Здравствуйте! Апартаменты готовы. Памятка заселения доступна в разделе «Данные проживания». По вопросам напишите консьержу.',at:new Date().toISOString()}]};await transact(draft=>{draft.rooms.push(room);});notify(room.id,{type:'rooms'});json(res,201,{room:view(room),inviteUrl:origin+'/#invite='+invite});return;
     }
     const match=route.match(/^\/api\/rooms\/([A-Za-z0-9_-]+)(?:\/(messages|signal|revoke))?$/);
     if(match){const room=roomFor(match[1],s),action=match[2];
       if(req.method==='GET'&&!action){json(res,200,{room:view(room)});return;}
-      if(req.method==='POST'&&action==='messages'){const b=await body(req),message=text(b.text,2000);if(!message)fail(400,'Empty message');if(room.messages.length>=5000)fail(409,'Conversation limit reached');room.messages.push({id:token().slice(0,12),side:s.role,text:message,at:new Date().toISOString()});await save();notify(room.id,{type:'message'});json(res,201,{ok:true});return;}
-      if(req.method==='POST'&&action==='revoke'){if(s.role!=='operator')fail(403,'Operator only');room.status='revoked';await save();notify(room.id,{type:'revoked'});for(const stream of streams)if(stream.s.room===room.id)stream.res.end();json(res,200,{ok:true});return;}
-      if(req.method==='POST'&&action==='signal'){const b=await body(req);if(!['offer','answer','ice','hangup','decline'].includes(b.type))fail(400,'Invalid signal');const listeners=[...streams].filter(x=>x.s.id!==s.id&&(s.role==='guest'?x.s.role==='operator':x.s.role==='guest'&&x.s.room===room.id));for(const target of listeners)target.res.write(`data: ${JSON.stringify({type:'signal',room:room.id,signal:b,from:s.role})}\n\n`);json(res,200,{online:listeners.length>0});return;}
+      if(req.method==='POST'&&action==='messages'){const b=await body(req),message=text(b.text,2000);if(!message)fail(400,'Empty message');await transact(draft=>{const current=roomFor(room.id,s,draft);if(current.messages.length>=5000)fail(409,'Conversation limit reached');current.messages.push({id:token().slice(0,12),side:s.role,text:message,at:new Date().toISOString()});});notify(room.id,{type:'message'});json(res,201,{ok:true});return;}
+      if(req.method==='POST'&&action==='revoke'){if(s.role!=='operator')fail(403,'Operator only');await transact(draft=>{roomFor(room.id,s,draft).status='revoked';});notify(room.id,{type:'revoked'});for(const stream of streams)if(stream.s.room===room.id)stream.res.end();json(res,200,{ok:true});return;}
+      if(req.method==='POST'&&action==='signal'){const b=await body(req);if(!['offer','answer','ice','hangup','decline'].includes(b.type))fail(400,'Invalid signal');const listeners=[...streams].filter(x=>liveSession(x.s)&&x.s.id!==s.id&&(s.role==='guest'?x.s.role==='operator':x.s.role==='guest'&&x.s.room===room.id));for(const target of listeners)target.res.write(`data: ${JSON.stringify({type:'signal',room:room.id,signal:b,from:s.role})}\n\n`);json(res,200,{online:listeners.length>0});return;}
     }
     if(req.method==='GET'&&route==='/api/ice'){const servers=[];if(process.env.TURN_URL&&process.env.TURN_USERNAME&&process.env.TURN_PASSWORD)servers.push({urls:process.env.TURN_URL,username:process.env.TURN_USERNAME,credential:process.env.TURN_PASSWORD});json(res,200,{iceServers:servers,turnConfigured:servers.length>0});return;}
     fail(404,'Not found');

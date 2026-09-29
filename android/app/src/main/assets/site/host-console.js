@@ -1,16 +1,75 @@
-(function(w){'use strict';if(!w.document)return;
-const T=(r,e)=>document.documentElement.lang==='en'?e:r,E=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),S=()=>w.VertexOwnedStays||[],N=x=>document.documentElement.lang==='en'?x.en:x.ru,P=x=>(x.photos||[])[0]||x.photo||'';
-let st={tab:'today',id:null};try{st={...st,...JSON.parse(localStorage.getItem('vertex-host-v1')||'{}')}}catch{}const save=()=>{try{localStorage.setItem('vertex-host-v1',JSON.stringify(st))}catch{}};
-const row=(id,ic,l)=>'<button class="vh-row" data-ha="'+id+'"><span>'+ic+'</span><strong>'+l+'</strong><b>›</b></button>';
-const head=(a,b='')=>'<header class="vh-head"><div><small>VERTEX · VIEWS</small><h2>'+a+'</h2><p>'+b+'</p></div><button class="vh-avatar" data-ha="profile">F</button></header>';
-function shell(html,tab=st.tab){st.tab=tab;save();modal('Vertex · Views','<div class="vh-shell"><main>'+html+'</main><nav class="vh-nav">'+[['today','⌑','Сегодня','Today'],['calendar','▦','Календарь','Calendar'],['listings','▣','Объявления','Listings'],['messages','□','Сообщения','Messages'],['menu','☰','Меню','Menu']].map(x=>'<button data-ht="'+x[0]+'" '+(tab===x[0]?'aria-current="page"':'')+'><span>'+x[1]+'</span><small>'+T(x[2],x[3])+'</small></button>').join('')+'</nav></div>');$('modal').classList.add('vh-modal');bind()}
-function bind(){document.querySelectorAll('[data-ht]').forEach(b=>b.onclick=()=>open(b.dataset.ht));document.querySelectorAll('[data-ha]').forEach(b=>b.onclick=()=>act(b.dataset.ha));document.querySelectorAll('[data-hl]').forEach(b=>b.onclick=()=>listing(b.dataset.hl))}
-function today(){shell(head(T('Сегодня','Today'),T('Управление гостями и объектами','Guests and properties at a glance'))+'<div class="vh-kpis"><article><span>'+T('Бронирования','Bookings')+'</span><strong>2</strong><small>'+T('сегодня и предстоящие','today & upcoming')+'</small></article><article><span>'+T('Ответы','Responses')+'</span><strong>100%</strong><small>'+T('оперативность','response rate')+'</small></article></div><section class="vh-card"><span class="vh-pill">'+T('Сегодня','Today')+'</span><h3>'+T('Прибытие гостя','Guest arrival')+'</h3><div class="vh-guest"><i>T</i><div><strong>Tarkan</strong><p>Views · Modern Design</p></div></div><button class="vh-primary" data-ha="guest">'+T('Открыть бронирование','Open reservation')+'</button></section><div class="vh-actions">'+row('calendar','▦',T('Календарь','Calendar'))+row('messages','□',T('Сообщения','Messages'))+row('listings','▣',T('Объявления','Listings'))+row('analytics','↗',T('Аналитика','Analytics'))+'</div>','today')}
-function calendar(){let d=new Date(),y=d.getFullYear(),m=d.getMonth(),len=new Date(y,m+1,0).getDate(),off=(new Date(y,m,1).getDay()+6)%7,c='<i></i>'.repeat(off);for(let i=1;i<=len;i++){let busy=[6,14,15,16,22,29].includes(i);c+='<button class="vh-day '+(busy?'busy':'')+'><b>'+i+'</b><small>'+(busy?T('Гость','Guest'):'$95')+'</small></button>'}let wd=document.documentElement.lang==='en'?['Mon','Tue','Wed','Thu','Fri','Sat','Sun']:['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];shell(head(T('Календарь','Calendar'))+'<select class="vh-select">'+S().map(x=>'<option>'+E(N(x))+'</option>').join('')+'</select><div class="vh-month"><button>‹</button><h3>'+d.toLocaleDateString(document.documentElement.lang==='en'?'en-US':'ru-RU',{month:'long',year:'numeric'})+'</h3><button>›</button></div><div class="vh-week">'+wd.map(x=>'<span>'+x+'</span>').join('')+'</div><div class="vh-calendar">'+c+'</div>','calendar')}
-function listings(){shell(head(T('Ваши объявления','Your listings'))+'<div class="vh-toolbar"><button>⌕</button><button data-ha="new">＋</button></div><div class="vh-listings">'+S().map(x=>'<button data-hl="'+E(x.id)+'"><img src="'+E(P(x))+'"><div><strong>'+E(N(x))+'</strong><span>'+T('Опубликовано','Published')+'</span></div><b>›</b></button>').join('')+'</div>','listings')}
-function listing(id){let s=S().find(x=>x.id===id)||S()[0];if(!s)return;st.id=s.id;save();shell('<button class="vh-back" data-ha="listings">←</button><div class="vh-hero"><img src="'+E(P(s))+'"><span>'+((s.photos||[]).length||1)+' '+T('фото','photos')+'</span></div><h2>'+E(N(s))+'</h2><p class="vh-muted">'+E(document.documentElement.lang==='en'?s.descriptionEn:s.description)+'</p><div class="vh-property-actions"><button data-ha="photos">'+T('Фототур','Photo tour')+'</button><button data-ha="edit">'+T('Редактировать','Edit listing')+'</button></div><section class="vh-card">'+row('amenities','◇',T('Удобства','Amenities'))+row('rules','⌂',T('Правила дома','House rules'))+row('calendar','▦',T('Доступность','Availability'))+'</section>','listings')}
-function messages(){let a=[['T','Tarkan',T('Хорошего Вам дня. Получили ли мы документ…','Good day. Did we receive the document…')],['K','Ксения',T('Добрый день! Подскажите пожалуйста…','Hello! Could you please tell me…')],['V','Vyacheslav',T('Да, сегодня.','Yes, today.')],['R','Roy',T('Дайте нам знать как апартаменты будут свободны 🙏','Let us know when the apartment is free 🙏')]];shell(head(T('Сообщения','Messages'))+'<div class="vh-chips"><button class="on">'+T('Все','All')+'</button><button>'+T('Прием гостей','Hosting')+'</button><button>'+T('Непрочитанные','Unread')+'</button></div><div class="vh-messages">'+a.map((x,i)=>'<button data-ha="thread"><i>'+x[0]+'</i><div><strong>'+x[1]+'</strong><p>'+x[2]+'</p></div><small>'+(i?'Вчера':'14:14')+'</small></button>').join('')+'</div><button class="vh-fab" data-ha="message-settings">⚙</button>','messages')}
-function menu(){shell(head(T('Меню','Menu'))+'<div class="vh-kpis"><article><span>'+T('Заработок','Earnings')+'</span><strong>2 970,48 $</strong><small>'+T('за этот месяц','this month')+'</small></article><article><span>'+T('Аналитика','Analytics')+'</span><strong>4,67 ★</strong><small>3 '+T('отзыва','reviews')+'</small></article></div><div class="vh-menu">'+row('account','⚙',T('Настройки аккаунта','Account settings'))+row('resources','▤',T('Материалы для хозяев','Host resources'))+row('help','?',T('Помощь','Help'))+row('new','＋',T('Создать новое объявление','Create listing'))+row('team','♙',T('Команда и доступ','Team & access'))+row('company','▦',T('Сведения о компании','Company information'))+row('tax','▥',T('Налоги','Taxes'))+'</div>','menu')}
-function open(id){({today,calendar,listings,messages,menu}[id]||today)()}
-function act(id){if(['today','calendar','listings','messages','menu'].includes(id))return open(id);if(id==='selected')return listing(st.id);if(w.VertexHostMore?.open)return w.VertexHostMore.open(id,{shell,row,state:st,save,listing});}
-w.VertexHostConsole={open,state:st,listing,shell,row};})(window);
+/* Host presentation layer. All records and operations belong to VertexRentals. */
+(function (w) {
+  'use strict';
+  if (!w.document) return;
+  const T = (ru, en) => document.documentElement.lang === 'en' ? en : ru;
+  const E = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const rental = () => w.VertexRentals;
+  const read = () => rental().getSnapshot();
+  const name = property => T(property.ru, property.en || property.ru);
+  const photo = property => (property.photos || [])[0] || property.photo || '';
+  const state = {tab:'today', id:null}; // Navigation is ephemeral, not a second database.
+  const notice = () => '<p class="notice">' + T('Демо · данные только этого устройства. Нет авторизации, реальных выплат или синхронизации с площадками.','Demo · data on this device only. No authentication, real payouts or channel synchronization.') + '</p>';
+  const row = (id, icon, label) => '<button class="vh-row" data-ha="' + E(id) + '"><span aria-hidden="true">' + E(icon) + '</span><strong>' + E(label) + '</strong><b aria-hidden="true">›</b></button>';
+  const head = title => '<header class="vh-head"><div><small>VERTEX · VIEWS</small><h2>' + E(title) + '</h2></div><button class="vh-avatar" data-ha="profile" aria-label="' + T('Профиль','Profile') + '">F</button></header>';
+  function shell(html, tab = state.tab) {
+    state.tab = tab;
+    modal('Vertex · Views', '<div class="vh-shell"><button class="vh-close" aria-label="' + T('Закрыть кабинет','Close host console') + '">×</button><main>' + html + '</main><nav class="vh-nav" aria-label="' + T('Кабинет хозяина','Host navigation') + '">' + [['today','⌑','Сегодня','Today'],['calendar','▦','Календарь','Calendar'],['listings','▣','Объявления','Listings'],['messages','□','Сообщения','Messages'],['menu','☰','Меню','Menu']].map(item => '<button data-ht="' + item[0] + '" ' + (tab === item[0] ? 'aria-current="page"' : '') + '><span aria-hidden="true">' + item[1] + '</span><small>' + T(item[2],item[3]) + '</small></button>').join('') + '</nav></div>');
+    $('modal').classList.add('vh-modal'); $('modal').scrollTop = 0;
+    const body = $('modalBody');
+    body.querySelector('.vh-close').onclick = () => $('modal').close();
+    body.querySelectorAll('[data-ht]').forEach(button => button.onclick = () => open(button.dataset.ht));
+    body.querySelectorAll('[data-ha]').forEach(button => button.onclick = () => act(button.dataset.ha));
+    body.querySelectorAll('[data-hl]').forEach(button => button.onclick = () => listing(button.dataset.hl));
+    body.querySelectorAll('[data-thread]').forEach(button => button.onclick = () => rental().showDiscussion(button.dataset.thread));
+  }
+  function today() {
+    const data = read(), date = w.VertexRentalDomain.localDate(new Date());
+    const upcoming = data.bookings.filter(booking => w.VertexRentalDomain.active(booking) && booking.departure > date).sort((a,b) => a.arrival.localeCompare(b.arrival));
+    shell(head(T('Сегодня','Today')) + notice() + '<div class="vh-kpis"><article><span>' + T('Новые заявки','New requests') + '</span><strong>' + data.metrics.pending + '</strong><small>' + T('сохранены локально','saved locally') + '</small></article><article><span>' + T('Предстоящие и текущие','Upcoming and current') + '</span><strong>' + upcoming.length + '</strong><small>' + T('активные демо-заявки','active demo requests') + '</small></article></div>' + (upcoming.length ? upcoming.slice(0,3).map(booking => '<section class="vh-card"><span class="vh-pill">' + E(booking.arrival) + ' → ' + E(booking.departure) + '</span><h3>' + E(booking.guest) + '</h3><p>' + E(booking.title) + '</p><p>' + E(booking.status) + '</p><button class="vh-primary" data-ha="reservations">' + T('Управлять заявками','Manage requests') + '</button></section>').join('') : '<section class="vh-card"><h3>' + T('Новых заездов пока нет','No upcoming arrivals') + '</h3><p>' + T('Здесь появятся заявки, созданные в демо на этом устройстве.','Requests created in the demo on this device will appear here.') + '</p></section>') + '<div class="vh-actions">' + row('calendar','▦',T('Календарь','Calendar')) + row('messages','□',T('Сообщения','Messages')) + row('listings','▣',T('Объявления','Listings')) + row('analytics','↗',T('Операционный отчёт','Operations report')) + '</div>', 'today');
+  }
+  // One calendar implementation: month navigation, blocks and overlaps share rental rules.
+  function calendar() { return rental().showCalendar(state.id || undefined); }
+  function listings() {
+    const properties = read().properties;
+    shell(head(T('Объявления','Listings')) + notice() + '<div class="vh-toolbar"><label class="vh-search">' + T('Поиск по названию','Search by name') + '<input id="hostListingSearch" type="search" maxlength="80"></label><button data-ha="new" aria-label="' + T('Добавить объявление','Add listing') + '">＋</button></div><div class="vh-listings">' + properties.map(property => '<button data-hl="' + E(property.id) + '" data-name="' + E(name(property).toLocaleLowerCase()) + '">' + (photo(property) ? '<img src="' + E(photo(property)) + '" alt="' + E(name(property)) + '">' : '<span class="vh-no-photo" aria-hidden="true">⌂</span>') + '<div><strong>' + E(name(property)) + '</strong><span>' + (property.ownerConfirmed ? T('Подтверждённый каталог · наличие уточняется','Confirmed catalog · availability on request') : T('Демо · только на устройстве','Demo · on this device only')) + '</span></div><b aria-hidden="true">›</b></button>').join('') + '</div><p id="hostSearchEmpty" class="notice" hidden>' + T('Объявления не найдены.','No listings found.') + '</p>', 'listings');
+    $('hostListingSearch').oninput = event => {
+      const query = event.target.value.trim().toLocaleLowerCase(); let visible = 0;
+      $('modalBody').querySelectorAll('[data-hl]').forEach(button => { button.hidden = !button.dataset.name.includes(query); if (!button.hidden) visible++; });
+      $('hostSearchEmpty').hidden = visible !== 0;
+    };
+  }
+  function listing(id) {
+    const property = read().properties.find(item => item.id === id);
+    if (!property) return listings();
+    state.id = property.id;
+    shell('<button class="vh-back" data-ha="listings" aria-label="' + T('Назад','Back') + '">←</button>' + (photo(property) ? '<div class="vh-hero"><img src="' + E(photo(property)) + '" alt="' + E(name(property)) + '"></div>' : '') + '<h2>' + E(name(property)) + '</h2>' + notice() + '<p class="vh-muted">' + E(T(property.description || '',property.descriptionEn || property.description || '')) + '</p><div class="vh-property-actions"><button data-ha="photos">' + T('Фототур','Photo tour') + '</button><button data-ha="edit">' + T('Редактировать','Edit listing') + '</button></div><section class="vh-card">' + row('amenities','◇',T('Удобства','Amenities')) + row('rules','⌂',T('Правила дома','House rules')) + row('calendar','▦',T('Доступность','Availability')) + row('thread','□',T('Обсуждение объекта','Property discussion')) + '</section>', 'listings');
+  }
+  function messages() {
+    const data = read();
+    const threads = data.threads.filter(thread => thread.messages.length && data.properties.some(property => property.id === thread.listingId)).sort((a,b) => Date.parse(b.messages.at(-1).at) - Date.parse(a.messages.at(-1).at));
+    shell(head(T('Сообщения','Messages')) + notice() + '<p class="vh-muted">' + T('Это локальные обсуждения объектов, а не входящие сообщения гостей.','These are local property discussions, not incoming guest messages.') + '</p><div class="vh-messages">' + (threads.length ? threads.map(thread => {
+      const property = data.properties.find(item => item.id === thread.listingId), last = thread.messages.at(-1);
+      return '<button data-thread="' + E(thread.listingId) + '"><i aria-hidden="true">□</i><div><strong>' + E(name(property)) + '</strong><p>' + E(last.text) + '</p></div><small>' + E(new Date(last.at).toLocaleDateString(T('ru-RU','en-US'))) + '</small></button>';
+    }).join('') : '<p class="notice">' + T('Обсуждений пока нет. Откройте объект и выберите «Обсуждение объекта».','No discussions yet. Open a property and choose “Property discussion”.') + '</p>') + '</div>', 'messages');
+  }
+  function menu() {
+    const data = read();
+    shell(head(T('Меню','Menu')) + notice() + '<div class="vh-kpis"><article><span>' + T('Объектов','Properties') + '</span><strong>' + data.properties.length + '</strong></article><article><span>' + T('Подтверждено в демо','Confirmed in demo') + '</span><strong>' + data.metrics.confirmed + '</strong></article></div><div class="vh-menu">' + row('analytics','↗',T('Операционный отчёт','Operations report')) + row('account','⚙',T('Настройки аккаунта','Account settings')) + row('resources','▤',T('Материалы для хозяев','Host resources')) + row('help','?',T('Помощь','Help')) + row('new','＋',T('Создать демо-объявление','Create demo listing')) + row('team','♙',T('Демо-задачи команды','Demo team tasks')) + row('company','▦',T('Сведения о компании','Company information')) + row('tax','▥',T('Налоги','Taxes')) + '</div>', 'menu');
+  }
+  function open(id) {
+    if (!rental()) { modal('Vertex', '<p class="notice">' + T('Модуль аренды недоступен. Обновите страницу.','The rental module is unavailable. Reload the page.') + '</p>'); return; }
+    return ({today, calendar, listings, messages, menu}[id] || today)();
+  }
+  function act(id) {
+    if (['today','calendar','listings','messages','menu'].includes(id)) return open(id);
+    if (id === 'selected') return listing(state.id);
+    if (id === 'reservations' || id === 'guest' || id === 'manage') return rental().showHost();
+    if (id === 'thread' || id === 'message-guest') return state.id ? rental().showDiscussion(state.id) : messages();
+    if (id === 'analytics') return rental().showOwnerReport();
+    if (id === 'new') return rental().createListing();
+    if (id === 'edit') return rental().editListing(state.id);
+    return w.VertexHostMore?.open(id, {shell, row, state, listing, properties:read().properties});
+  }
+  w.VertexHostConsole = Object.freeze({open, listing});
+})(window);

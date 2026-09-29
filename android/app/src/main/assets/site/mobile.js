@@ -16,6 +16,7 @@ const loadLocal = () => {
     if (!saved) return;
     lang = saved.lang === 'en' ? 'en' : 'ru';
     cart = (Array.isArray(saved.items) ? saved.items : []).flatMap(item => {
+      if (!item || typeof item !== 'object') return [];
       const product = [...stays, ...services].find(x => x.id === item.id);
       if (!product || (item.currency || saved.currency) !== 'UZS' || !Number.isFinite(item.amount) || item.amount <= 0) return [];
       const datePattern = /^\d{4}-\d{2}-\d{2} → \d{4}-\d{2}-\d{2}$/;
@@ -71,7 +72,7 @@ function showProfile(){
     <p class="demo">${storageAvailable?tr('Локальные данные сохранены на устройстве.','Local data is saved on this device.'):tr('Сохранение недоступно в этом браузере.','Storage is unavailable in this browser.')}</p>`);
   $('profileLanguage').onclick=()=>{lang=lang==='ru'?'en':'ru';render();showProfile();};
   $('profileInstall').onclick=showInstall;
-  $('profileTrips').onclick=()=>window.VertexRentals?.showTrips?.()||showCart();
+  $('profileTrips').onclick=()=>{if(window.VertexRentals?.showTrips)return window.VertexRentals.showTrips();return showCart();};
   $('profileFavorites').onclick=()=>window.VertexRentals?.showFavorites?.();
   $('profileServices').onclick=()=>{$('modal').close();activeTab='services';category='all';render();$('sectionHeading').scrollIntoView({behavior:'smooth'});};
   $('profileGuestGuide').onclick=()=>window.VertexGuestGuide?.open();

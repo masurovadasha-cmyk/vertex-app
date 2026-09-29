@@ -4,14 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
-    "test:unit": "node vertex/tools/group.test.cjs && node vertex/tools/concierge-demo.test.cjs && node vertex/tools/mobility.test.cjs && node vertex/tools/guest-guide.test.cjs && node vertex/tools/app-release.test.cjs",
+    "test:unit": "node vertex/tools/group.test.cjs && node vertex/tools/concierge-demo.test.cjs && node vertex/tools/mobility.test.cjs && node vertex/tools/guest-guide.test.cjs && node vertex/tools/app-release.test.cjs && node --test vertex/tools/rental-domain.test.cjs",
     "check:release": "node scripts/check-release.cjs",
     "sync:android": "node scripts/sync-android.cjs",
-    "test": "npm run test:unit && npm run check:release",
+    "test": "npm run test:unit && npm run test:server && npm run check:release",
     "check:deploy": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
     "cf:whoami": "wrangler whoami",
-    "build": "npm run check:release"
+    "build": "npm run check:release",
+    "test:server": "node --test concierge-server/atomic-store.test.mjs concierge-server/test.mjs"
   },
   "devDependencies": {
     "wrangler": "4.143.0"
