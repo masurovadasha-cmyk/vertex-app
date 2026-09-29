@@ -24,7 +24,9 @@
     "expanded profile and account settings",
     "security and notification settings UI",
     "payments and tax settings UI",
-    "raised mobile profile navigation"
+    "raised mobile profile navigation",
+    "profile menu routes to working modules",
+    "dialog style reset"
   ],
   "boundaries": [
     "No real payments or payouts",
