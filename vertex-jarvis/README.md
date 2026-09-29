@@ -22,8 +22,11 @@ Cloudflare Worker + Durable Object state + OpenAI Responses API.
 Endpoints:
 - `GET /health`
 - `GET /v1/status`
+- `GET /v1/memory`
+- `POST /v1/memory`
 - `POST /v1/commands`
 - `POST /v1/approvals`
+- `POST /v1/outcomes`
 - `GET /v1/kill-switch`
 - `POST /v1/kill-switch`
 
@@ -53,3 +56,12 @@ The MVP can think, research, route work, produce recommendations, record approva
 It does **not** yet perform bank transfers, sign documents, terminate staff, submit tax returns, or mutate third-party systems. Each connector will be added behind a policy adapter so permissions stay explicit and auditable.
 
 See `SECURITY.md`, `ARCHITECTURE.md`, `MODEL-ROUTING.md`, and `cloudflare/DEPLOY.md`.
+
+
+## Learning loop
+
+JARVIS memory is explicit and auditable. Owners can store non-secret company knowledge through `/v1/memory`. Each decision can later receive an outcome through `/v1/outcomes`.
+
+When an outcome is marked `approvedForLearning=true`, a compact outcome record is added to the decision-outcome memory category. This lets future reasoning use real Vertex results without allowing the model to silently rewrite its own constitution or security rules.
+
+Audit records redact common API-key, bearer-token, password, PIN/CVV and private-key patterns.
