@@ -58,9 +58,10 @@ render=function(){
   bottomNavigation();saveLocal();
 };
 function showProfile(){
-  modal(tr('Профиль и приложение','Profile & app'),`<p class="notice">${tr('Гостевой демо-профиль. Поездка сохраняется только в этом браузере на этом устройстве.','Guest demo profile. Your trip is saved only in this browser on this device.')}</p><div class="line-item"><strong>${tr('Язык','Language')}</strong><button class="outline" id="profileLanguage">${lang==='ru'?'English':'Русский'}</button></div><button id="profileInstall" class="dark wide">${tr('Добавить Vertex на телефон','Add Vertex to your phone')}</button><p class="demo">${storageAvailable?tr('Демо-корзина сохранена на устройстве.','Demo trip saved on this device.'):tr('Сохранение недоступно в этом браузере.','Storage is unavailable in this browser.')}</p>`);
+  modal(tr('Профиль и приложение','Profile & app'),`<p class="notice">${tr('Гостевой демо-профиль. Поездка сохраняется только в этом браузере на этом устройстве.','Guest demo profile. Your trip is saved only in this browser on this device.')}</p><div class="line-item"><strong>${tr('Язык','Language')}</strong><button class="outline" id="profileLanguage">${lang==='ru'?'English':'Русский'}</button></div><button id="profileInstall" class="dark wide">${tr('Добавить Vertex на телефон','Add Vertex to your phone')}</button><button id="profileGuestGuide" class="outline wide">${tr('Гид гостя','Guest guide')}</button><p class="demo">${storageAvailable?tr('Демо-корзина сохранена на устройстве.','Demo trip saved on this device.'):tr('Сохранение недоступно в этом браузере.','Storage is unavailable in this browser.')}</p>`);
   $('profileLanguage').onclick=()=>{lang=lang==='ru'?'en':'ru';render();showProfile();};
   $('profileInstall').onclick=showInstall;
+  $('profileGuestGuide').onclick=()=>window.VertexGuestGuide?.open();
 }
 async function showInstall(){
   if(location.hostname==='appassets.androidplatform.net'){modal(tr('Vertex на телефоне','Vertex on your phone'),'<p>'+tr('Приложение уже установлено. Версия 1.9-demo.','The app is already installed. Version 1.9-demo.')+'</p>');return;}
