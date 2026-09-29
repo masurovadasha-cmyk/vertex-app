@@ -9,7 +9,7 @@ const web=path.join(root,'vertex/dist');
 const android=path.join(root,'android/app/src/main/assets/site');
 const release=JSON.parse(fs.readFileSync(path.join(web,'release.json'),'utf8'));
 
-assert.equal(release.version,'1.9-demo');
+assert.equal(release.version,'1.10-demo');
 assert.equal(release.date,'2026-09-29');
 assert.ok(Array.isArray(release.boundaries)&&release.boundaries.length>=5);
 assert.ok(release.features.includes('property discussions'));
@@ -22,12 +22,12 @@ assert.ok(release.features.includes('check-in and house rules'));
 assert.ok(release.features.includes('guest service shortcuts'));
 
 const gradle=fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8');
-assert.match(gradle,/versionCode\s+12\b/);
+assert.match(gradle,/versionCode\s+13\b/);
 assert.match(gradle,/versionName\s+'1\.9-demo'/);
 
 const index=fs.readFileSync(path.join(web,'index.html'),'utf8');
-assert.match(index,/<title>Vertex 1\.9/);
-for(const required of ['views-catalog.js','app.js','mobile.js','business.js','rentals.js','concierge-demo.js','group.js','mobility.js','guest-guide.js']) assert.ok(index.includes(required),'missing script '+required);
+assert.match(index,/<title>Vertex 1\.10/);
+for(const required of ['views-catalog.js','app.js','mobile.js','business.js','rentals.js','concierge-demo.js','group.js','mobility.js','guest-guide.js','profile-menu.js']) assert.ok(index.includes(required),'missing script '+required);
 
 const mobile=fs.readFileSync(path.join(web,'mobile.js'),'utf8');
 assert.doesNotMatch(mobile,/Vertex-Latest\.apk/);
@@ -48,7 +48,7 @@ assert.match(rentals,/data\.threads/);
 assert.match(rentals,/real messaging is connected/);
 
 const sw=fs.readFileSync(path.join(web,'sw.js'),'utf8');
-assert.match(sw,/vertex-demo-v19/);
+assert.match(sw,/vertex-demo-v110/);
 assert.doesNotMatch(sw,/bali\.jpg|istanbul\.jpg/i);
 assert.match(sw,/mobility\.js/);
 assert.match(sw,/mobility\.css/);
@@ -82,4 +82,4 @@ for(const name of fs.readdirSync(web)){
 const androidRelease=JSON.parse(fs.readFileSync(path.join(android,'release.json'),'utf8'));
 assert.equal(androidRelease.version,release.version);
 
-console.log('PASS Vertex 1.9 release semantics, Uzbekistan catalog, demo boundaries, owner dashboard and discussions');
+console.log('PASS Vertex 1.10 release semantics, Uzbekistan catalog, demo boundaries, owner dashboard and discussions');
