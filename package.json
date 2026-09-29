@@ -12,7 +12,8 @@
     "deploy": "wrangler deploy",
     "cf:whoami": "wrangler whoami",
     "build": "npm run check:release",
-    "test:server": "node --test concierge-server/atomic-store.test.mjs concierge-server/test.mjs"
+    "test:server": "node --test concierge-server/atomic-store.test.mjs concierge-server/test.mjs",
+    "test:taxi": "node vertex/tools/taxi-demo.test.cjs"
   },
   "devDependencies": {
     "wrangler": "4.143.0"
