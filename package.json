@@ -1,12 +1,17 @@
 {
   "name": "vertex-cloudflare",
-  "version": "1.3.0",
+  "version": "1.7.0",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
+    "test:unit": "node vertex/tools/group.test.cjs && node vertex/tools/concierge-demo.test.cjs && node vertex/tools/app-release.test.cjs",
+    "check:release": "node scripts/check-release.cjs",
+    "sync:android": "node scripts/sync-android.cjs",
+    "test": "npm run test:unit && npm run check:release",
     "check:deploy": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
-    "cf:whoami": "wrangler whoami"
+    "cf:whoami": "wrangler whoami",
+    "build": "npm run check:release"
   },
   "devDependencies": {
     "wrangler": "4.143.0"

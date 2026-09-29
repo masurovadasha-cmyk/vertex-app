@@ -1,12 +1,16 @@
 (() => {
   const KEY = 'vertex-rentals-v1';
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let data = {favorites:[], listings:[], bookings:[]};
+  let data = {favorites:[], listings:[], bookings:[], threads:[]};
   try {
     const saved = JSON.parse(localStorage.getItem(KEY));
     if (saved && ['favorites','listings','bookings'].every(k => Array.isArray(saved[k]))) data = saved;
   } catch {}
   if (!Array.isArray(data.blocks)) data.blocks = [];
+  if (!Array.isArray(data.threads)) data.threads = [];
+  data.threads = data.threads.filter(thread => thread && typeof thread.listingId === 'string' && Array.isArray(thread.messages))
+    .map(thread => ({listingId:thread.listingId,messages:thread.messages.filter(message => message && ['guest','host'].includes(message.side) && typeof message.text === 'string' && message.text.length <= 1000 && typeof message.at === 'string').slice(-60)}))
+    .slice(0,100);
 
   // Persisted type/status values remain compatible with existing local data.
   const types = [['Квартира','Apartment'], ['Вилла','Villa'], ['Комната','Room']];
@@ -194,7 +198,7 @@
       ${amenities.length ? `<div class="amenities">${amenities.map(item => `<span>${item}</span>`).join('')}</div>` : ''}
       <div id="rentalReferenceQuote">${quoteBlock(s,false,$('arrival').value,$('departure').value,initialGuests)}</div>
       <div id="rentalSourceLink">${sourceLink(s,$('arrival').value,$('departure').value,initialGuests)}</div>
-      <div class="place"><strong>${tr('Хозяин:','Host:')} ${escape(hostName)}</strong><p>${s.ownerConfirmed ? tr('Актуальную цену, условия и наличие подтвердите у хозяина по ссылке на источник.','Confirm the current price, terms and availability with the host using the source link.') : tr('Условный профиль для демонстрации','Illustrative demonstration profile')}</p><button id="contactHost" class="outline">${tr('Открыть демо-чат','Open demo chat')}</button></div>
+      <div class="place"><strong>${tr('Хозяин:','Host:')} ${escape(hostName)}</strong><p>${s.ownerConfirmed ? tr('Актуальную цену, условия и наличие подтвердите у хозяина по ссылке на источник.','Confirm the current price, terms and availability with the host using the source link.') : tr('Условный профиль для демонстрации','Illustrative demonstration profile')}</p><button id="contactHost" class="outline">${tr('Открыть обсуждение','Open discussion')}</button></div>
       <p class="notice">${tr('Ниже можно сохранить локальный демо-запрос. Он не отправляется хозяину, не бронирует квартиру и не списывает деньги.','You can save a local demo request below. It is not sent to the host, does not reserve the property and does not charge a payment.')}</p>
       <form id="bookingForm" class="biz-form"><label>${tr('Имя гостя','Guest name')}<input name="guest" required maxlength="80" autocomplete="name" placeholder="${tr('Как к вам обращаться?','What should we call you?')}"></label>
       <div class="booking-dates"><label>${tr('Заезд','Check-in')}<input name="arrival" type="date" min="${today()}" value="${escape($('arrival').value)}" required></label><label>${tr('Выезд','Check-out')}<input name="departure" type="date" value="${escape($('departure').value)}" required></label></div>
@@ -207,7 +211,7 @@
       $('rentalPhotoCount').textContent = `${index+1} / ${photos.length}`;
       $('modalBody').querySelectorAll('[data-rental-photo]').forEach(item => item.setAttribute('aria-pressed',String(item === button)));
     });
-    $('contactHost').onclick = () => document.querySelector('.business-entry [data-open="chat"]')?.click();
+    $('contactHost').onclick = () => discussion(s.id);
     const f = $('bookingForm');
     const quote = () => {
       const a = f.elements.arrival.value, b = f.elements.departure.value, g = Number(f.elements.guests.value), q = breakdown(s,a,b);
@@ -234,10 +238,36 @@
     };
   }
   showStay = detail;
+  function discussion(listingId) {
+    const s = find(listingId); if (!s) return;
+    let thread = data.threads.find(item => item.listingId === listingId);
+    if (!thread) {
+      thread = {listingId,messages:[]};
+      data.threads.push(thread);
+      data.threads = data.threads.slice(-100);
+    }
+    const draw = () => {
+      const box = $('discussionMessages'); if (!box) return;
+      box.innerHTML = thread.messages.length ? thread.messages.map(message => `<div class="discussion-bubble ${message.side}"><strong>${message.side === 'guest' ? tr('Вы','You') : tr('Views · демо','Views · demo')}</strong><p>${escape(message.text)}</p><small>${escape(new Date(message.at).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US'))}</small></div>`).join('') : `<p class="notice">${tr('Начните обсуждение по этому объекту. Сообщения сохраняются только на этом устройстве.','Start a discussion about this property. Messages are saved only on this device.')}</p>`;
+      box.scrollTop = box.scrollHeight;
+    };
+    show(tr('Обсуждение по объекту','Property discussion'),`<h3>${escape(titleOf(s))}</h3><p class="notice">${tr('Демо-обсуждение: сообщения не отправляются хозяину или оператору. Реальный чат будет подключён через серверную систему.','Demo discussion: messages are not sent to a host or operator. Real messaging will be connected through the server system.')}</p><div id="discussionMessages" class="discussion-messages" role="log" aria-live="polite"></div><form id="discussionForm" class="chat-compose discussion-compose"><input name="message" maxlength="1000" autocomplete="off" required placeholder="${tr('Напишите сообщение…','Write a message…')}"><button class="dark" type="submit">${tr('Отправить','Send')}</button></form>`);
+    draw();
+    $('discussionForm').onsubmit = e => {
+      e.preventDefault();
+      const input = e.target.elements.message, value = input.value.trim(); if (!value) return;
+      thread.messages.push({side:'guest',text:value,at:new Date().toISOString()});
+      thread.messages.push({side:'host',text:tr('Сообщение сохранено в демо. Команда Views получит его после подключения реального чата.','Message saved in the demo. The Views team will receive it after real messaging is connected.'),at:new Date().toISOString()});
+      thread.messages = thread.messages.slice(-60);
+      if (!persist()) { thread.messages.splice(-2); return; }
+      input.value = ''; draw(); input.focus();
+    };
+  }
   function bookingRows(hostMode) {
-    return data.bookings.slice().reverse().map(b => `<div class="booking-row"><span class="status-pill">${escape(statusLabel(b.status))}</span><h3>${escape(bookingTitle(b))}</h3><p>${escape(b.arrival)} → ${escape(b.departure)} · ${b.guests} ${tr('гостей','guests')}</p><p>${escape(b.guest)} · <strong>${money(b.total,b.currency)}</strong></p><small>${tr('Демо-заявка №','Demo request #')} ${escape(b.id.slice(0,8).toUpperCase())} · ${tr('без оплаты','no payment')}</small><div class="biz-actions">${hostMode && b.status === 'Запрос отправлен' ? `<button class="dark" data-status="Подтверждено" data-booking="${escape(b.id)}">${tr('Подтвердить','Confirm')}</button><button class="outline" data-status="Отклонено" data-booking="${escape(b.id)}">${tr('Отклонить','Decline')}</button>` : ''}${!hostMode && active(b) ? `<button class="outline" data-status="Отменено" data-booking="${escape(b.id)}">${tr('Отменить запрос','Cancel request')}</button>` : ''}</div></div>`).join('') || `<p class="notice">${tr('Заявок пока нет. Выберите жильё и отправьте демо-запрос.','No requests yet. Choose a stay and send a demo request.')}</p>`;
+    return data.bookings.slice().reverse().map(b => `<div class="booking-row"><span class="status-pill">${escape(statusLabel(b.status))}</span><h3>${escape(bookingTitle(b))}</h3><p>${escape(b.arrival)} → ${escape(b.departure)} · ${b.guests} ${tr('гостей','guests')}</p><p>${escape(b.guest)} · <strong>${money(b.total,b.currency)}</strong></p><small>${tr('Демо-заявка №','Demo request #')} ${escape(b.id.slice(0,8).toUpperCase())} · ${tr('без оплаты','no payment')}</small><div class="biz-actions"><button class="outline" data-discuss="${escape(b.listingId)}">${tr('Обсуждение','Discussion')}</button>${hostMode && b.status === 'Запрос отправлен' ? `<button class="dark" data-status="Подтверждено" data-booking="${escape(b.id)}">${tr('Подтвердить','Confirm')}</button><button class="outline" data-status="Отклонено" data-booking="${escape(b.id)}">${tr('Отклонить','Decline')}</button>` : ''}${!hostMode && active(b) ? `<button class="outline" data-status="Отменено" data-booking="${escape(b.id)}">${tr('Отменить запрос','Cancel request')}</button>` : ''}</div></div>`).join('') || `<p class="notice">${tr('Заявок пока нет. Выберите жильё и отправьте демо-запрос.','No requests yet. Choose a stay and send a demo request.')}</p>`;
   }
   function bindBookings(hostMode) {
+    $('modalBody').querySelectorAll('[data-discuss]').forEach(btn => btn.onclick = () => discussion(btn.dataset.discuss));
     $('modalBody').querySelectorAll('[data-booking]').forEach(btn => btn.onclick = () => {
       const b = data.bookings.find(x => x.id === btn.dataset.booking); if (!b) return;
       const next = btn.dataset.status;
@@ -268,9 +298,24 @@
   window.VertexRentals = Object.freeze({showTrips:trips});
   $('cartButton').onclick = trips; $('viewTrip').onclick = trips;
 
+  function hostMetrics() {
+    const pending = data.bookings.filter(b => b.status === 'Запрос отправлен').length;
+    const confirmed = data.bookings.filter(b => b.status === 'Подтверждено');
+    const confirmedNights = confirmed.reduce((sum,b) => { const n = count(b.arrival,b.departure); return sum + (Number.isFinite(n) && n > 0 ? n : 0); },0);
+    const totals = new Map();
+    confirmed.forEach(b => { if (Number.isFinite(b.total)) totals.set(b.currency || 'UZS',(totals.get(b.currency || 'UZS') || 0)+b.total); });
+    return {pending,confirmed:confirmed.length,confirmedNights,totals:[...totals]};
+  }
+  function ownerReport() {
+    const metrics = hostMetrics();
+    const total = metrics.totals.length ? metrics.totals.map(([currency,value]) => money(value,currency)).join(' / ') : tr('Уточнить','Enquire');
+    show(tr('Отчёт собственника · демо','Owner report · demo'),`<p class="notice">${tr('Это локальный операционный отчёт по демо-заявкам. P&L, выплаты собственникам, налоги и банковские данные не подключены.','This is a local operational report for demo requests. P&L, owner payouts, taxes and banking data are not connected.')}</p><div class="owner-stats"><div><strong>${data.bookings.length}</strong><span>${tr('Все заявки','All requests')}</span></div><div><strong>${metrics.confirmed}</strong><span>${tr('Подтверждено','Confirmed')}</span></div><div><strong>${metrics.confirmedNights}</strong><span>${tr('Ночей подтверждено','Confirmed nights')}</span></div><div><strong>${total}</strong><span>${tr('Сумма подтверждённых демо-заявок','Confirmed demo-request value')}</span></div></div><h3>${tr('История заявок','Request history')}</h3>${bookingRows(true)}<button id="ownerBack" class="outline wide">${tr('← Кабинет хозяина','← Host panel')}</button>`);
+    bindBookings(true); $('ownerBack').onclick = host;
+  }
   function host() {
-    show(tr('Кабинет хозяина','Host panel'),`<p class="notice">${tr('Демо-роль: все заявки этого устройства доступны для показа. Авторизация не подключена.','Demo role: all requests on this device are available for demonstration. Authentication is not connected.')}</p><button id="newListing" class="dark wide">${tr('+ Добавить жильё','+ Add a property')}</button><button id="hostCalendar" class="outline wide" style="margin-top:12px">${tr('▦ Календарь и доступность','▦ Calendar and availability')}</button><h3>${tr('Мои объявления','My listings')} · ${data.listings.length}</h3>${data.listings.map(s => `<div class="line-item"><strong>${escape(titleOf(s))}</strong><span>${money(s.price,s.currency)} / ${tr('ночь','night')}</span></div>`).join('')}<h3>${tr('Заявки гостей','Guest requests')}</h3>${bookingRows(true)}`);
-    $('newListing').onclick = newListing; $('hostCalendar').onclick = () => calendar(); bindBookings(true);
+    const metrics = hostMetrics();
+    show(tr('Кабинет хозяина','Host panel'),`<p class="notice">${tr('Демо-роль: данные этого устройства доступны для показа. Авторизация, реальные выплаты и P&L не подключены.','Demo role: data on this device is available for demonstration. Authentication, real payouts and P&L are not connected.')}</p><div class="owner-stats"><div><strong>${catalog().length}</strong><span>${tr('Объектов в каталоге','Catalog properties')}</span></div><div><strong>${metrics.pending}</strong><span>${tr('Новых заявок','New requests')}</span></div><div><strong>${metrics.confirmed}</strong><span>${tr('Подтверждено','Confirmed')}</span></div><div><strong>${metrics.confirmedNights}</strong><span>${tr('Ночей','Nights')}</span></div></div><div class="owner-actions"><button id="newListing" class="dark">${tr('+ Добавить жильё','+ Add a property')}</button><button id="hostCalendar" class="outline">${tr('▦ Календарь','▦ Calendar')}</button><button id="hostReport" class="outline">${tr('Отчёт','Report')}</button></div><h3>${tr('Мои объявления','My listings')} · ${catalog().length}</h3>${catalog().map(s => `<div class="line-item"><div><strong>${escape(titleOf(s))}</strong><p>${escape(cityLabel(s.city))} · ${escape(s.sourceName || tr('Локальное демо','Local demo'))}</p></div><span>${hasNightlyPrice(s) ? money(s.price,s.currency)+' / '+tr('ночь','night') : tr('Цена по запросу','Price on request')}</span></div>`).join('')}<h3>${tr('Заявки гостей','Guest requests')}</h3>${bookingRows(true)}`);
+    $('newListing').onclick = newListing; $('hostCalendar').onclick = () => calendar(); $('hostReport').onclick = ownerReport; bindBookings(true);
   }
   function newListing() {
     show(tr('Добавить демо-жильё','Add a demo property'),`<form id="listingForm" class="biz-form"><label>${tr('Название','Name')}<input name="name" required maxlength="80"></label><label>${tr('Город','City')}<select name="city">${window.VertexCatalog.cities.map(c=>`<option value="${escape(c.id)}">${escape(lang==='en'?c.en:c.ru)}</option>`).join('')}</select></label><label>${tr('Тип','Type')}<select name="type">${typeOptions()}</select></label><label>${tr('Цена за ночь, UZS','Nightly price, UZS')}<input name="price" type="number" min="1" max="100000000" step="1" required></label><label>${tr('Вместимость','Capacity')}<input name="capacity" type="number" min="1" max="20" value="2" required></label><label>${tr('Имя хозяина','Host name')}<input name="host" required maxlength="80"></label><label>${tr('Описание','Description')}<textarea name="description" required maxlength="1500" rows="3"></textarea></label><label class="agree-label"><input name="wifi" type="checkbox" checked> Wi-Fi</label><p class="notice">${tr('Объявление появится только в демо на этом устройстве. Фотографии можно будет добавить после подключения загрузки.','This listing will appear only in the demo on this device. Photos can be added when uploads are connected.')}</p><p id="rentalError" role="alert"></p><button class="dark" type="submit">${tr('Добавить в каталог','Add to catalog')}</button></form>`);
