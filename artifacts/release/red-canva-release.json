@@ -1,0 +1,38 @@
+{
+  "version": "1.13-demo",
+  "revision": "red-canva1",
+  "source_commit": "be4d4faf3dbe612665ab3d89be541317b90596ac",
+  "base_commit": "9fe4a4ca988eb2d7f3c28ee740140b12dcaa8a2b",
+  "verification_run": 36585699703,
+  "verification_status": "success",
+  "canva_html_sha256": "d68ef9a278c7f20b1bacadcab8632a314b9b2b25ec67e98db084428cfc7ed217",
+  "interactive": {
+    "design_id": "DAHWljR7iNQ",
+    "view_url": "https://www.canva.com/d/1-hoIcj6woTy9oX",
+    "import_status": "success",
+    "data_mode": "in-memory demo, reset on reload"
+  },
+  "screenshots": {
+    "design_id": "DAHWlqtF5A8",
+    "view_url": "https://www.canva.com/d/0B_EcV46zwdbjmK",
+    "pages": 5,
+    "import_status": "success",
+    "capture_mode": "real Chromium DOM with isolated demo fixtures"
+  },
+  "tests": {
+    "existing_browser_assertions": 52,
+    "red_browser_assertions": 56,
+    "rental_domain_tests": 35,
+    "server_tests": 6,
+    "legacy_suites": 5,
+    "release_gate": "38 JS, 28 CSS, 2 HTML, 2 workers, 2 manifests, 180 local references passed"
+  },
+  "integration": {
+    "status": "pending reconciliation with parallel Host Studio changes",
+    "observed_master_commit": "205621415a796738f35ab7e4f354eb7c01351c50",
+    "master_overwritten": false
+  },
+  "cloudflare": {"dry_run": "passed", "this_revision_deployed": false},
+  "android": {"assets_synced": true, "version_code": 17, "apk_built": false},
+  "dependency_audit": {"moderate": 3, "high": 0, "critical": 0, "status": "unresolved build dependency chain undici -> miniflare -> wrangler"}
+}
