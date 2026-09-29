@@ -1,5 +1,5 @@
 {
-  "version": "1.11-demo",
+  "version": "1.12-demo",
   "date": "2026-09-29",
   "mode": "local-demo",
   "features": [
@@ -34,7 +34,9 @@
     "data-backed host operations",
     "validated rental storage recovery",
     "editable local demo listings",
-    "host analytics"
+    "host analytics",
+    "video-reference host experience",
+    "host earnings summary from local requests"
   ],
   "boundaries": [
     "No real payments or payouts",
@@ -45,5 +47,5 @@
     "Only local demo listings are editable; confirmed catalog and photo uploads are read-only",
     "Host messages are local property discussions, not a connected guest inbox"
   ],
-  "revision": "quality1"
+  "revision": "video-ui"
 }
