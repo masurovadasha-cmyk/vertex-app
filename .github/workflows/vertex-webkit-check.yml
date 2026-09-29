@@ -1,0 +1,64 @@
+name: Verify Vertex mobile WebKit
+on:
+  push:
+    branches: [vertex-livecheck-webfix1]
+    paths: ['.github/workflows/vertex-webkit-check.yml']
+permissions:
+  contents: read
+jobs:
+  mobile-webkit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install WebKit browser engine
+        run: |
+          python -m pip install playwright==1.57.0
+          python -m playwright install --with-deps webkit
+      - name: Check deployed web on mobile WebKit without data changes
+        shell: bash
+        run: |
+          mkdir -p artifacts/webkit
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          from playwright.sync_api import sync_playwright
+          out=Path('artifacts/webkit')
+          url='https://vertex-app.masurovadasha.workers.dev/?view=host&v=studio-webfix1'
+          report={'url':url,'engine':'WebKit','device_emulation':'iPhone 13; not a physical iPhone','checks':[],'errors':[]}
+          def check(name,ok):
+              report['checks'].append({'name':name,'pass':bool(ok)})
+              print(('PASS ' if ok else 'FAIL ')+name,flush=True)
+          try:
+              with sync_playwright() as p:
+                  browser=p.webkit.launch(headless=True)
+                  ctx=browser.new_context(**p.devices['iPhone 13'],locale='ru-RU',timezone_id='Asia/Tashkent')
+                  page=ctx.new_page();page.set_default_timeout(10000)
+                  page.on('pageerror',lambda e:report['errors'].append(str(e)))
+                  r=page.goto(url,wait_until='networkidle',timeout=40000)
+                  check('HTTP 200',r.status==200)
+                  check('host opens directly on mobile WebKit',page.locator('#modal[open] .vh-shell').count()==1)
+                  page.screenshot(path=str(out/'host-webkit.png'))
+                  for tab,selector in [('calendar','.calendar-grid:not(.week)'),('listings','#hostListingSearch'),('menu','.vh-menu-cards')]:
+                      page.locator('#modal [data-ht="'+tab+'"]').click()
+                      check(tab+' opens after tap',page.locator(selector).is_visible())
+                  page.reload(wait_until='networkidle')
+                  check('host opens again after reload',page.locator('#modal[open] .vh-shell').count()==1)
+                  check('no uncaught JavaScript errors',not report['errors'])
+                  browser.close()
+          except Exception as e:
+              report['exception']=str(e);check('all WebKit steps completed',False)
+          finally:
+              out.joinpath('report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+              print(json.dumps(report,ensure_ascii=False,indent=2),flush=True)
+          if any(not c['pass'] for c in report['checks']):raise SystemExit(1)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vertex-mobile-webkit-${{ github.run_id }}
+          path: artifacts/webkit/
+          retention-days: 14
+          if-no-files-found: error
