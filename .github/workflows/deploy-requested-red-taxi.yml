@@ -1,0 +1,72 @@
+name: Publish requested red taxi revision with existing credential
+on:
+  push:
+    branches: [deploy-red-taxi-20260929]
+    paths: ['.github/workflows/deploy-requested-red-taxi.yml']
+permissions:
+  contents: read
+concurrency:
+  group: vertex-authorized-red-taxi-deploy
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require existing authorized deployment credential
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo '::error::No CLOUDFLARE_API_TOKEN is configured for this repository. No deployment was attempted. The owner must sign in to Cloudflare or configure the authorized deployment connection.'
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: e4764517a80d46788a87b917c91be7844f121ffc
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Refuse to overwrite newer source or an unexpected published revision
+        run: |
+          python - <<'PY'
+          import json, urllib.request
+          sha='e4764517a80d46788a87b917c91be7844f121ffc'
+          base='https://api.github.com/repos/masurovadasha-cmyk/vertex-app/'
+          req=urllib.request.Request(base+'git/ref/heads/master',headers={'User-Agent':'Vertex-release-verification'})
+          with urllib.request.urlopen(req,timeout=20) as r: current=json.load(r)
+          if current['object']['sha']!=sha: raise RuntimeError('Master changed; revalidate before publishing')
+          with urllib.request.urlopen('https://vertex-app.masurovadasha.workers.dev/release.json',timeout=20) as r: live=json.load(r)
+          if live.get('revision') not in ('studio-webfix1','studio-red-taxi1'): raise RuntimeError('Unexpected public revision; refusing overwrite')
+          config=json.load(open('wrangler.jsonc'))
+          if config.get('name')!='vertex-app' or config.get('assets',{}).get('directory')!='./vertex/dist': raise RuntimeError('Unexpected deployment target')
+          print('Verified expected master and existing Vertex deployment target')
+          PY
+      - name: Validate and publish only the existing Vertex Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: b3aa874550f12baee308e3e7b4dba309
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          npm install
+          npm test
+          npm run check:deploy
+          npm run deploy
+      - name: Verify the public red theme and taxi screens
+        run: |
+          python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3
+          python -m playwright install --with-deps chromium
+          python scripts/browser-web-red.py --live
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vertex-requested-publication-evidence
+          path: |
+            artifacts/quality/web-red-live.json
+            artifacts/quality/web-red-live-*.png
+          retention-days: 14
+          if-no-files-found: ignore
