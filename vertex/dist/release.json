@@ -1,5 +1,5 @@
 {
-  "version": "1.12-demo",
+  "version": "1.13-demo",
   "date": "2026-09-29",
   "mode": "local-demo",
   "features": [
@@ -41,7 +41,8 @@
     "month and currency demo reports with CSV export",
     "accessible full-screen host navigation",
     "functional local accessibility settings",
-    "catalog photo lightbox"
+    "catalog photo lightbox",
+    "Vertex Taxi interactive demo: route, fares, C01/C16, options, demo order status"
   ],
   "boundaries": [
     "No real payments or payouts",
@@ -52,6 +53,6 @@
     "Only local demo listings are editable; confirmed catalog and photo uploads are read-only",
     "Host messages are local property discussions, not a connected guest inbox"
   ],
-  "revision": "studio-webfix1",
+  "revision": "taxi-demo1",
   "web_entry": "https://vertex-app.masurovadasha.workers.dev/"
 }
