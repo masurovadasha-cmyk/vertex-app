@@ -10,7 +10,8 @@
     "test": "npm run test:unit && npm run check:release",
     "check:deploy": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
-    "cf:whoami": "wrangler whoami"
+    "cf:whoami": "wrangler whoami",
+    "build": "npm run check:release"
   },
   "devDependencies": {
     "esbuild": "0.25.10",
