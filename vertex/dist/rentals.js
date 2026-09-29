@@ -292,7 +292,7 @@
       back.textContent = tr('← Все поездки','← All trips'); back.onclick = trips; $('modalBody').prepend(back);
     };
   }
-  window.VertexRentals = Object.freeze({showTrips:trips,showFavorites:favorites,showHost:host,showCalendar:()=>calendar()});
+  window.VertexRentals = Object.freeze({showTrips:trips,showFavorites:favorites,showHost:host,showCalendar:()=>calendar(),showOwnerReport:ownerReport,createListing:newListing});
   $('cartButton').onclick = trips; $('viewTrip').onclick = trips;
 
   function hostMetrics() {
