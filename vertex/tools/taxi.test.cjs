@@ -1,0 +1,26 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const D=require('../dist/taxi-domain.js'),S=require('../dist/taxi-store.js');
+const NOW=Date.parse('2026-10-01T08:00:00Z');
+const draft={from:'QA Airport',to:'QA NRG U-Tower',model:'C01',km:15,guests:2,when:'now',at:'',payment:'later',note:''};
+const make=(id='12345678',fields={})=>D.createOrder({...draft,...fields},'taxi-'+id,NOW);
+function storage(){const values=new Map();return {getItem:k=>values.get(k)??null,setItem(k,v){values.set(k,String(v));},values};}
+for(const [km,cents] of [[0.1,500],[5,500],[5.1,1000],[10,1000],[10.1,1015],[15,1750],[20,2500],[30,4000]])test(`tariff ${km} km = ${cents} cents`,()=>assert.equal(make('12345678',{km}).estimateCents,cents));
+for(const km of [null,'',0,-1,Infinity,NaN,1001,5.01,true,{},[]])test(`reject distance ${String(km)}`,()=>assert.throws(()=>make('12345678',{km})));
+test('reject identical route',()=>assert.throws(()=>make('12345678',{to:'qa airport'}),{code:'same_route'}));
+test('reject unknown model',()=>assert.throws(()=>make('12345678',{model:'Other'}),{code:'model'}));
+test('scheduled request uses explicit Tashkent offset',()=>assert.equal(make('12345678',{when:'scheduled',at:'2026-10-02T10:00'}).at,'2026-10-02T05:00:00.000Z'));
+for(const at of ['', '2026-09-01T10:00', '2026-02-30T10:00', '2026-10-02T25:00', '2028-01-01T10:00'])test(`reject scheduled time ${at}`,()=>assert.throws(()=>make('12345678',{when:'scheduled',at})));
+test('local request never implies dispatched or paid',()=>{const o=make();assert.equal(o.status,'saved');assert.equal(o.vehicleId,null);assert.equal(o.currency,'USD');assert.equal('paid' in o,false);});
+test('state machine prevents jumping directly to completed',()=>assert.throws(()=>D.transition(D.add(D.empty(),make()),make().id,'completed',null,NOW),{code:'transition'}));
+test('assignment must match requested model',()=>assert.throws(()=>D.transition(D.add(D.empty(),make()),make().id,'assigned','C16-01',NOW),{code:'model'}));
+test('one vehicle cannot be assigned twice',()=>{let s=D.add(D.add(D.empty(),make()),make('abcdefgh'));s=D.transition(s,'taxi-12345678','assigned','C01-01',NOW);assert.throws(()=>D.transition(s,'taxi-abcdefgh','assigned','C01-01',NOW),{code:'busy'});});
+test('cancellation releases vehicle without touching another order',()=>{let s=D.add(D.add(D.empty(),make()),make('abcdefgh'));s=D.transition(s,'taxi-12345678','assigned','C01-01',NOW);s=D.transition(s,'taxi-12345678','cancelled',null,NOW);s=D.transition(s,'taxi-abcdefgh','assigned','C01-01',NOW);assert.equal(s.orders[0].vehicleId,'C01-01');});
+test('complete state machine preserves input snapshot',()=>{let s=D.add(D.empty(),make());const initial=JSON.stringify(s);let next=D.transition(s,make().id,'assigned','C01-01',NOW);for(const status of ['arriving','on_trip','completed'])next=D.transition(next,make().id,status,null,NOW);assert.equal(next.orders[0].status,'completed');assert.equal(JSON.stringify(s),initial);assert.throws(()=>D.transition(next,make().id,'assigned','C01-01',NOW));});
+test('historical scheduled orders survive load',()=>{const s=D.add(D.empty(),make('12345678',{when:'scheduled',at:'2026-10-02T10:00'}));assert.deepEqual(D.validateState(s),s);});
+test('corrupt stored state is never overwritten',()=>{const disk=storage();disk.setItem(S.KEY,'{"orders":[null]}');const r=S.create(disk);assert.throws(()=>r.read(),{code:'corrupt'});assert.throws(()=>r.commit(s=>D.add(s,make())));assert.equal(disk.getItem(S.KEY),'{"orders":[null]}');});
+test('failed save rolls back and next write remains possible',()=>{const disk=storage();const r=S.create(disk);r.read();const save=disk.setItem;disk.setItem=()=>{throw Error('Full');};assert.throws(()=>r.commit(s=>D.add(s,make())),{code:'write'});assert.equal(disk.getItem(S.KEY),null);disk.setItem=save;r.commit(s=>D.add(s,make()));assert.equal(r.read().orders.length,1);});
+test('stale sequential tab cannot overwrite existing request',()=>{const disk=storage(),a=S.create(disk),b=S.create(disk);a.read();b.read();a.commit(s=>D.add(s,make()));assert.throws(()=>b.commit(s=>D.add(s,make('abcdefgh'))),{code:'conflict'});b.read();b.commit(s=>D.add(s,make('abcdefgh')));assert.equal(a.read().orders.length,2);});
+test('unsafe read refuses writes',()=>{const disk={getItem:()=>{throw Error('blocked');},setItem:()=>assert.fail('must not write')};assert.throws(()=>S.create(disk).commit(s=>D.add(s,make())),{code:'read'});});
+test('external mutation cannot change committed state',()=>{const disk=storage(),r=S.create(disk);r.commit(s=>D.add(s,make()));const snapshot=r.read();snapshot.orders[0].from='tampered';assert.equal(r.read().orders[0].from,draft.from);});
+test('tampered price and duplicate IDs fail validation',()=>{const s=D.add(D.empty(),make());s.orders[0].estimateCents=1;assert.throws(()=>D.validateState(s));const x=D.add(D.empty(),make());x.orders.push(make());assert.throws(()=>D.validateState(x));});

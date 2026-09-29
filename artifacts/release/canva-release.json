@@ -1,22 +1,34 @@
 {
-  "version": "1.11-demo",
-  "revision": "quality1",
-  "source_commit": "e0f773523e2e74ada1ede15ed81e01b4029b2402",
-  "verification_run": 36571145351,
-  "canva_html_sha256": "14edc1d209aa12fb322ad6ee3e69693300964bcace09702aa6af2c98dfe17788",
+  "version": "1.12-demo",
+  "revision": "studio-red-taxi1",
+  "source_commit": "aba4e9638bd1638df1d950c59ee89b2ef4641a0c",
+  "base_commit": "205621415a796738f35ab7e4f354eb7c01351c50",
+  "verification_run": 36591875512,
+  "verification_status": "success",
+  "canva_html_sha256": "20927d58773d74eb7e8daf4f5bf552649162862f03e70dc3f2d681c5cf500bdb",
   "interactive": {
-    "design_id": "DAHWlGytjWA",
-    "view_url": "https://www.canva.com/d/4aEvMYOzL3p2SAv",
+    "design_id": "DAHWl5eg1OQ",
+    "view_url": "https://www.canva.com/d/B7vVjiY9f_kcTwV",
     "import_status": "success",
-    "data_mode": "fresh in-memory demo data on reload"
+    "data_mode": "in-memory demo reset on reload"
   },
-  "screenshots": {
-    "design_id": "DAHWlBDKYlY",
-    "view_url": "https://www.canva.com/d/Smc6XtbEe_T7JRn",
-    "pages": 4,
-    "import_status": "success",
-    "capture_mode": "real Chromium DOM; in-memory storage test double"
+  "tests": {
+    "baseline_browser": 52,
+    "studio_browser": 61,
+    "taxi_browser_real_local_storage": 72,
+    "red_web_browser": 76,
+    "rental_domain": 35,
+    "host_domain": 26,
+    "taxi_domain_and_store": 40,
+    "server": 6,
+    "release_gate": "46 JS, 32 CSS, 2 HTML, 2 workers, 2 manifests, 196 local references passed"
   },
-  "cloudflare": {"validation": "dry-run passed", "deployed": false},
-  "android": {"assets_synced": true, "apk_rebuilt": false}
+  "cloudflare": {
+    "validation": "dry-run passed",
+    "publication_status": "awaiting merge and live verification",
+    "live_verification": "scripts/browser-web-red.py --live; master CI artifacts are authoritative"
+  },
+  "android": {"assets_synced": true, "apk_rebuilt_in_this_revision": false},
+  "taxi": {"live_dispatch": false, "gps": false, "payments": false, "storage": "browser-local"},
+  "previous_record": "artifacts/release/canva-quality1.json"
 }

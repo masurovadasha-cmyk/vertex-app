@@ -1,3 +1,41 @@
-/* Shared guest surfaces: warm mineral palette, quiet typography and comfortable spacing. */
-:root{--ink:#262823;--muted:#747368;--primary:#334b3e;--primary-dark:#24382e;--line:#e3e1d9;--lavender:#ede9df;--sky:#eff2ec;--peach:#f3ebe4;font-family:Arial,Helvetica,sans-serif;background:#faf9f5;color:#262823}body{background:#faf9f5}body>header{background:#fffefb;border-color:#e6e3d9}.hero{background:#eeeade}.hero-copy{background:#eeeade}.hero .eyebrow{color:#736d57}.hero .eyebrow:before{background:#63795a}.intro h1{font-weight:600;letter-spacing:-2px}.intro p{color:#6d6f62}.mark{background:#324b3e;box-shadow:3px 4px 0 #d7dbce;transform:none;border-radius:12px}#language{background:#f1eee7;color:#625f50}#nav button.active{background:#e9ede4;color:#304736}.dark,.lime{background:#334b3e;box-shadow:none}.dark:hover,.lime:hover{background:#263d2e;box-shadow:none}.outline:hover{background:#f0efe8;border-color:#d5d4c6}.hero-pill,.destination-tag{background:#f5f2e9;color:#575944}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline-color:#889b74}.cards .card{box-shadow:none;border-color:#e7e3d9}#mobileNav{background:#fffefbea;border-color:#e3dfd2;box-shadow:0 3px 24px #28251112}.modal-top{border-color:#e4dfd3}.notice{background:#f2f1e9;color:#67695b}.categories .active,.categories button.active{background:#e8ecdf;color:#334a35;border-color:#cfd6c2}.section-title h2{font-weight:600}.vh-entry{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;margin-left:8px;background:#f0ede4;color:#4d5642;border-radius:18px;font-size:12px;white-space:nowrap}
+/* Host Studio layout adapter. The approved red palette is in brand-red.css.
+   Keep this sheet before brand-red.css. No booking state or user data is changed. */
+:root{font-family:Arial,Helvetica,sans-serif}
+body>header{background:var(--vx-surface,#fff);border-color:var(--line)}
+.hero-copy{background:var(--vx-surface,#fff)}
+.intro h1{font-weight:600;letter-spacing:-2px}
+.section-title h2{font-weight:600}
+.mark{transform:none;border-radius:12px}
+.cards .card{box-shadow:none;border-color:var(--line)}
+#mobileNav{background:#ffffffed;border-color:var(--line);box-shadow:0 3px 24px #22222212}
+.hero-pill,.destination-tag{background:var(--vx-brand-soft);color:var(--vx-brand-strong)}
+.vh-entry{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;margin-left:8px;background:var(--vx-brand-soft);color:var(--vx-brand-strong);border-radius:18px;font-size:12px;white-space:nowrap}
+.vh-modal{--host-accent:var(--vx-brand);--host-ink:var(--vx-ink);--host-muted:var(--vx-muted);--host-line:var(--vx-line)}
+.vh-shell{background:var(--vx-surface);color:var(--vx-ink)}
+.vh-shell button:hover{background:var(--vx-brand-soft)}
+.vh-shell .vh-primary,.vh-shell .vh-guest-switch,.vh-chips button[aria-pressed=true]{background:var(--vx-brand);color:#fff;border-color:var(--vx-brand)}
+.vh-shell .vh-primary:hover,.vh-shell .vh-guest-switch:hover,.vh-chips button[aria-pressed=true]:hover{background:var(--vx-brand-hover);color:#fff}
+.vh-welcome{background:var(--vx-brand);color:#fff}
+.vh-welcome .vh-overline,.vh-welcome p{color:#fff}
+.vh-welcome .vh-light{background:#fff;color:var(--vx-brand-strong)}
+.vh-watermark{color:#ffffff26}
+.vh-shell .vh-head .vh-avatar,.vh-monogram,.vh-shell .vh-secondary,.vh-toolbar>button,.vh-photo-arrows button,.vh-create-banner,.vh-pill{background:var(--vx-brand-soft);color:var(--vx-brand-strong)}
+.vh-shell .vh-back,.vh-shell .vh-close{background:#f4f4f4!important;color:var(--vx-ink)}
+.vh-shell .vh-text{color:var(--vx-brand-strong)!important}
+.vh-shell .vh-muted{color:var(--vx-muted)!important}
+.vh-local,.vh-empty,.vh-cover,.vh-lightbox{background:#fafafa;border-color:var(--vx-line);color:var(--vx-muted)}
+.vh-empty h3{color:var(--vx-ink)}
+.vh-shell :is(.vh-head small,.vh-card p,.vh-row small,.vh-row>b,.vh-search,.vh-listing-copy>span,.vh-booking small,.vh-thread p,.vh-thread small,.vh-menu-cards>button>small,.vh-create-banner small,.vh-version,.vh-report-filters label,.vh-earn-card>span,.vh-earn-card p,.vh-report-bars small,.vh-breakdown small){color:var(--vx-muted)}
+.vh-shell :is(.vh-row>.vh-icon,.vh-local .vh-icon,.vh-empty>.vh-icon){color:var(--vx-brand-strong)}
+.vh-shell :is(.vh-row,.vh-photos button,.vh-booking,.vh-thread,.vh-menu-cards>button){border-color:var(--vx-line)!important}
+.vh-shell :is(.vh-chips button,.vh-earn-card,.vh-breakdown){border-color:var(--vx-line)}
+.vh-shell .vh-nav button{color:var(--vx-muted)}
+.vh-shell .vh-nav button[aria-current=page]{color:var(--vx-brand-strong)}
+.vh-thread>[data-star][aria-pressed=true]{color:var(--vx-brand-strong)}
+.vh-thread>[data-star][aria-pressed=true] path{fill:var(--vx-brand-line)}
+.vh-mini-chart i,.vh-report-bars span{background:var(--vx-brand-line)}
+.vh-mini-chart i:last-child,.vh-report-bars>div:last-child span{background:var(--vx-brand)}
+.vh-switch-row input{accent-color:var(--vx-brand)}
+.vh-shell :is(input,select,textarea){border-color:var(--vx-line)}
+.vh-shell :is(button,input,select,textarea):focus-visible{outline-color:var(--vx-focus)}
 @media(max-width:700px){.vh-entry{margin-left:0;font-size:11px;padding:8px 11px}.intro h1{letter-spacing:-1.2px}}

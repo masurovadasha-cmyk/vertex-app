@@ -36,20 +36,24 @@ jobs:
         run: |
           npm run sync:android
           git diff --exit-code -- android/app/src/main/assets/site
-      - name: Browser DOM regressions and screenshots
+      - name: Browser regressions including current Host Studio and taxi
         run: |
           python scripts/browser-quality.py
           python scripts/browser-studio.py
+          python scripts/browser-taxi.py
+          python scripts/browser-web-red.py
       - name: Cloudflare dry run without deployment
         run: |
           set -o pipefail
           npm run check:deploy 2>&1 | tee artifacts/quality/cloudflare-dry-run.log
       - name: Package current Canva preview
         run: |
-          set -o pipefail
-          node scripts/package-canva.cjs 2>&1 | tee artifacts/quality/canva-package.log
+          node scripts/package-canva.cjs
           git archive --format=zip HEAD -o artifacts/Vertex-Quality-Source.zip
           git rev-parse HEAD > artifacts/quality/source-commit.txt
+      - name: Verify live website after native Cloudflare deployment
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        run: python scripts/browser-web-red.py --live
       - uses: actions/upload-artifact@v4
         if: always()
         with:

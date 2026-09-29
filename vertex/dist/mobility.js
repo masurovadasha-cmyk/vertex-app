@@ -31,6 +31,7 @@ function refresh(){
   document.getElementById('transferRates').textContent=t('Финальную стоимость подтверждает оператор','Final price is confirmed by the operator');
 }
 function openQuote(){
+  if(root.VertexTaxi)return root.VertexTaxi.open();
   modal(t('Vertex Mobility · расчёт','Vertex Mobility · estimate'),`<p class="notice">${t('Расчёт демонстрационный и не является подтверждением машины или заказа. Маршрут, ожидание, парковка и дополнительные условия подтверждаются оператором.','This is a demo estimate and does not confirm a vehicle or booking. Route, waiting time, parking and extra conditions are confirmed by the operator.')}</p><form id="mobilityForm" class="mobility-form"><label>${t('Расстояние, км','Distance, km')}<input id="mobilityKm" type="number" min="1" max="1000" step="0.1" value="10" required></label><label>${t('Автомобиль','Vehicle')}<select id="mobilityVehicle"><option value="C16">Leapmotor C16 · 7 seats</option><option value="C01">Leapmotor C01</option></select></label><div class="mobility-total"><span>${t('Ориентировочно','Estimated')}</span><strong id="mobilityTotal">$10</strong></div><p id="mobilityFormula" class="demo"></p><button class="dark wide" type="submit">${t('Создать демо-заявку','Create demo request')}</button></form>`);
   const form=document.getElementById('mobilityForm'), km=document.getElementById('mobilityKm');
   const update=()=>{

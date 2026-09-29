@@ -41,7 +41,11 @@
     "month and currency demo reports with CSV export",
     "accessible full-screen host navigation",
     "functional local accessibility settings",
-    "catalog photo lightbox"
+    "catalog photo lightbox",
+    "approved red web palette preserving Host Studio",
+    "Vertex Taxi in-app request form",
+    "local taxi dispatch demonstration",
+    "taxi fare calculation and history"
   ],
   "boundaries": [
     "No real payments or payouts",
@@ -50,8 +54,9 @@
     "No cross-device account synchronization",
     "Owner/staff roles are demonstrational and not authentication",
     "Only local demo listings are editable; confirmed catalog and photo uploads are read-only",
-    "Host messages are local property discussions, not a connected guest inbox"
+    "Host messages are local property discussions, not a connected guest inbox",
+    "Taxi requests stay in this browser; drivers are not notified. No live dispatch, GPS, route engine or taxi payments connected."
   ],
-  "revision": "studio-webfix1",
+  "revision": "studio-red-taxi1",
   "web_entry": "https://vertex-app.masurovadasha.workers.dev/"
 }
