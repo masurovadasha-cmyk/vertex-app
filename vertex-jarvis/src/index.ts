@@ -114,12 +114,34 @@ function shouldResearch(agentId: AgentId, body: CommandBody) {
   return ["strategy", "revenue", "technology", "travel"].includes(agentId);
 }
 
+function hasForbiddenSecretField(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  if (Array.isArray(value)) return value.some(hasForbiddenSecretField);
+
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    if (/password|passcode|api[_-]?key|private[_-]?key|secret|cvv|recovery[_-]?code|auth[_-]?token/i.test(key)) {
+      return true;
+    }
+    if (hasForbiddenSecretField(child)) return true;
+  }
+
+  return false;
+}
+
+async function getMemoryBundle(state: DurableObjectStub<JarvisState>) {
+  const response = await state.fetch(new Request("https://state/memory-bundle"));
+  if (!response.ok) return [];
+  const payload = await response.json<any>();
+  return Array.isArray(payload?.items) ? payload.items : [];
+}
+
 async function callOpenAI(
   env: Env,
   principalId: PrincipalId,
   body: CommandBody,
   agentId: AgentId,
-  risk: RiskTier
+  risk: RiskTier,
+  memoryBundle: unknown[]
 ) {
   const legalMode = agentId === "legal";
   const research = shouldResearch(agentId, body);
@@ -148,7 +170,8 @@ async function callOpenAI(
     `Selected specialist: ${agentId} — ${AGENTS[agentId]}`,
     `Policy risk tier: ${risk}`,
     `Live research enabled: ${research}`,
-    body.context ? `Context: ${JSON.stringify(body.context)}` : "",
+    memoryBundle.length ? `Private Vertex memory snapshot: ${JSON.stringify(memoryBundle)}` : "",
+    body.context ? `Request context: ${JSON.stringify(body.context)}` : "",
     `Command: ${body.command}`
   ].filter(Boolean).join("\n\n");
 
@@ -263,6 +286,47 @@ export default {
       return json({ ok: true, killSwitch: event });
     }
 
+    if (url.pathname === "/v1/memory" && request.method === "GET") {
+      return state.fetch(new Request("https://state/memory"));
+    }
+
+    if (url.pathname === "/v1/memory" && request.method === "POST") {
+      const body = await request.json<any>();
+      const key = typeof body?.key === "string" ? body.key.trim() : "";
+      const category = typeof body?.category === "string" ? body.category.trim() : "general";
+      const serialized = JSON.stringify(body?.value ?? null);
+
+      if (!key || key.length > 160 || !/^[a-zA-Z0-9._:-]+$/.test(key)) {
+        return json({ error: "invalid memory key" }, 400);
+      }
+
+      if (category.length > 80 || serialized.length > 50_000) {
+        return json({ error: "memory record too large" }, 413);
+      }
+
+      if (
+        /password|passcode|api[_-]?key|private[_-]?key|secret|cvv|recovery[_-]?code|auth[_-]?token/i.test(key) ||
+        hasForbiddenSecretField(body?.value)
+      ) {
+        return json({ error: "secrets are not allowed in JARVIS memory" }, 400);
+      }
+
+      const payload = {
+        key,
+        category,
+        value: body?.value ?? null,
+        sensitivity: body?.sensitivity === "confidential" ? "confidential" : "internal",
+        updatedBy: principalId,
+        updatedAt: new Date().toISOString()
+      };
+
+      return state.fetch(new Request("https://state/memory", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload)
+      }));
+    }
+
     if (url.pathname === "/v1/commands" && request.method === "POST") {
       const body = await request.json<CommandBody>();
       if (!body?.command || typeof body.command !== "string" || body.command.length > 50_000) {
@@ -274,8 +338,9 @@ export default {
       const twoKey = needsTwoKey(body.command);
       const switchState = await getKillSwitch(state);
 
+      const memoryBundle = await getMemoryBundle(state);
       const started = Date.now();
-      const ai = await callOpenAI(env, principalId, body, agentId, risk);
+      const ai = await callOpenAI(env, principalId, body, agentId, risk, memoryBundle);
 
       const execution =
         switchState?.stopped
@@ -364,6 +429,17 @@ export class JarvisState extends DurableObject<Env> {
         updated_at TEXT NOT NULL
       )
     `);
+
+    this.ctx.storage.sql.exec(`
+      CREATE TABLE IF NOT EXISTS memory (
+        key TEXT PRIMARY KEY,
+        category TEXT NOT NULL,
+        value TEXT NOT NULL,
+        sensitivity TEXT NOT NULL,
+        updated_by TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `);
   }
 
   private insertEvent(type: string, data: unknown) {
@@ -419,6 +495,73 @@ export class JarvisState extends DurableObject<Env> {
 
       this.insertEvent("kill_switch", body);
       return json({ ok: true, state: this.readKillSwitch() });
+    }
+
+    if (url.pathname === "/memory" && request.method === "GET") {
+      const rows = [...this.ctx.storage.sql.exec(
+        "SELECT key, category, value, sensitivity, updated_by, updated_at FROM memory ORDER BY category, key LIMIT 500"
+      )] as any[];
+
+      return json({
+        items: rows.map((r) => ({
+          key: r.key,
+          category: r.category,
+          value: JSON.parse(r.value),
+          sensitivity: r.sensitivity,
+          updatedBy: r.updated_by,
+          updatedAt: r.updated_at
+        }))
+      });
+    }
+
+    if (url.pathname === "/memory" && request.method === "POST") {
+      const item = await request.json<any>();
+
+      this.ctx.storage.sql.exec(
+        "INSERT INTO memory (key, category, value, sensitivity, updated_by, updated_at) VALUES (?, ?, ?, ?, ?, ?) " +
+        "ON CONFLICT(key) DO UPDATE SET category = excluded.category, value = excluded.value, sensitivity = excluded.sensitivity, updated_by = excluded.updated_by, updated_at = excluded.updated_at",
+        item.key,
+        item.category,
+        JSON.stringify(item.value ?? null),
+        item.sensitivity,
+        item.updatedBy,
+        item.updatedAt
+      );
+
+      this.insertEvent("memory_updated", {
+        key: item.key,
+        category: item.category,
+        sensitivity: item.sensitivity,
+        updatedBy: item.updatedBy,
+        updatedAt: item.updatedAt
+      });
+
+      return json({ ok: true, key: item.key });
+    }
+
+    if (url.pathname === "/memory-bundle" && request.method === "GET") {
+      const rows = [...this.ctx.storage.sql.exec(
+        "SELECT key, category, value, sensitivity, updated_at FROM memory ORDER BY updated_at DESC LIMIT 200"
+      )] as any[];
+
+      const items: any[] = [];
+      let chars = 0;
+
+      for (const r of rows) {
+        const item = {
+          key: r.key,
+          category: r.category,
+          value: JSON.parse(r.value),
+          sensitivity: r.sensitivity,
+          updatedAt: r.updated_at
+        };
+        const size = JSON.stringify(item).length;
+        if (chars + size > 80_000) break;
+        chars += size;
+        items.push(item);
+      }
+
+      return json({ items, approximateCharacters: chars });
     }
 
     if (url.pathname === "/approvals" && request.method === "POST") {
