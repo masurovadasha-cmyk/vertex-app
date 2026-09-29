@@ -78,7 +78,7 @@ function showProfile(){
   $('profileGuestGuide').onclick=()=>window.VertexGuestGuide?.open();
 }
 async function showInstall(){
-  if(location.hostname==='appassets.androidplatform.net'){modal(tr('Vertex на телефоне','Vertex on your phone'),'<p>'+tr('Приложение уже установлено. Версия 1.11-demo.','The app is already installed. Version 1.11-demo.')+'</p>');return;}
+  if(location.hostname==='appassets.androidplatform.net'){modal(tr('Vertex на телефоне','Vertex on your phone'),'<p>'+tr('Приложение уже установлено. Версия 1.12-demo.','The app is already installed. Version 1.12-demo.')+'</p>');return;}
 
   if(installPrompt){const p=installPrompt;installPrompt=null;await p.prompt();await p.userChoice;return;}
   const installed=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;

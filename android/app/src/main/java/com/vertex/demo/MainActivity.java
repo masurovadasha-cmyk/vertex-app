@@ -17,13 +17,19 @@ public class MainActivity extends Activity {
     private WebView web;
     private TextToSpeech speech;
     private boolean speechReady;
+    private static final int SAVE_CSV = 1201;
+    private String pendingCsv;
+    private boolean trusted(String url) {
+        Uri u = Uri.parse(url);
+        return "https".equals(u.getScheme()) && HOST.equals(u.getHost());
+    }
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         speech = new TextToSpeech(this, status -> speechReady = status == TextToSpeech.SUCCESS);
-        getWindow().setStatusBarColor(0xff4255ff);
-        getWindow().setNavigationBarColor(0xff4255ff);
+        getWindow().setStatusBarColor(0xff334b3e);
+        getWindow().setNavigationBarColor(0xff334b3e);
         web = new WebView(this);
-        web.setBackgroundColor(0xfff7f8fc);
+        web.setBackgroundColor(0xfffaf9f5);
         web.setOnApplyWindowInsetsListener((v, insets) -> {
             v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
             return insets.consumeSystemWindowInsets();
@@ -37,6 +43,24 @@ public class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         web.setWebChromeClient(new WebChromeClient() {
             @Override public boolean onJsPrompt(WebView view, String url, String message, String defaultValue, JsPromptResult result) {
+                if (message.startsWith("vertex-download:")) {
+                    if (!trusted(url) || pendingCsv != null) { result.cancel(); return true; }
+                    try {
+                        JSONObject req = new JSONObject(message.substring(16));
+                        String text = req.optString("text"), name = req.optString("name");
+                        if (text.length() > 1000000 || !name.matches("Vertex-demo-[A-Za-z0-9-]{1,60}\\.csv")) {
+                            result.cancel(); return true;
+                        }
+                        pendingCsv = text;
+                        Intent save = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                        save.addCategory(Intent.CATEGORY_OPENABLE);
+                        save.setType("text/csv");
+                        save.putExtra(Intent.EXTRA_TITLE, name);
+                        startActivityForResult(save, SAVE_CSV);
+                        result.confirm("dialog-opened");
+                    } catch (Exception error) { pendingCsv = null; result.cancel(); }
+                    return true;
+                }
                 if (!message.startsWith("vertex-tts:")) return super.onJsPrompt(view, url, message, defaultValue, result);
                 Uri origin = Uri.parse(url);
                 if (!"https".equals(origin.getScheme()) || !HOST.equals(origin.getHost())) { result.cancel(); return true; }
@@ -58,7 +82,7 @@ public class MainActivity extends Activity {
             @Override public void onPageFinished(WebView view, String url) {
                 Uri origin = Uri.parse(url);
                 if ("https".equals(origin.getScheme()) && HOST.equals(origin.getHost()))
-                    view.evaluateJavascript("window.vertexNativeVoice = true;", null);
+                    view.evaluateJavascript("window.vertexNativeVoice = true; window.vertexNativeDownloads = true;", null);
             }
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
@@ -92,6 +116,18 @@ public class MainActivity extends Activity {
             }
         });
         web.loadUrl("https://" + HOST + "/index.html");
+    }
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != SAVE_CSV) return;
+        String csv = pendingCsv;
+        pendingCsv = null;
+        if (resultCode != RESULT_OK || data == null || data.getData() == null || csv == null) return;
+        try (java.io.OutputStream out = getContentResolver().openOutputStream(data.getData())) {
+            if (out == null) throw new java.io.IOException("No output stream");
+            out.write(csv.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            Toast.makeText(this, "CSV сохранён / CSV saved", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) { Toast.makeText(this, "Не удалось сохранить CSV / Save failed", Toast.LENGTH_LONG).show(); }
     }
     private WebResourceResponse missing() {
         return new WebResourceResponse("text/plain", "UTF-8", 404, "Not Found", Collections.emptyMap(), new ByteArrayInputStream(new byte[0]));

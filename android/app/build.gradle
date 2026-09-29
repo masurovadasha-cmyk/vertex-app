@@ -3,10 +3,10 @@ android {
     namespace 'com.vertex.demo'
     compileSdk 35
     defaultConfig {
-        applicationId 'com.vertex.demo'
+        applicationId 'com.vertex.studio.preview'
         minSdk 26
         targetSdk 35
-        versionCode 15
-        versionName '1.11-demo'
+        versionCode 16
+        versionName '1.12-demo'
     }
 }
