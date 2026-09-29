@@ -48,7 +48,7 @@ assert.equal(helpers.breakdown(modern,dates.arrival,dates.departure).total,null,
 assert.equal(helpers.breakdown(modern,'2026-11-01','2026-11-08').total,null,'another trip also needs a price');
 assert.match(helpers.quoteBlock(modern,false,'2026-11-01','2026-11-04',2),/268 USD total/);
 assert.match(helpers.quoteBlock(modern,false,'2026-11-01','2026-11-04',2),/differ from your search/);
-assert.match(helpers.validate(panoramic,dates.arrival,dates.departure,2),/unavailable when checked/);
+assert.match(helpers.validate(panoramic,dates.arrival,dates.departure,2),/reference check showed this request as unavailable/i);
 assert.equal(helpers.validate(panoramic,'2026-11-01','2026-11-04',2),'','dated unavailability must not block other dates');
 assert.equal(helpers.validate({id:'unknown',capacity:null},dates.arrival,dates.departure,4),'','unknown capacity allows an unconfirmed request');
 assert.notEqual(helpers.validate(modern,dates.arrival,dates.departure,3),'','confirmed capacity is enforced');
