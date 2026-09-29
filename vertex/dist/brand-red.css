@@ -1,0 +1,157 @@
+/* Vertex / Views — approved Canva palette (29 September 2026).
+ * This is the single brand adapter for the legacy component stylesheets.
+ * Layout and business logic stay with their modules. Load this sheet LAST.
+ * Semantic booking statuses and photographs are intentionally not recoloured.
+ */
+:root {
+  --vx-brand: #e51d57;
+  --vx-brand-strong: #ce174b;
+  --vx-brand-hover: #b91340;
+  --vx-brand-soft: #fff0f4;
+  --vx-brand-line: #f6bccd;
+  --vx-canvas: #f7f7f5;
+  --vx-surface: #ffffff;
+  --vx-ink: #222222;
+  --vx-muted: #666666;
+  --vx-line: #e7e7e7;
+  --vx-focus: #b91340;
+  --primary: var(--vx-brand);
+  --primary-dark: var(--vx-brand-hover);
+  --ink: var(--vx-ink);
+  --muted: var(--vx-muted);
+  --line: var(--vx-line);
+  --lavender: var(--vx-brand-soft);
+  --sky: var(--vx-brand-soft);
+  --peach: var(--vx-brand-soft);
+  color: var(--vx-ink);
+  background: var(--vx-canvas);
+  accent-color: var(--vx-brand);
+}
+body { background: var(--vx-canvas); color: var(--vx-ink); }
+:is(header, .card, .search, dialog, #businessDialog, #mobileNav) { border-color: var(--vx-line); }
+:is(.brand, .intro h1, .section-title h2, .modal-top h2, .price-row strong) { color: var(--vx-ink); }
+.brand-dot, .hero .eyebrow { color: var(--vx-brand-strong); }
+.mark { background: var(--vx-brand); color: #fff; box-shadow: 3px 4px 0 var(--vx-brand-line); }
+:is(.dark, .lime, .business-entry .dark, #businessDialog .biz-tabs button[aria-pressed="true"],
+ .categories button.active, .vh-primary, .vh-compose button, .vx-primary,
+ .vh-modal .vh-primary, .vh-modal .vh-property-actions button, .city-empty-actions .source-link) {
+  background: var(--vx-brand); color: #fff; border-color: var(--vx-brand); box-shadow: none;
+}
+.vertex-menu-modal .vx-primary { background: var(--vx-brand) !important; color: #fff !important; }
+:is(.dark, .lime, .business-entry .dark, .vh-primary, .vx-primary):hover,
+.vh-modal .vh-property-actions button:hover, .city-empty-actions .source-link:hover {
+  background: var(--vx-brand-hover); color: #fff; border-color: var(--vx-brand-hover); box-shadow: none;
+}
+.vertex-menu-modal .vx-primary:hover { background: var(--vx-brand-hover) !important; }
+.hero { background: var(--vx-surface); border: 1px solid var(--vx-line); }
+.hero .eyebrow::before { background: var(--vx-brand); }
+:is(.intro p, .card p, .price-note, .verified-date, .journey p, .trip-heading, aside > p,
+ .trip-total, .services-panel p, .biz-caption, .biz-stats span, .biz-form label,
+ .source-badge, .reference-quote .quote-meta, .reference-quote .quote-context,
+ .reference-quote .quote-disclaimer, .gallery-count, #modalBody p.gallery-count) { color: var(--vx-muted); }
+.hero-sticker { background: var(--vx-brand); color: #fff; }
+:is(.hero .destination-pills button, .outline, .categories button, .price-row button,
+ .source-link.outline, .profile-grid button, #demoTrip) {
+  background: var(--vx-surface); border-color: var(--vx-line); color: var(--vx-ink); box-shadow: none;
+}
+:is(.outline, .price-row button, .source-link.outline, .profile-grid button, #demoTrip):hover,
+.categories button:hover:not(.active) {
+  background: var(--vx-brand-soft); border-color: var(--vx-brand-line); color: var(--vx-brand-strong);
+}
+.hero .destination-pills button[aria-pressed="true"] {
+  background: var(--vx-brand); color: #fff; border-color: var(--vx-brand); box-shadow: none;
+}
+.hero .destination-pills button[aria-pressed="true"]:hover { background: var(--vx-brand-hover); }
+.hero .destination-pills button:hover:not([aria-pressed="true"]) {
+  background: var(--vx-brand-soft); border-color: var(--vx-brand-line); color: var(--vx-brand-strong);
+}
+#language, .modal-top button, #bizClose { background: #f4f4f4; color: var(--vx-ink); border-color: var(--vx-line); }
+#nav button { color: var(--vx-muted); }
+#nav button.active, #mobileNav button.active,
+#mobileNav button[aria-current="page"], .profile-grid button:hover {
+  background: var(--vx-brand-soft); color: var(--vx-brand-strong); border-color: var(--vx-brand-line);
+}
+#mobileNav button { color: var(--vx-muted); }
+#mobileNav button.active { color: var(--vx-brand-strong); }
+:is(aside, .services-panel, .business-entry, .group-entry, .mobility-entry, .guest-guide-entry,
+ .reference-quote, .city-empty-state, .listing-source, .notice,
+ .biz-stats > div, .biz-stats > div:nth-child(2), .biz-stats > div:nth-child(3)) {
+  background: var(--vx-surface); color: var(--vx-ink); border-color: var(--vx-line);
+}
+aside, .services-panel, .business-entry { border-top: 3px solid var(--vx-brand); }
+.notice { background: #fafafa; }
+:is(.services-panel .eyebrow, .biz-kicker, .reference-quote .quote-eyebrow, .place a,
+ .source-link, .price-note a, .source-link:hover, .services-panel button) { color: var(--vx-brand-strong); }
+:is(.tiny-mark, .service-icon, .service-card:nth-child(3n+2) .service-icon,
+ .service-card:nth-child(3n) .service-icon, .avatar, .client-row:nth-child(3n + 2) .avatar,
+ .client-row:nth-child(3n) .avatar, .vh-avatar, .vhv-avatar, .vx-avatar, .vx-big-avatar,
+ .vh-guest i, .vh-messages i, .vh-profile i, .city-empty-state .city-empty-icon) {
+  background: var(--vx-brand-soft); color: var(--vx-brand-strong);
+}
+:is(.source-badge[data-source], .source-badge--owner, .source-badge--airbnb, .source-badge--instagram) {
+  background: #fafafa; border-color: var(--vx-line); color: var(--vx-muted);
+}
+.reference-quote .quote-total, .city-empty-state h3, #businessDialog { color: var(--vx-ink); }
+:is(.trip-total, .reference-quote .quote-disclaimer) { border-color: var(--vx-line); }
+.services-panel button { background: var(--vx-surface); border-color: var(--vx-brand-line); }
+.services-panel button:hover { background: var(--vx-brand-soft); }
+.rental-placeholder, .hero-visual-empty { background: #f0f0f0; color: var(--vx-muted); }
+.business-entry .outline { color: var(--vx-ink); border-color: var(--vx-line); background: #fff; }
+#businessDialog .biz-tabs { background: #f5f5f5; border-color: var(--vx-line); }
+#businessDialog .biz-tabs button { color: var(--vx-muted); }
+#businessDialog .biz-tabs button[aria-pressed="true"] { color: #fff; }
+#businessDialog .client-row { border-color: var(--vx-line); color: var(--vx-ink); }
+#businessDialog .client-row:hover { background: var(--vx-brand-soft); border-color: var(--vx-brand-line); }
+:is(.vh-nav, .vhv-nav) button[aria-current="page"] { color: var(--vx-brand-strong); }
+:is(.vhv-stat i, .vhv-stat i::after, .vhv-chart i, .vh-chart i) { background: var(--vx-brand); border-color: var(--vx-brand); }
+.vhv-stat i { background: transparent; }
+.vhv-place { background: var(--vx-brand-soft); border: 1px solid var(--vx-brand-line); }
+:is(.vh-toggle button.on, .vx-switch.on, .vh-thread .host) { background: var(--vx-brand); }
+:is(.vh-toggle button.on span, .vx-switch.on span) { color: var(--vx-brand-strong); }
+.vx-tabs strong { border-color: var(--vx-brand); color: var(--vx-brand-strong); }
+:is(.heart[aria-pressed="true"], .heart.active, .heart.saved) { color: var(--vx-brand-strong); }
+.detail-gallery > :is(button, a):hover,
+.detail-gallery > button[aria-pressed="true"] { border-color: var(--vx-brand); box-shadow: 0 0 0 2px var(--vx-brand-line); }
+:is(#businessDialog, #modal) :is(input, select, textarea):focus,
+.rent-filters :is(input, select):focus {
+  border-color: var(--vx-brand); box-shadow: 0 0 0 3px var(--vx-brand-soft); background: #fff;
+}
+:is(button, a, input, select, textarea, summary):focus-visible,
+:is(#businessDialog, #modal, .detail-gallery) :is(button, a, summary):focus-visible,
+.source-link:focus-visible { outline: 3px solid var(--vx-focus); outline-offset: 3px; }
+.vh-icon-svg { display: inline-block; width: 22px; height: 22px; flex-shrink: 0; vertical-align: middle; pointer-events: none; }
+.vh-row .vh-icon-svg, .vhv-row .vh-icon-svg { color: var(--vx-brand-strong); }
+:is(.vh-nav, .vhv-nav) button > span { display: grid; place-items: center; }
+.vhv-nav button { min-width: 0; }
+.vhv-nav { height: calc(76px + env(safe-area-inset-bottom)); }
+.vhv-shell { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+#toast { background: var(--vx-ink); color: #fff; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+/* Remaining shared controls: neutral copy, red navigation, semantic calendar. */
+#modalBody .notice, #bizBody .notice { color: var(--vx-muted); background: #fafafa; }
+:is(#filterSummary, .heart, .business-entry p, #mobilityCopy, #guestGuideCopy,
+ .mobility-fleet p, .calendar-legend, .group-option small) { color: var(--vx-muted); }
+.journey span, .mobility-icon { color: var(--vx-brand-strong); background: var(--vx-brand-soft); }
+#demo.demo { color: var(--vx-muted) !important; }
+#businessDialog :is(input, select, textarea),
+#modal :is(input, select, textarea), .biz-stats strong, .calendar-month h3,
+.calendar-grid .cal-day.free { color: var(--vx-ink); }
+.calendar-month button { color: var(--vx-brand-strong); background: var(--vx-brand-soft); }
+.calendar-legend .confirmed { color: #237245; }
+.calendar-legend .pending { color: var(--vx-brand-strong); }
+.calendar-legend .blocked { color: var(--vx-muted); }
+.mobility-fleet article, .mobility-total { background: var(--vx-surface); border-color: var(--vx-line); }
+#modal .calendar-grid .cal-day.free { color: var(--vx-ink); background: #fff; }
+#modal .calendar-grid .cal-day small { color: var(--vx-muted); }
+#modal .calendar-grid .cal-day.confirmed { color: #fff; background: #237245; border-color: #237245; }
+#modal .calendar-grid .cal-day.confirmed small { color: #fff; }
+#modal .calendar-grid .cal-day.pending { color: var(--vx-brand-strong); background: var(--vx-brand-soft); border-color: var(--vx-brand-line); }
+#modal .calendar-grid .cal-day.pending small { color: var(--vx-brand-strong); }
+#modal .calendar-grid .cal-day.blocked, #modal .calendar-grid .cal-day.blocked small { color: var(--vx-muted); background: #f1f1f1; border-color: var(--vx-line); }
+#modal .calendar-grid .cal-day:not(:disabled):hover { color: var(--vx-brand-strong); background: var(--vx-brand-soft); border-color: var(--vx-brand); }
+#modal .calendar-grid .cal-day.confirmed:not(:disabled):hover { color: #fff; background: #1a5936; }
+#groupPackageForm input:not([type=checkbox]), #groupPackageForm select { color: var(--vx-ink); }
+.group-options label { background: #fafafa; }
+.group-options small { color: var(--vx-muted); }
