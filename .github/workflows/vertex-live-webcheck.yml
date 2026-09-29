@@ -1,0 +1,82 @@
+name: Verify live Vertex web repair
+on:
+  push:
+    branches: [vertex-livecheck-webfix1]
+    paths: ['.github/workflows/vertex-live-webcheck.yml']
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install real browser
+        run: |
+          python -m pip install playwright==1.57.0
+          python -m playwright install --with-deps chromium
+      - name: Verify current public deployment without mutations
+        shell: bash
+        run: |
+          mkdir -p artifacts/live
+          python - <<'PY'
+          from pathlib import Path
+          import json,hashlib,urllib.request,time
+          from playwright.sync_api import sync_playwright
+          root=Path('vertex/dist'); out=Path('artifacts/live')
+          origin='https://vertex-app.masurovadasha.workers.dev'
+          url=origin+'/?view=host&v=studio-webfix1'
+          report={'assets':[],'checks':[],'console_errors':[],'request_failures':[]}
+          def check(name,ok):
+              report['checks'].append({'name':name,'pass':bool(ok)})
+              print(('PASS ' if ok else 'FAIL ')+name,flush=True)
+          try:
+              for name in ['index.html','release.json','host-console.js','host-domain.js','studio-theme.css','web-entry.js','sw.js']:
+                  target=origin+('/' if name=='index.html' else '/'+name)+'?verify=2056214-'+str(int(time.time()))
+                  with urllib.request.urlopen(urllib.request.Request(target,headers={'Cache-Control':'no-cache','User-Agent':'Vertex-Owner-Release-Verification'}),timeout=20) as r:
+                      data=r.read(); matches=data==(root/name).read_bytes()
+                      item={'file':name,'status':r.status,'matches_source':matches,'sha256':hashlib.sha256(data).hexdigest(),'type':r.headers.get('Content-Type'),'cache':r.headers.get('Cache-Control')}
+                      report['assets'].append(item);print(json.dumps(item),flush=True)
+                      check('live '+name+' matches published source',matches)
+                      if name=='release.json':report['release']=json.loads(data)
+              with sync_playwright() as p:
+                  browser=p.chromium.launch(headless=True)
+                  ctx=browser.new_context(viewport={'width':390,'height':844},locale='ru-RU',timezone_id='Asia/Tashkent',service_workers='allow')
+                  page=ctx.new_page();page.set_default_timeout(10000)
+                  page.on('pageerror',lambda e:report['console_errors'].append(str(e)))
+                  page.on('requestfailed',lambda r:report['request_failures'].append({'url':r.url,'error':r.failure}))
+                  response=page.goto(url,wait_until='networkidle',timeout=40000)
+                  check('direct URL returns HTTP 200',response.status==200)
+                  report['url']=page.url
+                  report['runtime']=page.evaluate('({ready:document.documentElement.dataset.vertexReady,host:!!window.VertexHostConsole,rental:!!window.VertexRentals,dialogOpen:document.getElementById("modal")?.open})')
+                  print('RUNTIME '+json.dumps(report['runtime']),flush=True)
+                  out.joinpath('body.txt').write_text(page.locator('body').inner_text())
+                  page.screenshot(path=str(out/'01-direct-host.png'))
+                  check('direct URL auto-opens new host workspace',page.locator('#modal[open] .vh-shell').count()==1 and 'Добро пожаловать' in page.locator('#modalBody').inner_text())
+                  for tab,selector in [('calendar','.calendar-grid'),('listings','#hostListingSearch'),('menu','.vh-menu-cards')]:
+                      page.locator('#modal [data-ht="'+tab+'"]').click()
+                      check(tab+' visible after click',page.locator(selector).is_visible())
+                      page.screenshot(path=str(out/(tab+'.png')))
+                  page.reload(wait_until='networkidle')
+                  check('reloading direct URL opens host workspace again',page.locator('#modal[open] .vh-shell').count()==1)
+                  check('no uncaught JavaScript errors',not report['console_errors'])
+                  browser.close()
+          except Exception as e:
+              report['exception']=str(e);check('live verification completed without exception',False)
+          finally:
+              out.joinpath('report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+              print(json.dumps(report,ensure_ascii=False,indent=2),flush=True)
+          if any(not c['pass'] for c in report['checks']):raise SystemExit(1)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vertex-live-webfix1-${{ github.run_id }}
+          path: artifacts/live/
+          retention-days: 14
+          if-no-files-found: error
