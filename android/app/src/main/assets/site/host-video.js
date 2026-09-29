@@ -1,4 +1,4 @@
-/* Vertex Host Experience 1.12 — video-reference layout on top of validated rental logic. */
+/* Vertex Host Experience 1.13 — video-reference layout on top of validated rental logic. */
 (function (w) {
   'use strict';
   if (!w.document || !w.VertexHostConsole || !w.VertexRentals) return;
@@ -7,7 +7,7 @@
   const E = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const state = {tab:'today'};
   const snapshot = () => w.VertexRentals.getSnapshot();
-  const active = b => !['Отклонено','Отменено'].includes(b.status);
+  const active = b => w.VertexRentalDomain.active(b);
   const confirmed = b => b.status === 'Подтверждено';
   const money = (value,currency) => Number.isFinite(value) ? new Intl.NumberFormat(document.documentElement.lang === 'en' ? 'en-US':'ru-RU',{maximumFractionDigits:2}).format(value)+' '+currency : '—';
   const grouped = bookings => bookings.reduce((acc,b) => {
@@ -15,10 +15,10 @@
     acc[b.currency]=(acc[b.currency]||0)+b.total; return acc;
   },{});
   const groupHtml = map => Object.entries(map).length ? Object.entries(map).map(([c,v])=>'<strong>'+E(money(v,c))+'</strong>').join('<br>') : '<strong>—</strong>';
-  const row = (id,icon,ru,en,meta='') => '<button class="vhv-row" data-vh-action="'+E(id)+'"><span class="vhv-icon" aria-hidden="true">'+icon+'</span><span><strong>'+E(T(ru,en))+'</strong>'+(meta?'<small>'+E(meta)+'</small>':'')+'</span><b aria-hidden="true">›</b></button>';
+  const row = (id,icon,ru,en,meta='') => '<button class="vhv-row" data-vh-action="'+E(id)+'"><span class="vhv-icon" aria-hidden="true">'+w.VertexHostIcons.render(id)+'</span><span><strong>'+E(T(ru,en))+'</strong>'+(meta?'<small>'+E(meta)+'</small>':'')+'</span><b aria-hidden="true">›</b></button>';
   const nav = tab => '<nav class="vhv-nav" aria-label="'+T('Кабинет хозяина','Host navigation')+'">'+[
     ['today','⌂','Сегодня','Today'],['calendar','▦','Календарь','Calendar'],['listings','▣','Объявления','Listings'],['messages','□','Сообщения','Messages'],['menu','☰','Меню','Menu']
-  ].map(x=>'<button data-vh-tab="'+x[0]+'" '+(tab===x[0]?'aria-current="page"':'')+'><span>'+x[1]+'</span><small>'+T(x[2],x[3])+'</small></button>').join('')+'</nav>';
+  ].map(x=>'<button data-vh-tab="'+x[0]+'" '+(tab===x[0]?'aria-current="page"':'')+'><span>'+w.VertexHostIcons.render(x[0])+'</span><small>'+T(x[2],x[3])+'</small></button>').join('')+'</nav>';
   function shell(title,html,tab='menu') {
     state.tab=tab;
     modal('Vertex · Views','<div class="vhv-shell"><header class="vhv-head"><button class="vhv-back vh-close" data-vh-action="close" aria-label="'+T('Закрыть','Close')+'">←</button><h2>'+E(title)+'</h2><button class="vhv-avatar" data-vh-action="profile" aria-label="'+T('Профиль','Profile')+'">F</button></header><main>'+html+'</main>'+nav(tab)+'</div>');
@@ -28,7 +28,7 @@
     body.querySelectorAll('[data-vh-action]').forEach(b=>b.onclick=()=>act(b.dataset.vhAction));
   }
   function today() {
-    const d=snapshot(), bookings=d.bookings.filter(active), upcoming=bookings.filter(b=>b.departure>=new Date().toISOString().slice(0,10)).sort((a,b)=>a.arrival.localeCompare(b.arrival));
+    const d=snapshot(), bookings=d.bookings.filter(active), upcoming=bookings.filter(b=>b.departure > w.VertexRentalDomain.localDate(new Date())).sort((a,b)=>a.arrival.localeCompare(b.arrival));
     const planned=grouped(bookings);
     shell(T('Сегодня','Today'),
       '<section class="vhv-dashboard">'+
@@ -57,7 +57,7 @@
       row('company','▦','Сведения о компании','Company information')+
       row('legal','§','Юридический отдел','Legal')+
       row('team','♙','Команда и задачи','Team & tasks')+
-      '</section><p class="vhv-version">Vertex 1.12 · video-reference host experience</p>', 'menu');
+      '</section><p class="vhv-version">Vertex 1.13 · video-reference host experience</p>', 'menu');
   }
   function earnings() {
     const d=snapshot(), planned=grouped(d.bookings.filter(active)), confirmedTotals=grouped(d.bookings.filter(confirmed));
@@ -65,7 +65,7 @@
       '<div class="vhv-payout-head"><span>'+T('Запланировано по локальным заявкам','Planned from local requests')+'</span>'+groupHtml(planned)+'</div>'+
       '<button class="vhv-wide" data-vh-action="reservations">'+T('Все заявки','All requests')+'</button>'+
       '<section class="vhv-section"><h3>'+T('Подтверждено в демо','Confirmed in demo')+'</h3><div class="vhv-money-card">'+groupHtml(confirmedTotals)+'<small>'+T('Это не выплаченные средства. Реальный финансовый контур не подключён.','These are not paid funds. The production finance layer is not connected.')+'</small></div></section>'+
-      '<section class="vhv-section"><h3>'+T('По объявлениям','By listing')+'</h3>'+d.properties.slice(0,6).map(p=>{const own=d.bookings.filter(b=>b.listingId===p.id&&active(b));return '<div class="vhv-property-money"><span>'+E(p.ru||p.en)+'</span>'+groupHtml(grouped(own))+'</div>';}).join('')+'</section>', 'menu');
+      '<section class="vhv-section"><h3>'+T('По объявлениям','By listing')+'</h3>'+d.properties.map(p=>{const own=d.bookings.filter(b=>b.listingId===p.id&&active(b));return '<div class="vhv-property-money"><span>'+E(p.ru||p.en)+'</span>'+groupHtml(grouped(own))+'</div>';}).join('')+'</section>', 'menu');
   }
   function performance() {
     const d=snapshot();

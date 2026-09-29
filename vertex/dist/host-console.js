@@ -5,20 +5,21 @@
   const T = (ru, en) => document.documentElement.lang === 'en' ? en : ru;
   const E = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const rental = () => w.VertexRentals;
+  const icon = key => w.VertexHostIcons.render(key);
   const read = () => rental().getSnapshot();
   const name = property => T(property.ru, property.en || property.ru);
   const photo = property => (property.photos || [])[0] || property.photo || '';
   const state = {tab:'today', id:null}; // Navigation is ephemeral, not a second database.
   const notice = () => '<p class="notice">' + T('Демо · данные только этого устройства. Нет авторизации, реальных выплат или синхронизации с площадками.','Demo · data on this device only. No authentication, real payouts or channel synchronization.') + '</p>';
-  const row = (id, icon, label) => '<button class="vh-row" data-ha="' + E(id) + '"><span aria-hidden="true">' + E(icon) + '</span><strong>' + E(label) + '</strong><b aria-hidden="true">›</b></button>';
+  const row = (id, icon, label) => '<button class="vh-row" data-ha="' + E(id) + '"><span aria-hidden="true">' + w.VertexHostIcons.render(id) + '</span><strong>' + E(label) + '</strong><b aria-hidden="true">›</b></button>';
   const head = title => '<header class="vh-head"><div><small>VERTEX · VIEWS</small><h2>' + E(title) + '</h2></div><button class="vh-avatar" data-ha="profile" aria-label="' + T('Профиль','Profile') + '">F</button></header>';
   function shell(html, tab = state.tab) {
     state.tab = tab;
-    modal('Vertex · Views', '<div class="vh-shell"><button class="vh-close" aria-label="' + T('Закрыть кабинет','Close host console') + '">×</button><main>' + html + '</main><nav class="vh-nav" aria-label="' + T('Кабинет хозяина','Host navigation') + '">' + [['today','⌑','Сегодня','Today'],['calendar','▦','Календарь','Calendar'],['listings','▣','Объявления','Listings'],['messages','□','Сообщения','Messages'],['menu','☰','Меню','Menu']].map(item => '<button data-ht="' + item[0] + '" ' + (tab === item[0] ? 'aria-current="page"' : '') + '><span aria-hidden="true">' + item[1] + '</span><small>' + T(item[2],item[3]) + '</small></button>').join('') + '</nav></div>');
+    modal('Vertex · Views', '<div class="vh-shell"><button class="vh-close" aria-label="' + T('Закрыть кабинет','Close host console') + '">×</button><main>' + html + '</main><nav class="vh-nav" aria-label="' + T('Кабинет хозяина','Host navigation') + '">' + [['today','⌑','Сегодня','Today'],['calendar','▦','Календарь','Calendar'],['listings','▣','Объявления','Listings'],['messages','□','Сообщения','Messages'],['menu','☰','Меню','Menu']].map(item => '<button data-ht="' + item[0] + '" ' + (tab === item[0] ? 'aria-current="page"' : '') + '><span aria-hidden="true">' + icon(item[0]) + '</span><small>' + T(item[2],item[3]) + '</small></button>').join('') + '</nav></div>');
     $('modal').classList.add('vh-modal'); $('modal').scrollTop = 0;
     const body = $('modalBody');
     body.querySelector('.vh-close').onclick = () => $('modal').close();
-    body.querySelectorAll('[data-ht]').forEach(button => button.onclick = () => open(button.dataset.ht));
+    body.querySelectorAll('[data-ht]').forEach(button => button.onclick = () => w.VertexHostConsole.open(button.dataset.ht));
     body.querySelectorAll('[data-ha]').forEach(button => button.onclick = () => act(button.dataset.ha));
     body.querySelectorAll('[data-hl]').forEach(button => button.onclick = () => listing(button.dataset.hl));
     body.querySelectorAll('[data-thread]').forEach(button => button.onclick = () => rental().showDiscussion(button.dataset.thread));
@@ -62,7 +63,7 @@
     return ({today, calendar, listings, messages, menu}[id] || today)();
   }
   function act(id) {
-    if (['today','calendar','listings','messages','menu'].includes(id)) return open(id);
+    if (['today','calendar','listings','messages','menu'].includes(id)) return w.VertexHostConsole.open(id);
     if (id === 'selected') return listing(state.id);
     if (id === 'reservations' || id === 'guest' || id === 'manage') return rental().showHost();
     if (id === 'thread' || id === 'message-guest') return state.id ? rental().showDiscussion(state.id) : messages();

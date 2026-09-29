@@ -72,7 +72,7 @@
 
   function iconFor(button) {
     // Host components own their icon/layout markup; do not decorate twice.
-    if (button.closest('.vh-shell')) return null;
+    if (button.closest('.vh-shell, .vhv-shell')) return null;
     const d = button.dataset;
     if (d.tab || d.cat || d.nav || d.screen || d.open) return types[d.tab || d.cat || d.nav || d.screen || d.open];
     if (d.heart !== undefined) return 'heart';
