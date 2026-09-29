@@ -1,0 +1,22 @@
+{
+  "version": "1.11-demo",
+  "revision": "quality1",
+  "source_commit": "e0f773523e2e74ada1ede15ed81e01b4029b2402",
+  "verification_run": 36571145351,
+  "canva_html_sha256": "14edc1d209aa12fb322ad6ee3e69693300964bcace09702aa6af2c98dfe17788",
+  "interactive": {
+    "design_id": "DAHWlGytjWA",
+    "view_url": "https://www.canva.com/d/4aEvMYOzL3p2SAv",
+    "import_status": "success",
+    "data_mode": "fresh in-memory demo data on reload"
+  },
+  "screenshots": {
+    "design_id": "DAHWlBDKYlY",
+    "view_url": "https://www.canva.com/d/Smc6XtbEe_T7JRn",
+    "pages": 4,
+    "import_status": "success",
+    "capture_mode": "real Chromium DOM; in-memory storage test double"
+  },
+  "cloudflare": {"validation": "dry-run passed", "deployed": false},
+  "android": {"assets_synced": true, "apk_rebuilt": false}
+}
