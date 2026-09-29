@@ -1,5 +1,5 @@
 {
-  "version": "1.9-demo",
+  "version": "1.10-demo",
   "date": "2026-09-29",
   "mode": "local-demo",
   "features": [
@@ -20,7 +20,11 @@
     "check-in and house rules",
     "guest service shortcuts",
     "internal property request actions",
-    "raised mobile navigation"
+    "raised mobile navigation",
+    "expanded profile and account settings",
+    "security and notification settings UI",
+    "payments and tax settings UI",
+    "raised mobile profile navigation"
   ],
   "boundaries": [
     "No real payments or payouts",
