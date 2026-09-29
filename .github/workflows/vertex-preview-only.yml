@@ -1,0 +1,45 @@
+name: Vertex 1.9 Visual Preview
+
+on:
+  push:
+    branches: [preview-only-vertex-1.9-20260929]
+    paths:
+      - '.github/workflows/vertex-preview-only.yml'
+      - 'scripts/capture-preview.cjs'
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install preview dependencies
+        run: npm install --no-save playwright@1.55.0
+      - name: Package standalone preview
+        run: |
+          node scripts/package-canva.cjs
+          mkdir -p preview-output
+          cp artifacts/Vertex-Canva-Latest.html preview-output/Vertex-1.9-Interactive.html
+          cp -r vertex/dist preview-output/site
+          cp RELEASE-1.9.md preview-output/
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Capture real application screens
+        continue-on-error: true
+        run: node scripts/capture-preview.cjs
+      - name: Export preview files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vertex-1.9-visual-preview
+          path: preview-output/
+          if-no-files-found: error
+          retention-days: 7
