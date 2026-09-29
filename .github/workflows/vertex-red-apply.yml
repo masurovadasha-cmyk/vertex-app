@@ -1,0 +1,62 @@
+name: Apply and verify Vertex red Canva revision
+on:
+  push:
+    branches: [vertex-red-canva-20260929]
+    paths: ['.ci/red/**', '.github/workflows/vertex-red-apply.yml']
+permissions:
+  contents: write
+concurrency:
+  group: apply-vertex-red-canva
+  cancel-in-progress: false
+jobs:
+  apply:
+    if: github.repository == 'masurovadasha-cmyk/vertex-app' && github.ref == 'refs/heads/vertex-red-canva-20260929'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install verification dependencies
+        run: |
+          npm install
+          python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3 Pillow==11.3.0
+          python -m playwright install --with-deps chromium
+      - name: Apply hash-verified source revision and sync Android
+        run: |
+          python .ci/red/apply.py
+          npm run sync:android
+      - name: Verify unit, server, release and browser behavior
+        run: |
+          mkdir -p artifacts/quality
+          set -o pipefail
+          npm test 2>&1 | tee artifacts/quality/red-unit-server.log
+          python scripts/browser-quality.py 2>&1 | tee artifacts/quality/red-browser-base.log
+          python scripts/browser-red.py 2>&1 | tee artifacts/quality/red-browser-extra.log
+          npm run check:deploy 2>&1 | tee artifacts/quality/red-cloudflare-dry-run.log
+      - name: Commit only tested source to the isolated branch
+        run: |
+          git config user.name 'Vertex Quality'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add AGENTS.md package.json scripts/browser-red.py vertex/dist vertex/tools/app-release.test.cjs android/app/build.gradle android/app/src/main/assets/site .github/workflows/vertex-app-ci.yml .github/workflows/build-android-apk.yml
+          git rm -r .ci/red .github/workflows/vertex-red-apply.yml
+          git commit -m 'feat: apply approved red Canva theme and unify host navigation in Vertex 1.13'
+          git push origin HEAD:vertex-red-canva-20260929
+          git archive --format=zip HEAD -o artifacts/Vertex-Red-Source.zip
+          git rev-parse HEAD > artifacts/quality/red-source-commit.txt
+          node scripts/package-canva.cjs
+          sha256sum artifacts/Vertex-Canva-Latest.html artifacts/Vertex-Red-Source.zip > artifacts/quality/red-SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vertex-red-reviewed
+          path: |
+            artifacts/quality/
+            artifacts/Vertex-Canva-Latest.html
+            artifacts/Vertex-Red-Source.zip
+          retention-days: 14
+          if-no-files-found: error
