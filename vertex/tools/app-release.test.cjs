@@ -23,7 +23,7 @@ assert.ok(release.features.includes('guest service shortcuts'));
 
 const gradle=fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8');
 assert.match(gradle,/versionCode\s+13\b/);
-assert.match(gradle,/versionName\s+'1\.9-demo'/);
+assert.match(gradle,/versionName\s+'1\.10-demo'/);
 
 const index=fs.readFileSync(path.join(web,'index.html'),'utf8');
 assert.match(index,/<title>Vertex 1\.10/);
@@ -33,7 +33,7 @@ const mobile=fs.readFileSync(path.join(web,'mobile.js'),'utf8');
 assert.doesNotMatch(mobile,/Vertex-Latest\.apk/);
 assert.match(mobile,/signing key|ключ подписи/);
 const shell=fs.readFileSync(path.join(web,'design-shell.js'),'utf8');
-assert.match(shell,/1\.9-demo/);
+assert.match(shell,/1\.10-demo/);
 const app=fs.readFileSync(path.join(web,'app.js'),'utf8');
 assert.match(app,/const cartAmount=/);
 assert.match(app,/Capacity on request · destination imagery/);
