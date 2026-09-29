@@ -69,16 +69,16 @@ jobs:
           "$APKSIGNER" verify --verbose --print-certs "$APK" | tee apk-signature.txt
           "$AAPT" dump badging "$APK" | head -n 1 | tee apk-badging.txt
           grep -q "package: name='com.vertex.demo'" apk-badging.txt
-          grep -q "versionCode='14'" apk-badging.txt
+          grep -q "versionCode='15'" apk-badging.txt
           grep -q "versionName='1.10-demo'" apk-badging.txt
           sha256sum "$APK" | tee apk-sha256.txt
           mkdir -p release-apk
-          cp "$APK" "release-apk/Vertex-App-1.10-demo-code14.apk"
+          cp "$APK" "release-apk/Vertex-App-1.10-demo-code15.apk"
           cp apk-signature.txt apk-badging.txt apk-sha256.txt release-apk/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Vertex-App-1.10-demo-code14
+          name: Vertex-App-1.10-demo-code15
           path: release-apk/
           if-no-files-found: error
           retention-days: 30
