@@ -1,5 +1,5 @@
 {
-  "version": "1.7-demo",
+  "version": "1.8-demo",
   "date": "2026-09-29",
   "mode": "local-demo",
   "features": [
@@ -12,7 +12,10 @@
     "property discussions",
     "owner operations dashboard",
     "RU/EN",
-    "voice concierge"
+    "voice concierge",
+    "Vertex Mobility fleet",
+    "transfer estimator",
+    "payment preference selector"
   ],
   "boundaries": [
     "No real payments or payouts",

@@ -22,6 +22,8 @@ This file consolidates Vertex App requirements from prior ChatGPT/Codex/Work dis
 - PWA and Android source.
 - Local voice/catalog concierge.
 - Owner operations dashboard and local property discussions in 1.7.
+- Vertex Mobility fleet and transfer estimator in 1.8.
+- Demo payment preference: card / cash / cryptocurrency in 1.8.
 
 ## Deliberately not represented as live
 

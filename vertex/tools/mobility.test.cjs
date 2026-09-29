@@ -1,0 +1,12 @@
+const assert=require('node:assert/strict');
+const {quoteTransfer}=require('../dist/mobility.js');
+assert.equal(quoteTransfer(1),5);
+assert.equal(quoteTransfer(5),5);
+assert.equal(quoteTransfer(6),10);
+assert.equal(quoteTransfer(10),10);
+assert.equal(quoteTransfer(11),11.5);
+assert.equal(quoteTransfer(20),25);
+assert.throws(()=>quoteTransfer(0));
+assert.throws(()=>quoteTransfer(-1));
+assert.throws(()=>quoteTransfer('nope'));
+console.log('PASS Vertex Mobility transfer tariff checks');
