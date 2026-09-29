@@ -24,6 +24,7 @@ This file consolidates Vertex App requirements from prior ChatGPT/Codex/Work dis
 - Owner operations dashboard and local property discussions in 1.7.
 - Vertex Mobility fleet and transfer estimator in 1.8.
 - Demo payment preference: card / cash / cryptocurrency in 1.8.
+- Guest Guide, check-in guidance, house rules, parking, pets and service shortcuts in 1.9.
 
 ## Deliberately not represented as live
 
