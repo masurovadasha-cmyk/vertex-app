@@ -20,16 +20,16 @@ assert.ok(release.features.includes('payment preference selector'));
 
 const gradle=fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8');
 assert.match(gradle,/versionCode\s+10\b/);
-assert.match(gradle,/versionName\s+'1\.7-demo'/);
+assert.match(gradle,/versionName\s+'1\.8-demo'/);
 
 const index=fs.readFileSync(path.join(web,'index.html'),'utf8');
 assert.match(index,/<title>Vertex 1\.8/);
 for(const required of ['views-catalog.js','app.js','mobile.js','business.js','rentals.js','concierge-demo.js','group.js','mobility.js']) assert.ok(index.includes(required),'missing script '+required);
 
 const mobile=fs.readFileSync(path.join(web,'mobile.js'),'utf8');
-assert.match(mobile,/Android APK · 1\.7-demo/);
+assert.match(mobile,/Android APK · 1\.8-demo/);
 const shell=fs.readFileSync(path.join(web,'design-shell.js'),'utf8');
-assert.match(shell,/1\.7-demo/);
+assert.match(shell,/1\.8-demo/);
 const app=fs.readFileSync(path.join(web,'app.js'),'utf8');
 assert.match(app,/const cartAmount=/);
 assert.match(app,/Capacity on request · destination imagery/);
