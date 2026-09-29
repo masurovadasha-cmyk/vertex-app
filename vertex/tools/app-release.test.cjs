@@ -30,7 +30,7 @@ assert.match(index,/<title>Vertex 1\.9/);
 for(const required of ['views-catalog.js','app.js','mobile.js','business.js','rentals.js','concierge-demo.js','group.js','mobility.js','guest-guide.js']) assert.ok(index.includes(required),'missing script '+required);
 
 const mobile=fs.readFileSync(path.join(web,'mobile.js'),'utf8');
-assert.match(mobile,/Android APK · 1\.9-demo/);
+assert.doesNotMatch(mobile,/Vertex-Latest\.apk/);\nassert.match(mobile,/signing key|ключ подписи/);
 const shell=fs.readFileSync(path.join(web,'design-shell.js'),'utf8');
 assert.match(shell,/1\.9-demo/);
 const app=fs.readFileSync(path.join(web,'app.js'),'utf8');
