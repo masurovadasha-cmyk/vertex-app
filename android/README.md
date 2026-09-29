@@ -1,6 +1,6 @@
 # Vertex Demo APK
 
-Android 8.0 or later. The current Android source is **Vertex 1.9-demo, versionCode 12**. The web UI, JavaScript, styles, icons and property photos are bundled inside the APK so the core demo opens without hosting. External links/maps still need internet.
+Android 8.0 or later. The current Android source is **Vertex 1.9-demo, versionCode 13**. The web UI, JavaScript, styles, icons and property photos are bundled inside the APK so the core demo opens without hosting. External links/maps still need internet.
 
 ## Build
 
@@ -18,7 +18,7 @@ This project does **not** store the historical private signing key in GitHub. A 
 
 Package: `com.vertex.demo`  
 Version name: `1.9-demo`  
-Version code: `12`
+Version code: `13`
 
 ## Release checks
 
