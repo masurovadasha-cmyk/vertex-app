@@ -1,0 +1,131 @@
+name: Deliver Vertex Host Studio 1.12
+on:
+  push:
+    branches: [vertex-host-studio-112]
+    paths: ['.ci/studio/**', '.github/workflows/deliver-studio-112.yml']
+permissions:
+  contents: write
+concurrency:
+  group: vertex-studio-112-delivery
+  cancel-in-progress: false
+jobs:
+  delivery:
+    if: github.repository == 'masurovadasha-cmyk/vertex-app' && github.ref == 'refs/heads/vertex-host-studio-112'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Restore reviewed source and align future Android checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python .ci/studio/apply.py
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/build-android-apk.yml')
+          text=p.read_text().replace('com.vertex.demo','com.vertex.studio.preview').replace("versionCode='15'", "versionCode='16'").replace('1.11-demo-code15','1.12-demo-code16').replace('1.11-demo','1.12-demo')
+          p.write_text(text)
+          Path('android/README.md').write_text('''# Vertex Studio 1.12-demo\n\nAndroid 8.0+ preview, applicationId `com.vertex.studio.preview`, versionCode 16.\nCore static assets are bundled and open offline. External links need internet.\n\nBuild: JDK 21, SDK 35, build-tools 35.0.0, Gradle 8.11.1. Run `npm install`, `npm run sync:android`, `npm test`, then `gradle -p android assembleDebug`.\n\nThis preview uses a CI-generated debug certificate, not the historical release key. It installs alongside the old `com.vertex.demo` app: do not uninstall the old app. Existing app data is not migrated.\n\nProduction payments, shared accounts, OTA synchronization and AI providers remain unconnected.\n''')
+          PY
+          mkdir -p artifacts/delivery
+      - name: Install dependencies and synchronize assets
+        run: |
+          npm install
+          npm run sync:android
+          python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3
+          python -m playwright install --with-deps chromium
+      - name: Unit, server and release gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test 2>&1 | tee artifacts/delivery/node-tests.log
+      - name: Browser regression gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/browser-quality.py 2>&1 | tee artifacts/delivery/browser-quality.log
+          python scripts/browser-studio.py 2>&1 | tee artifacts/delivery/browser-studio.log
+      - name: Prepare web and verify Cloudflare configuration without publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check:deploy 2>&1 | tee artifacts/delivery/cloudflare-dry-run.log
+          node scripts/package-canva.cjs 2>&1 | tee artifacts/delivery/web-package.log
+          cp artifacts/Vertex-Canva-Latest.html artifacts/delivery/Vertex-Studio-1.12-Web.html
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+      - name: Install Android SDK
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Compile Android preview from current source
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle -p android --no-daemon assembleDebug 2>&1 | tee artifacts/delivery/android-build.log
+      - name: Verify Android package, signature and every embedded web asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK='android/app/build/outputs/apk/debug/app-debug.apk'
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee artifacts/delivery/apk-signature.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" > artifacts/delivery/apk-badging.txt
+          grep -q "package: name='com.vertex.studio.preview'" artifacts/delivery/apk-badging.txt
+          grep -q "versionCode='16'" artifacts/delivery/apk-badging.txt
+          grep -q "versionName='1.12-demo'" artifacts/delivery/apk-badging.txt
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile,hashlib,json
+          root=Path('vertex/dist')
+          report=[]
+          with zipfile.ZipFile('android/app/build/outputs/apk/debug/app-debug.apk') as z:
+              for p in sorted(root.rglob('*')):
+                  if p.is_file():
+                      rel=p.relative_to(root).as_posix()
+                      data=p.read_bytes()
+                      assert z.read('assets/site/'+rel)==data, rel
+                      report.append({'file':rel,'sha256':hashlib.sha256(data).hexdigest()})
+          Path('artifacts/delivery/apk-assets.json').write_text(json.dumps(report,indent=2))
+          print('PASS: APK web assets match current source:',len(report))
+          PY
+          cp "$APK" artifacts/delivery/Vertex-Studio-1.12-demo-code16.apk
+      - name: Save verified source on the preview branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Vertex Build'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add vertex/dist vertex/tools scripts/browser-studio.py android docs/HOST-STUDIO-1.12.md package.json .github/workflows/build-android-apk.yml
+          git rm -r .ci/studio
+          git rm .github/workflows/deliver-studio-112.yml
+          git commit -m 'feat: ship verified Host Studio 1.12 preview and Android code16 source'
+          git rev-parse HEAD > artifacts/delivery/source-commit.txt
+          git archive --format=zip HEAD -o artifacts/delivery/Vertex-Studio-1.12-Source.zip
+          git push origin HEAD:vertex-host-studio-112
+          cd artifacts/delivery
+          sha256sum Vertex-Studio-1.12-demo-code16.apk Vertex-Studio-1.12-Web.html Vertex-Studio-1.12-Source.zip > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Vertex-Studio-1.12-code16-delivery
+          path: |
+            artifacts/delivery/
+            artifacts/studio/
+            artifacts/quality/
+          if-no-files-found: error
+          retention-days: 30
