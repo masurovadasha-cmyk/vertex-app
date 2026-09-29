@@ -12,6 +12,12 @@ function open(id,c){let {shell,row,state,save,listing}=c,s=S().find(x=>x.id===st
  if(id==='thread')return shell('<button class="vh-back" data-ha="messages">←</button><h2>Tarkan</h2><div class="vh-thread"><p class="guest">'+T('Добрый день! Подскажите пожалуйста время заселения.','Hello! Please confirm check-in time.')+'</p><p class="host">'+T('Здравствуйте! Код доступа отправим в день заселения до 14:00.','Hello! We will send the access code before 14:00 on arrival day.')+'</p></div><form class="vh-compose"><input placeholder="'+T('Сообщение…','Message…')+'"><button>➤</button></form>','messages');
  if(id==='message-settings')return shell('<button class="vh-back" data-ha="messages">←</button><h2>'+T('Настройки переписки','Message settings')+'</h2>'+row('quick-replies','□',T('Редактор готовых ответов','Quick reply editor'))+row('recommended','✧',T('Рекомендуемые ответы','Suggested replies'))+row('archive','▣',T('В архиве','Archived'))+row('feedback','➤',T('Дать обратную связь','Send feedback')),'messages');
  if(id==='payments')return shell('<button class="vh-back" data-ha="account">←</button><h2>'+T('Платежи и выплаты','Payments & payouts')+'</h2><h3>'+T('Путешествия','Travel')+'</h3>'+row('pay-methods','▣',T('Способы оплаты','Payment methods'))+row('pay-history','☷',T('Ваши платежи','Your payments'))+'<h3>'+T('Прием гостей','Hosting')+'</h3>'+row('payouts','▣',T('Способы выплаты','Payout methods'))+row('transactions','▥',T('История операций','Transaction history'))+'<p class="notice">'+T('Реальные платежи и выплаты пока не подключены.','Real payments and payouts are not connected yet.')+'</p>','menu');
+ if(['personal','security','privacy','notifications','payments','translation','permissions','business','accessibility','company','tax','resources'].includes(id)&&w.VertexProfileMenu?.open)return w.VertexProfileMenu.open(id==='translation'?'translate':id==='accessibility'?'access':id==='resources'?'guide':id);
+ if(id==='message-guest')return open('thread',c);
+ if(id==='manage')return open('guest',c);
+ if(id==='quick-replies'||id==='recommended'||id==='archive'||id==='feedback')return open('message-settings',c);
+ if(id==='title'||id==='type'||id==='beds')return open('edit',c);
+ if(id==='add-photo')return open('photos',c);
  if(id==='new'&&w.VertexRentals?.createListing)return w.VertexRentals.createListing();
  if(id==='team'&&w.VertexGroup?.requests)return w.VertexGroup.requests();
  if(id==='help'&&w.VertexGuestGuide?.open)return w.VertexGuestGuide.open();
