@@ -3,7 +3,7 @@ name: Vertex JARVIS CI
 on:
   push:
     branches:
-      - vertex-jarvis-foundation
+      - vertex-jarvis-standalone
     paths:
       - "vertex-jarvis/**"
       - ".github/workflows/jarvis-ci.yml"
