@@ -26,15 +26,25 @@
     if (m.text === demoReply) return demoReplyEnglish;
     return m.text;
   }
+  let originalCrm = null, repairCrm = false;
   let clients = [], current = null, timer = null, replyTimer = null;
   let screen = 'crm', view = 'crm', editing = null, callState = null, storageFailed = false;
   try {
-    const saved = JSON.parse(localStorage.getItem(key));
-    if (Array.isArray(saved) && saved.every(c => c && c.id && typeof c.name === 'string' && Array.isArray(c.messages) && Array.isArray(c.calls))) clients = saved.map(c => ({...c,currency:currencyOf(c)}));
-  } catch {}
+    originalCrm = localStorage.getItem(key);
+    const saved = JSON.parse(originalCrm);
+    if (Array.isArray(saved)) clients = saved.filter(c => c && typeof c.id === 'string' && c.id.length<=128 && typeof c.name === 'string' && c.name.length<=80 && Array.isArray(c.messages) && Array.isArray(c.calls)).map(c => ({
+      id:c.id, name:c.name, bookingId:typeof c.bookingId==='string'?c.bookingId:undefined,
+      city:typeof c.city==='string'?c.city.slice(0,80):'', phone:typeof c.phone==='string'?c.phone.slice(0,24):'',
+      stage:stages.includes(c.stage)?c.stage:stages[0], budget:c.budget==null||c.budget===''?null:Number.isFinite(Number(c.budget))&&Number(c.budget)>=0?Number(c.budget):null,
+      note:typeof c.note==='string'?c.note.slice(0,2000):'', currency:currencyOf(c),
+      messages:c.messages.filter(m=>m&&['agent','client'].includes(m.side)&&typeof m.text==='string'&&m.text.length<=1000&&typeof m.time==='string').map(m=>({side:m.side,text:m.text,time:m.time})),
+      calls:c.calls.filter(call=>call&&typeof call.kind==='string'&&typeof call.at==='string'&&(call.seconds===undefined||Number.isFinite(call.seconds)&&call.seconds>=0)).map(call=>({kind:call.kind,at:call.at,...(call.seconds===undefined?{}:{seconds:call.seconds})}))
+    }));
+    repairCrm = originalCrm !== null && JSON.stringify(clients) !== originalCrm;
+  } catch { repairCrm = originalCrm !== null; }
   const time = () => new Date().toLocaleTimeString(locale(), {hour:'2-digit',minute:'2-digit',hour12:false});
   function save() {
-    try { localStorage.setItem(key, JSON.stringify(clients)); storageFailed = false; }
+    try { if(repairCrm){localStorage.setItem(key+'-recovery',originalCrm);repairCrm=false;} localStorage.setItem(key, JSON.stringify(clients)); storageFailed = false; }
     catch { storageFailed = true; }
     storageStatus();
   }

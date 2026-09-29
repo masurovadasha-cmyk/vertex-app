@@ -1,16 +1,14 @@
 (() => {
   const KEY = 'vertex-rentals-v1';
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  let data = {favorites:[], listings:[], bookings:[], threads:[]};
+  const domain = window.VertexRentalDomain;
+  let original = null, recovered = 0, storageUnreadable = false;
+  let data = domain.normalizeStore(null).data;
   try {
-    const saved = JSON.parse(localStorage.getItem(KEY));
-    if (saved && ['favorites','listings','bookings'].every(k => Array.isArray(saved[k]))) data = saved;
-  } catch {}
-  if (!Array.isArray(data.blocks)) data.blocks = [];
-  if (!Array.isArray(data.threads)) data.threads = [];
-  data.threads = data.threads.filter(thread => thread && typeof thread.listingId === 'string' && Array.isArray(thread.messages))
-    .map(thread => ({listingId:thread.listingId,messages:thread.messages.filter(message => message && ['guest','host'].includes(message.side) && typeof message.text === 'string' && message.text.length <= 1000 && typeof message.at === 'string').slice(-60)}))
-    .slice(0,100);
+    original = localStorage.getItem(KEY);
+    const result = domain.normalizeStore(JSON.parse(original), stays.map(item => item.id));
+    data = result.data; recovered = result.rejected;
+  } catch { recovered = 1; storageUnreadable = original === null; }
 
   // Persisted type/status values remain compatible with existing local data.
   const types = [['Квартира','Apartment'], ['Вилла','Villa'], ['Комната','Room']];
@@ -18,8 +16,6 @@
   const typeLabel = value => lang === 'en' ? (types.find(([ru]) => ru === value)?.[1] || value) : value;
   const statusLabel = value => lang === 'en' ? (statuses[value] || value) : value;
   const base = stays.map(s=>({type:'Квартира',wifi:null,host:s.ownerConfirmed?null:'Vertex · демо',hostEn:s.ownerConfirmed?null:'Vertex · demo',...s}));
-  data.listings=data.listings.map(s=>({...s,currency:s.currency||'USD'}));
-  data.bookings=data.bookings.map(b=>({...b,currency:b.currency||'USD'}));
   const catalog = () => [...base,...data.listings];
   const find = id => catalog().find(s => s.id === id);
   const titleOf = s => (lang === 'en' ? s.en : s.ru) || s.ru || s.en;
@@ -27,14 +23,10 @@
     const s = base.find(x => x.id === b.listingId && (b.title === x.ru || b.title === x.en));
     return s ? titleOf(s) : b.title;
   };
-  const localDate = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const localDate = domain.localDate;
   const today = () => localDate(new Date());
-  const dateTime = value => {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return NaN;
-    const time = Date.parse(value+'T00:00:00Z');
-    return Number.isFinite(time) && new Date(time).toISOString().slice(0,10) === value ? time : NaN;
-  };
-  const count = (a,b) => Math.round((dateTime(b)-dateTime(a))/86400000);
+  const dateTime = domain.dateTime;
+  const count = domain.nights;
   const nextDate = value => Number.isFinite(dateTime(value)) ? new Date(dateTime(value)+86400000).toISOString().slice(0,10) : today();
   const hasCapacity = s => Number.isInteger(s.capacity) && s.capacity > 0;
   const capacityLabel = s => hasCapacity(s) ? `${tr('до','up to')} ${s.capacity} ${tr('гостей','guests')}` : tr('Вместимость уточняется','Capacity on request');
@@ -76,7 +68,7 @@
     const photos = photosOf(s); if (!photos.length) return '';
     return `<img id="rentalMainPhoto" class="detail-image gallery-main" src="${escape(photos[0])}" alt="${escape(titleOf(s))}">${photos.length > 1 ? `<p id="rentalPhotoCount" class="gallery-count">1 / ${photos.length}</p><div class="detail-gallery">${photos.map((photo,index) => `<button type="button" data-rental-photo="${index}" aria-pressed="${index === 0}" aria-label="${tr('Фото','Photo')} ${index+1}: ${escape(titleOf(s))}"><img src="${escape(photo)}" alt="" loading="lazy"></button>`).join('')}</div>` : ''}`;
   }
-  const active = b => b.status === 'Запрос отправлен' || b.status === 'Подтверждено';
+  const active = domain.active;
   const available = (id,a,b) => !data.bookings.some(x => x.listingId === id && active(x) && a < x.departure && b > x.arrival)
     && !data.blocks.some(x => x.listingId === id && x.date >= a && x.date < b);
   if ($('arrival').value < today()) {
@@ -91,7 +83,14 @@
     el.textContent = text;
   }
   function persist() {
-    try { localStorage.setItem(KEY,JSON.stringify(data)); return true; }
+    try {
+      if (storageUnreadable) throw new Error('Storage could not be read safely.');
+      // Preserve the original bytes before the first write after recovery.
+      // If backup fails (e.g. quota), refuse the mutation rather than lose data.
+      if (recovered && original !== null) localStorage.setItem(KEY+'-recovery',original);
+      localStorage.setItem(KEY,JSON.stringify(data)); recovered = 0; original = null;
+      return true;
+    }
     catch { error(tr('Не удалось сохранить данные. Освободите память устройства и попробуйте снова.','Could not save data. Free up device storage and try again.')); return false; }
   }
   const modalBase = modal;
@@ -99,6 +98,11 @@
   const typeOptions = () => types.map(([ru,en]) => `<option value="${ru}">${tr(ru,en)}</option>`).join('');
   const controls = document.createElement('section');
   controls.className = 'rent-controls';
+  if (recovered) {
+    const warning = document.createElement('p'); warning.className = 'notice'; warning.id = 'rentalRecovery'; warning.setAttribute('role','status');
+    warning.textContent = tr('Обнаруждены повреждённые локальные записи. Доступные данные восстановлены; исходная запись не перезаписана.','Damaged local records were detected. Valid data was recovered; the original record has not been overwritten.');
+    document.querySelector('.content').prepend(warning);
+  }
   controls.innerHTML = '<div class="rent-links"><button id="favoriteList" class="outline"></button><button id="bookingsList" class="outline"></button><button id="hostPanel" class="dark"></button><button id="rentalCalendar" class="outline"></button></div><div class="rent-filters"><label><span id="priceCapLabel"></span><input id="priceCap" type="number" min="0"></label><label><span id="rentalTypeLabel"></span><select id="rentalType"><option value=""></option>'+typeOptions()+'</select></label><label><span id="rentalSortLabel"></span><select id="rentalSort"><option value="default"></option><option value="asc"></option><option value="desc"></option></select></label><label class="wifi-filter"><input type="checkbox" id="wifiOnly"> Wi-Fi</label></div>';
   document.querySelector('.content').insertBefore(controls,document.querySelector('.section-title'));
   controls.querySelectorAll('input,select').forEach(el => el.oninput = () => render());
@@ -238,11 +242,7 @@
   function discussion(listingId) {
     const s = find(listingId); if (!s) return;
     let thread = data.threads.find(item => item.listingId === listingId);
-    if (!thread) {
-      thread = {listingId,messages:[]};
-      data.threads.push(thread);
-      data.threads = data.threads.slice(-100);
-    }
+    if (!thread) thread = {listingId,messages:[]};
     const draw = () => {
       const box = $('discussionMessages'); if (!box) return;
       box.innerHTML = thread.messages.length ? thread.messages.map(message => `<div class="discussion-bubble ${message.side}"><strong>${message.side === 'guest' ? tr('Вы','You') : tr('Views · демо','Views · demo')}</strong><p>${escape(message.text)}</p><small>${escape(new Date(message.at).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US'))}</small></div>`).join('') : `<p class="notice">${tr('Начните обсуждение по этому объекту. Сообщения сохраняются только на этом устройстве.','Start a discussion about this property. Messages are saved only on this device.')}</p>`;
@@ -253,10 +253,12 @@
     $('discussionForm').onsubmit = e => {
       e.preventDefault();
       const input = e.target.elements.message, value = input.value.trim(); if (!value) return;
+      const previousMessages = thread.messages.slice(), previousThreads = data.threads.slice();
+      if (!data.threads.includes(thread)) data.threads = [...data.threads,thread].slice(-100);
       thread.messages.push({side:'guest',text:value,at:new Date().toISOString()});
       thread.messages.push({side:'host',text:tr('Сообщение сохранено в демо. Команда Views получит его после подключения реального чата.','Message saved in the demo. The Views team will receive it after real messaging is connected.'),at:new Date().toISOString()});
       thread.messages = thread.messages.slice(-60);
-      if (!persist()) { thread.messages.splice(-2); return; }
+      if (!persist()) { thread.messages = previousMessages; data.threads = previousThreads; return; }
       input.value = ''; draw(); input.focus();
     };
   }
@@ -292,17 +294,10 @@
       back.textContent = tr('← Все поездки','← All trips'); back.onclick = trips; $('modalBody').prepend(back);
     };
   }
-  window.VertexRentals = Object.freeze({showTrips:trips,showFavorites:favorites,showHost:host,showCalendar:()=>calendar(),showOwnerReport:ownerReport,createListing:newListing});
+  window.VertexRentals = Object.freeze({showTrips:trips,showFavorites:favorites,showHost:host,showCalendar:(id)=>calendar(id),showDiscussion:discussion,showOwnerReport:ownerReport,createListing:()=>newListing(),editListing:id=>newListing(id),getSnapshot:()=>domain.snapshot(data,catalog())});
   $('cartButton').onclick = trips; $('viewTrip').onclick = trips;
 
-  function hostMetrics() {
-    const pending = data.bookings.filter(b => b.status === 'Запрос отправлен').length;
-    const confirmed = data.bookings.filter(b => b.status === 'Подтверждено');
-    const confirmedNights = confirmed.reduce((sum,b) => { const n = count(b.arrival,b.departure); return sum + (Number.isFinite(n) && n > 0 ? n : 0); },0);
-    const totals = new Map();
-    confirmed.forEach(b => { if (Number.isFinite(b.total)) totals.set(b.currency || 'UZS',(totals.get(b.currency || 'UZS') || 0)+b.total); });
-    return {pending,confirmed:confirmed.length,confirmedNights,totals:[...totals]};
-  }
+  function hostMetrics() { return domain.metrics(data.bookings); }
   function ownerReport() {
     const metrics = hostMetrics();
     const total = metrics.totals.length ? metrics.totals.map(([currency,value]) => money(value,currency)).join(' / ') : tr('Уточнить','Enquire');
@@ -314,22 +309,39 @@
     show(tr('Кабинет хозяина','Host panel'),`<p class="notice">${tr('Демо-роль: данные этого устройства доступны для показа. Авторизация, реальные выплаты и P&L не подключены.','Demo role: data on this device is available for demonstration. Authentication, real payouts and P&L are not connected.')}</p><div class="owner-stats"><div><strong>${catalog().length}</strong><span>${tr('Объектов в каталоге','Catalog properties')}</span></div><div><strong>${metrics.pending}</strong><span>${tr('Новых заявок','New requests')}</span></div><div><strong>${metrics.confirmed}</strong><span>${tr('Подтверждено','Confirmed')}</span></div><div><strong>${metrics.confirmedNights}</strong><span>${tr('Ночей','Nights')}</span></div></div><div class="owner-actions"><button id="newListing" class="dark">${tr('+ Добавить жильё','+ Add a property')}</button><button id="hostCalendar" class="outline">${tr('▦ Календарь','▦ Calendar')}</button><button id="hostReport" class="outline">${tr('Отчёт','Report')}</button></div><h3>${tr('Мои объявления','My listings')} · ${catalog().length}</h3>${catalog().map(s => `<div class="line-item"><div><strong>${escape(titleOf(s))}</strong><p>${escape(cityLabel(s.city))} · ${escape(s.sourceName || tr('Локальное демо','Local demo'))}</p></div><span>${hasNightlyPrice(s) ? money(s.price,s.currency)+' / '+tr('ночь','night') : tr('Цена по запросу','Price on request')}</span></div>`).join('')}<h3>${tr('Заявки гостей','Guest requests')}</h3>${bookingRows(true)}`);
     $('newListing').onclick = newListing; $('hostCalendar').onclick = () => calendar(); $('hostReport').onclick = ownerReport; bindBookings(true);
   }
-  function newListing() {
-    show(tr('Добавить демо-жильё','Add a demo property'),`<form id="listingForm" class="biz-form"><label>${tr('Название','Name')}<input name="name" required maxlength="80"></label><label>${tr('Город','City')}<select name="city">${window.VertexCatalog.cities.map(c=>`<option value="${escape(c.id)}">${escape(lang==='en'?c.en:c.ru)}</option>`).join('')}</select></label><label>${tr('Тип','Type')}<select name="type">${typeOptions()}</select></label><label>${tr('Цена за ночь, UZS','Nightly price, UZS')}<input name="price" type="number" min="1" max="100000000" step="1" required></label><label>${tr('Вместимость','Capacity')}<input name="capacity" type="number" min="1" max="20" value="2" required></label><label>${tr('Имя хозяина','Host name')}<input name="host" required maxlength="80"></label><label>${tr('Описание','Description')}<textarea name="description" required maxlength="1500" rows="3"></textarea></label><label class="agree-label"><input name="wifi" type="checkbox" checked> Wi-Fi</label><p class="notice">${tr('Объявление появится только в демо на этом устройстве. Фотографии можно будет добавить после подключения загрузки.','This listing will appear only in the demo on this device. Photos can be added when uploads are connected.')}</p><p id="rentalError" role="alert"></p><button class="dark" type="submit">${tr('Добавить в каталог','Add to catalog')}</button></form>`);
+  function newListing(existingId) {
+    const existing = existingId ? data.listings.find(item => item.id === existingId) : null;
+    if (existingId && !existing) {
+      show(tr('Объявление из подтверждённого каталога','Confirmed catalog listing'),`<p class="notice">${tr('Этот объект доступен для просмотра. Редактирование подтверждённых данных и загрузка фотографий ещё не подключены. Локальные демо-объявления можно редактировать.','This property is read-only. Editing confirmed catalog data and uploading photos are not connected yet. Local demo listings can be edited.')}</p>`);
+      return;
+    }
+    show(existing ? tr('Редактировать демо-жильё','Edit demo property') : tr('Добавить демо-жильё','Add a demo property'),`<form id="listingForm" class="biz-form"><label>${tr('Название','Name')}<input name="name" required maxlength="80"></label><label>${tr('Город','City')}<select name="city">${window.VertexCatalog.cities.map(c=>`<option value="${escape(c.id)}">${escape(lang==='en'?c.en:c.ru)}</option>`).join('')}</select></label><label>${tr('Тип','Type')}<select name="type">${typeOptions()}</select></label><label>${tr('Цена за ночь, UZS','Nightly price, UZS')}<input name="price" type="number" min="1" max="100000000" step="1" required></label><label>${tr('Вместимость','Capacity')}<input name="capacity" type="number" min="1" max="20" value="2" required></label><label>${tr('Имя хозяина','Host name')}<input name="host" required maxlength="80"></label><label>${tr('Описание','Description')}<textarea name="description" required maxlength="1500" rows="3"></textarea></label><label class="agree-label"><input name="wifi" type="checkbox" checked> Wi-Fi</label><p class="notice">${tr('Объявление появится только в демо на этом устройстве. Фотографии можно будет добавить после подключения загрузки.','This listing will appear only in the demo on this device. Photos can be added when uploads are connected.')}</p><p id="rentalError" role="alert"></p><button class="dark" type="submit">${tr('Добавить в каталог','Add to catalog')}</button></form>`);
+    if (existing) {
+      const form = $('listingForm');
+      for (const [key,value] of Object.entries({name:existing.ru,city:existing.city,type:existing.type,price:existing.price,capacity:existing.capacity,host:existing.host,description:existing.description})) form.elements[key].value = value ?? '';
+      form.elements.wifi.checked = existing.wifi === true;
+      // Editing must preserve the original currency, not relabel USD as UZS.
+      form.elements.price.closest('label').firstChild.textContent = tr('Цена за ночь, ','Nightly price, ') + existing.currency;
+      form.elements.price.step = existing.currency === 'UZS' ? '1' : '0.01';
+      form.querySelector('button[type="submit"]').textContent = tr('Сохранить изменения','Save changes');
+    }
     $('listingForm').onsubmit = e => {
       e.preventDefault();
       const f = new FormData(e.target), name = String(f.get('name')).trim(), hostName = String(f.get('host')).trim(), description = String(f.get('description')).trim();
       if (!name || !hostName || !description) { error(tr('Заполните название, имя хозяина и описание.','Enter the property name, host name and description.')); return; }
       const price = Number(f.get('price')), capacity = Number(f.get('capacity'));
-      if (!Number.isInteger(price) || price < 1 || price > 100000000 || !Number.isInteger(capacity) || capacity < 1 || capacity > 20) { error(tr('Укажите целую цену от 1 до 100 000 000 UZS и вместимость от 1 до 20 гостей.','Enter a whole-number price from 1 to 100,000,000 UZS and capacity from 1 to 20 guests.')); return; }
+      if (!Number.isFinite(price) || (existing?.currency && existing.currency!=='UZS' ? Math.abs(price*100-Math.round(price*100))>1e-6 : !Number.isInteger(price)) || price < 1 || price > 100000000 || !Number.isInteger(capacity) || capacity < 1 || capacity > 20) { error(tr('Укажите целую цену от 1 до 100 000 000 UZS и вместимость от 1 до 20 гостей.','Enter a whole-number price from 1 to 100,000,000 UZS and capacity from 1 to 20 guests.')); return; }
       const location = String(f.get('city'));
-      const s = {id:crypto.randomUUID(),ru:name,en:name,city:location,type:String(f.get('type')),price,currency:'UZS',capacity,wifi:f.has('wifi'),host:hostName,description,photo:null};
-      data.listings.push(s); if (!persist()) { data.listings.pop(); return; }
+      if (!window.VertexCatalog.cities.some(item=>item.id===location) || !types.some(([type])=>type===String(f.get('type'))) || name.length>80 || hostName.length>80 || description.length>1500) { error(tr('Проверьте данные объявления.','Check the listing details.')); return; }
+      const s = {...(existing || {}),id:existing?.id || crypto.randomUUID(),ru:name,en:name,city:location,type:String(f.get('type')),price,currency:existing?.currency || 'UZS',capacity,wifi:f.has('wifi'),host:hostName,description,photo:existing?.photo || null};
+      const previousListings = data.listings.slice();
+      if (existing) data.listings[data.listings.indexOf(existing)] = s; else data.listings.push(s);
+      if (!persist()) { data.listings = previousListings; return; }
       category = 'stays'; city = 'all'; $('destination').value = 'all'; $('priceCap').value = ''; $('rentalType').value = ''; $('wifiOnly').checked = false;
       render(); host();
     };
   }
-  function calendar(listingId = catalog()[0].id,month = new Date().getMonth(),year = new Date().getFullYear()) {
+  function calendar(listingId = catalog()[0]?.id,month = new Date().getMonth(),year = new Date().getFullYear()) {
     const s = find(listingId); if (!s) return;
     const first = new Date(year,month,1), offset = (first.getDay()+6)%7, length = new Date(year,month+1,0).getDate();
     let cells = '<span></span>'.repeat(offset);

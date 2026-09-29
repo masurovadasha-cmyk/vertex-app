@@ -39,6 +39,7 @@ const marker="  const controls = document.createElement('section');";
 assert.ok(rentalSource.includes(marker),'rental test seam must exist');
 const fields={arrival:{value:dates.arrival},departure:{value:dates.departure},guests:{value:'2'}};
 class FixedDate extends Date {constructor(...args){super(...(args.length?args:['2026-09-29T00:00:00Z']));}}
+ownerContext.window.VertexRentalDomain=require('../dist/rental-domain.js');
 const sandbox={window:ownerContext.window,localStorage:{getItem:()=>null},stays:owned,lang:'en',tr:(_ru,en)=>en,URL,Intl,Date:FixedDate,
   money:(value,currency)=>Number.isFinite(value)?new Intl.NumberFormat('en-US',{style:'currency',currency}).format(value):'Enquire',
   $:id=>fields[id],modal:()=>{}};

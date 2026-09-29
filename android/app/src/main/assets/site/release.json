@@ -27,19 +27,23 @@
     "profile menu routes to working modules",
     "dialog style reset",
     "Vertex Views host console",
-    "host analytics",
     "host messages",
     "listing editor",
     "host calendar",
-    "house rules editor",
     "Views-branded property sources",
-    "host action routing complete"
+    "data-backed host operations",
+    "validated rental storage recovery",
+    "editable local demo listings",
+    "host analytics"
   ],
   "boundaries": [
     "No real payments or payouts",
     "No OpenAI/LLM connection",
     "No OTA/channel synchronization",
     "No cross-device account synchronization",
-    "Owner/staff roles are demonstrational and not authentication"
-  ]
+    "Owner/staff roles are demonstrational and not authentication",
+    "Only local demo listings are editable; confirmed catalog and photo uploads are read-only",
+    "Host messages are local property discussions, not a connected guest inbox"
+  ],
+  "revision": "quality1"
 }

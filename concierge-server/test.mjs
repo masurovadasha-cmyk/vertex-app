@@ -19,6 +19,7 @@ test('guest isolation, automatic welcome, live delivery and revocation',async()=
     async function request(route,data,cookie,providedOrigin=origin){const response=await fetch(origin+'/api'+route,{method:data===undefined?'GET':'POST',headers:{...(data===undefined?{}:{'Content-Type':'application/json','Origin':providedOrigin}),...(cookie?{Cookie:cookie}:{})},body:data===undefined?undefined:JSON.stringify(data)});return {response,status:response.status,data:await response.json(),cookie:response.headers.get('set-cookie')?.split(';')[0]};}
     assert.equal((await request('/rooms')).status,401);
     assert.equal((await request('/login',{password},null,'https://wrong.invalid')).status,403);
+    for (const invalid of [null,[],5,'text']) assert.equal((await request('/login',invalid)).status,400);
     const login=await request('/login',{password});assert.equal(login.status,200);const operator=login.cookie;
     const created=await request('/rooms',{guest:'Test Guest',title:'Test Apartment',expires:new Date(Date.now()+3600000).toISOString(),doorCode:'DEMO-ONLY',wifiName:'DemoNetwork',wifiPassword:'DEMO-ONLY'},operator);assert.equal(created.status,201);const id=created.data.room.id;
     assert.equal(created.data.room.messages[0].side,'system');assert.equal(created.data.room.info.doorCode,'DEMO-ONLY');
