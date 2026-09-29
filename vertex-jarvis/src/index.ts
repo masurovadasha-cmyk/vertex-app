@@ -191,6 +191,26 @@ async function getKillSwitch(state: DurableObjectStub<JarvisState>) {
 }
 
 export default {
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    const state = env.JARVIS_STATE.getByName("vertex-group");
+    const now = new Date();
+
+    const kind = controller.cron === "0 3 * * *" ? "daily_review_due" : "heartbeat";
+    const event = {
+      kind,
+      cron: controller.cron,
+      scheduledTime: new Date(controller.scheduledTime).toISOString(),
+      observedAt: now.toISOString(),
+      environment: env.JARVIS_ENV || "unknown"
+    };
+
+    ctx.waitUntil(state.fetch(new Request("https://state/events", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ type: kind, data: event })
+    })).then(() => undefined));
+  },
+
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
