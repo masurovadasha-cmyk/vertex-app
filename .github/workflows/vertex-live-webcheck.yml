@@ -58,7 +58,7 @@ jobs:
                   out.joinpath('body.txt').write_text(page.locator('body').inner_text())
                   page.screenshot(path=str(out/'01-direct-host.png'))
                   check('direct URL auto-opens new host workspace',page.locator('#modal[open] .vh-shell').count()==1 and 'Добро пожаловать' in page.locator('#modalBody').inner_text())
-                  for tab,selector in [('calendar','.calendar-grid'),('listings','#hostListingSearch'),('menu','.vh-menu-cards')]:
+                  for tab,selector in [('calendar','.calendar-grid:not(.week)'),('listings','#hostListingSearch'),('menu','.vh-menu-cards')]:
                       page.locator('#modal [data-ht="'+tab+'"]').click()
                       check(tab+' visible after click',page.locator(selector).is_visible())
                       page.screenshot(path=str(out/(tab+'.png')))
