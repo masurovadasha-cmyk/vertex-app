@@ -22,7 +22,7 @@ assert.ok(release.features.includes('check-in and house rules'));
 assert.ok(release.features.includes('guest service shortcuts'));
 
 const gradle=fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8');
-assert.match(gradle,/versionCode\s+11\b/);
+assert.match(gradle,/versionCode\\s+12\\b/);
 assert.match(gradle,/versionName\s+'1\.9-demo'/);
 
 const index=fs.readFileSync(path.join(web,'index.html'),'utf8');
