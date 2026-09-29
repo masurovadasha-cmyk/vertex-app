@@ -1,0 +1,56 @@
+name: Vertex Quality Audit
+
+on:
+  push:
+    branches: [vertex-quality-20260929]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vertex-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Preserve exact tracked source for reproducible review
+        run: |
+          mkdir -p /tmp/vertex-audit
+          git archive --format=zip HEAD -o /tmp/vertex-audit/vertex-source.zip
+          git rev-parse HEAD > /tmp/vertex-audit/commit.txt
+          sha256sum /tmp/vertex-audit/vertex-source.zip > /tmp/vertex-audit/source.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vertex-source-${{ github.sha }}
+          path: /tmp/vertex-audit/
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install project dependencies
+        run: npm install
+      - name: Unit tests and static release gate
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee /tmp/vertex-test.log
+      - name: Check web and Android parity
+        run: |
+          npm run sync:android
+          git diff --exit-code -- android/app/src/main/assets/site
+      - name: Validate Cloudflare bundle without deployment
+        run: npm run check:deploy
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vertex-test-log-${{ github.sha }}
+          path: /tmp/vertex-test.log
+          retention-days: 7
+          if-no-files-found: ignore
