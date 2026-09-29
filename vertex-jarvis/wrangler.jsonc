@@ -11,6 +11,12 @@
     "OPENAI_MODEL_LUNA": "gpt-6-luna",
     "JARVIS_ENV": "development"
   },
+  "triggers": {
+    "crons": [
+      "*/15 * * * *",
+      "0 3 * * *"
+    ]
+  },
   "durable_objects": {
     "bindings": [
       {
