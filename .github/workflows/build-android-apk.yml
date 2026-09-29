@@ -1,0 +1,80 @@
+name: Build Vertex Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - "android/**"
+      - "vertex/dist/**"
+      - "vertex/tools/**"
+      - "scripts/sync-android.cjs"
+      - "package.json"
+      - ".github/workflows/build-android-apk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install web test dependencies
+        run: npm install
+
+      - name: Verify Vertex release
+        run: npm test
+
+      - name: Synchronize Android assets
+        run: |
+          npm run sync:android
+          git diff --exit-code -- android/app/src/main/assets/site
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Install Android SDK 35
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build debug APK
+        run: gradle -p android --no-daemon assembleDebug
+
+      - name: Verify APK package and signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          test -f "$APK"
+          "$APKSIGNER" verify --verbose --print-certs "$APK" | tee apk-signature.txt
+          "$AAPT" dump badging "$APK" | head -n 1 | tee apk-badging.txt
+          grep -q "package: name='com.vertex.demo'" apk-badging.txt
+          grep -q "versionCode='12'" apk-badging.txt
+          grep -q "versionName='1.9-demo'" apk-badging.txt
+          sha256sum "$APK" | tee apk-sha256.txt
+          mkdir -p release-apk
+          cp "$APK" "release-apk/Vertex-App-1.9-demo-code12.apk"
+          cp apk-signature.txt apk-badging.txt apk-sha256.txt release-apk/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Vertex-App-1.9-demo-code12
+          path: release-apk/
+          if-no-files-found: error
+          retention-days: 30
