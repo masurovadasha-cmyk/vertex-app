@@ -40,7 +40,7 @@ const mobile=fs.readFileSync(path.join(web,'mobile.js'),'utf8');
 assert.doesNotMatch(mobile,/Vertex-Latest\.apk/);
 assert.match(mobile,/signing key|ключ подписи/);
 const shell=fs.readFileSync(path.join(web,'design-shell.js'),'utf8');
-assert.match(shell,/1\.11-demo/);
+assert.match(shell,/1\.12-demo/);
 const app=fs.readFileSync(path.join(web,'app.js'),'utf8');
 assert.match(app,/const cartAmount=/);
 assert.match(app,/Capacity on request · destination imagery/);
