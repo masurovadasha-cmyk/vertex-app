@@ -26,6 +26,25 @@ Vertex 1.9-demo adds the guest operational guide on top of Vertex 1.8.
 - Card / cash / cryptocurrency payment preference with no real processing.
 - RU/EN, PWA, Android source and local voice/catalog concierge.
 
+## Production status
+
+Production Cloudflare deployment was repaired on 29.09.2026 without rolling back
+Vertex 1.9 functionality.
+
+- GitHub master release: `1.9-demo`.
+- Cloudflare Workers Build: success.
+- Worker version: `15430952-3c36-44ed-a27b-0a0e41d3b09c`.
+- Public URL: https://vertex-app.masurovadasha.workers.dev
+- Public `/release.json`: verified as `1.9-demo`.
+
+The root cause of the stale 1.6 production release was the repository build shape:
+Workers Builds returned to success after removing pnpm-specific root files and
+restoring the minimal known-good Wrangler Static Assets configuration.
+
 ## Boundaries
 
-The Guest Guide is a demo instruction layer. Property-specific details remain subject to the final pre-arrival message. No real payments, OTA sync, OpenAI connection, production authentication or cross-device synchronization are enabled. Vertex JARVIS remains a separate project.
+The Guest Guide is a demo instruction layer. Property-specific details remain subject
+to the final pre-arrival message. No real payments, OTA sync, OpenAI connection,
+production authentication or cross-device synchronization are enabled.
+
+Vertex JARVIS remains a separate project.
