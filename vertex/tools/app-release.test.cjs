@@ -34,7 +34,7 @@ assert.match(gradle,/versionName\s+'1\.12-demo'/);
 
 const index=fs.readFileSync(path.join(web,'index.html'),'utf8');
 assert.match(index,/<title>Vertex 1\.12/);
-for(const required of ['views-catalog.js','app.js','mobile.js','business.js','rentals.js','concierge-demo.js','group.js','mobility.js','guest-guide.js','profile-menu.js','host-console.js','host-console-more.js','host-video.js']) assert.ok(index.includes(required),'missing script '+required);
+for(const required of ['views-catalog.js','app.js','mobile.js','business.js','rentals.js','concierge-demo.js','group.js','mobility.js','guest-guide.js','profile-menu.js','host-console.js','host-console-more.js','host-domain.js','web-entry.js']) assert.ok(index.includes(required),'missing script '+required);
 
 const mobile=fs.readFileSync(path.join(web,'mobile.js'),'utf8');
 assert.doesNotMatch(mobile,/Vertex-Latest\.apk/);
@@ -70,7 +70,7 @@ assert.match(profileMenu,/\['payment-methods','payment-history','payouts','trans
 assert.match(fs.readFileSync(path.join(web,'design.css'),'utf8'),/bottom:calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
 
 const sw=fs.readFileSync(path.join(web,'sw.js'),'utf8');
-assert.match(sw,/vertex-demo-v112-video-ui/);
+assert.match(sw,/vertex-demo-v112-studio-webfix1/);
 assert.doesNotMatch(sw,/bali\.jpg|istanbul\.jpg/i);
 assert.match(sw,/mobility\.js/);
 assert.match(sw,/mobility\.css/);
