@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "currency": "USD",
+  "green": {
+    "crm_note": true,
+    "internal_task": true,
+    "routine_guest_reply": true,
+    "research": true,
+    "report_generation": true,
+    "price_change_percent_max": 10
+  },
+  "yellow": {
+    "guest_compensation_max": 50,
+    "purchase_max": 200,
+    "discount_percent_max": 7,
+    "requires_policy_match": true
+  },
+  "red": {
+    "bank_transfer_above": 1000,
+    "loan_or_guarantee": true,
+    "equity_change": true,
+    "binding_contract_material": true,
+    "employment_termination": true,
+    "tax_filing_signature": true,
+    "litigation_settlement": true,
+    "digital_signature": true,
+    "major_capex_above": 2000,
+    "personal_data_export": true
+  },
+  "twoKey": {
+    "bank_transfer_above": 5000,
+    "loan_or_guarantee": true,
+    "equity_change": true
+  }
+}
