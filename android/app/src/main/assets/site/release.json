@@ -1,5 +1,5 @@
 {
-  "version": "1.8-demo",
+  "version": "1.9-demo",
   "date": "2026-09-29",
   "mode": "local-demo",
   "features": [
@@ -15,7 +15,10 @@
     "voice concierge",
     "Vertex Mobility fleet",
     "transfer estimator",
-    "payment preference selector"
+    "payment preference selector",
+    "guest guide",
+    "check-in and house rules",
+    "guest service shortcuts"
   ],
   "boundaries": [
     "No real payments or payouts",
