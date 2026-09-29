@@ -14,7 +14,6 @@
     "build": "npm run check:release"
   },
   "devDependencies": {
-    "esbuild": "0.25.10",
     "wrangler": "4.143.0"
   }
 }
