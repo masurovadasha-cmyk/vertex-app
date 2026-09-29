@@ -3,30 +3,59 @@ import { AGENTS, chooseAgent } from "./agents";
 import { classifyRisk, needsTwoKey } from "./policy";
 import { JARVIS_INSTRUCTIONS } from "./prompt";
 
+type PrincipalId = "FIRDAUS" | "DARYA";
+
 type Env = {
   OPENAI_API_KEY: string;
-  JARVIS_OWNER_TOKEN: string;
+  JARVIS_FIRDAUS_TOKEN: string;
+  JARVIS_DARYA_TOKEN: string;
+  JARVIS_OWNER_TOKEN?: string;
   OPENAI_MODEL?: string;
   JARVIS_ENV?: string;
   JARVIS_STATE: DurableObjectNamespace<JarvisState>;
 };
 
 type CommandBody = {
-  principalId: "FIRDAUS" | "DARYA";
+  principalId?: PrincipalId;
   command: string;
   context?: Record<string, unknown>;
   allowWebResearch?: boolean;
 };
 
+type ApprovalBody = {
+  principalId?: PrincipalId;
+  decisionId: string;
+  approved: boolean;
+  note?: string;
+};
+
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data, null, 2), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8" }
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store"
+    }
   });
 
-function authorized(request: Request, env: Env) {
-  const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  return Boolean(token && env.JARVIS_OWNER_TOKEN && token === env.JARVIS_OWNER_TOKEN);
+function bearer(request: Request) {
+  return request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim() || "";
+}
+
+function authenticate(request: Request, env: Env): PrincipalId | null {
+  const token = bearer(request);
+  if (!token) return null;
+  if (env.JARVIS_FIRDAUS_TOKEN && token === env.JARVIS_FIRDAUS_TOKEN) return "FIRDAUS";
+  if (env.JARVIS_DARYA_TOKEN && token === env.JARVIS_DARYA_TOKEN) return "DARYA";
+
+  // Transitional compatibility is allowed only outside production.
+  if ((env.JARVIS_ENV || "development") !== "production" &&
+      env.JARVIS_OWNER_TOKEN &&
+      token === env.JARVIS_OWNER_TOKEN) {
+    const asserted = request.headers.get("x-jarvis-principal");
+    return asserted === "FIRDAUS" || asserted === "DARYA" ? asserted : null;
+  }
+  return null;
 }
 
 function extractText(payload: any): string {
@@ -40,16 +69,21 @@ function extractText(payload: any): string {
   return parts.join("\n");
 }
 
-async function callOpenAI(env: Env, body: CommandBody, agentId: keyof typeof AGENTS, risk: string) {
+async function readJson<T>(request: Request): Promise<T | null> {
+  try { return await request.json<T>(); } catch { return null; }
+}
+
+async function callOpenAI(env: Env, body: CommandBody, principalId: PrincipalId, agentId: keyof typeof AGENTS, risk: string) {
+  if (!env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
   const legalMode = agentId === "legal";
   const tools = body.allowWebResearch === false ? [] : [
     legalMode
-      ? { type: "web_search", filters: { allowed_domains: ["lex.uz", "gov.uz", "soliq.uz"] } }
+      ? { type: "web_search", filters: { allowed_domains: ["lex.uz", "gov.uz", "soliq.uz", "my.gov.uz"] } }
       : { type: "web_search" }
   ];
 
   const input = [
-    `Authenticated principal: ${body.principalId}`,
+    `Authenticated principal: ${principalId}`,
     `Selected specialist: ${agentId} — ${AGENTS[agentId]}`,
     `Policy risk tier: ${risk}`,
     body.context ? `Context: ${JSON.stringify(body.context)}` : "",
@@ -72,7 +106,7 @@ async function callOpenAI(env: Env, body: CommandBody, agentId: keyof typeof AGE
     })
   });
 
-  const payload = await response.json<any>();
+  const payload = await response.json<any>().catch(() => ({}));
   if (!response.ok) throw new Error(payload?.error?.message || `OpenAI error ${response.status}`);
   return { text: extractText(payload), rawId: payload?.id, usage: payload?.usage };
 }
@@ -81,7 +115,7 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
-    if (url.pathname === "/health") {
+    if (url.pathname === "/health" && request.method === "GET") {
       return json({
         ok: true,
         service: "vertex-jarvis",
@@ -91,7 +125,8 @@ export default {
       });
     }
 
-    if (!authorized(request, env)) return json({ error: "unauthorized" }, 401);
+    const principalId = authenticate(request, env);
+    if (!principalId) return json({ error: "unauthorized" }, 401);
 
     const state = env.JARVIS_STATE.getByName("vertex-group");
 
@@ -100,49 +135,81 @@ export default {
     }
 
     if (url.pathname === "/v1/commands" && request.method === "POST") {
-      const body = await request.json<CommandBody>();
-      if (!body?.command || !["FIRDAUS", "DARYA"].includes(body.principalId)) {
+      const body = await readJson<CommandBody>(request);
+      if (!body?.command || typeof body.command !== "string" || body.command.trim().length < 1 || body.command.length > 20000) {
         return json({ error: "invalid command payload" }, 400);
       }
+      if (body.principalId && body.principalId !== principalId) {
+        return json({ error: "principal mismatch" }, 403);
+      }
 
+      const normalizedBody = { ...body, principalId };
       const risk = classifyRisk(body.command);
       const agentId = chooseAgent(body.command);
       const twoKey = needsTwoKey(body.command);
 
-      const started = Date.now();
-      const ai = await callOpenAI(env, body, agentId, risk);
-      const decision = {
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-        principalId: body.principalId,
-        agentId,
-        risk,
-        twoKey,
-        command: body.command,
-        recommendation: ai.text,
-        modelResponseId: ai.rawId,
-        latencyMs: Date.now() - started,
-        execution: risk === "red" ? "approval_required" : "recommendation_ready"
-      };
+      try {
+        const started = Date.now();
+        const ai = await callOpenAI(env, normalizedBody, principalId, agentId, risk);
+        const execution =
+          risk === "red" ? "approval_required" :
+          risk === "yellow" ? "policy_review_required" :
+          "recommendation_ready";
 
-      await state.fetch(new Request("https://state/events", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ type: "decision", data: decision })
-      }));
+        const decision = {
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+          principalId,
+          agentId,
+          risk,
+          twoKey,
+          command: body.command,
+          recommendation: ai.text,
+          modelResponseId: ai.rawId,
+          latencyMs: Date.now() - started,
+          execution,
+          note: "No third-party mutation connector is enabled in this foundation build."
+        };
 
-      return json(decision, risk === "red" ? 202 : 200);
+        await state.fetch(new Request("https://state/events", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ type: "decision", data: decision })
+        }));
+
+        return json(decision, risk === "red" ? 202 : 200);
+      } catch (error) {
+        const event = {
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+          principalId,
+          command: body.command,
+          error: error instanceof Error ? error.message : "unknown error"
+        };
+        await state.fetch(new Request("https://state/events", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ type: "error", data: event })
+        }));
+        return json({ error: "upstream_error", requestId: event.id }, 502);
+      }
     }
 
     if (url.pathname === "/v1/approvals" && request.method === "POST") {
-      const approval = await request.json<any>();
-      if (!approval?.decisionId || !["FIRDAUS", "DARYA"].includes(approval?.principalId)) {
+      const approval = await readJson<ApprovalBody>(request);
+      if (!approval?.decisionId || typeof approval.approved !== "boolean") {
         return json({ error: "invalid approval payload" }, 400);
+      }
+      if (approval.principalId && approval.principalId !== principalId) {
+        return json({ error: "principal mismatch" }, 403);
       }
       const event = {
         id: crypto.randomUUID(),
         createdAt: new Date().toISOString(),
-        ...approval
+        principalId,
+        decisionId: approval.decisionId,
+        approved: approval.approved,
+        note: typeof approval.note === "string" ? approval.note.slice(0, 2000) : undefined
       };
       await state.fetch(new Request("https://state/events", {
         method: "POST",
@@ -183,7 +250,7 @@ export class JarvisState extends DurableObject<Env> {
       return json({ ok: true });
     }
 
-    if (url.pathname === "/status") {
+    if (url.pathname === "/status" && request.method === "GET") {
       const rows = [...this.ctx.storage.sql.exec(
         "SELECT seq, created_at, type, payload FROM events ORDER BY seq DESC LIMIT 25"
       )].map((r: any) => ({
@@ -197,6 +264,7 @@ export class JarvisState extends DurableObject<Env> {
         service: "vertex-jarvis",
         mode: "bounded-autonomy",
         principals: ["FIRDAUS", "DARYA"],
+        externalMutationConnectorsEnabled: false,
         recentEvents: rows
       });
     }
