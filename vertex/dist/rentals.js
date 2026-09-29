@@ -48,41 +48,25 @@
     if (hasUzsNightlyPrice(a) !== hasUzsNightlyPrice(b)) return hasUzsNightlyPrice(a) ? -1 : 1;
     return hasUzsNightlyPrice(a) ? (a.price-b.price) * (direction === 'desc' ? -1 : 1) : 0;
   }
-  function sourceUrl(value) {
-    try { const url = new URL(value); return url.protocol === 'https:' ? url.href : ''; } catch { return ''; }
-  }
+  function sourceUrl() { return ''; }
   function referenceQuote(s) {
     const q = s.quote;
     if (!q || !Number.isFinite(dateTime(q.arrival)) || !Number.isFinite(dateTime(q.departure)) || count(q.arrival,q.departure) < 1 || !Number.isInteger(q.guests) || q.guests < 1 || !/^[A-Z]{3}$/.test(q.currency || '')) return null;
     const unavailable = q.unavailable === true || s.unavailable === true;
     if (!unavailable && !(Number.isFinite(q.total) && q.total >= 0)) return null;
-    return {...q,unavailable};
+    return {...q,unavailable,sourceUrl:undefined};
   }
   const quoteMatches = (q,a,b,g) => !!q && q.arrival === a && q.departure === b && q.guests === Number(g);
   function quoteBlock(s,compact = false,a = $('arrival').value,b = $('departure').value,g = Number($('guests').value)) {
     const q = referenceQuote(s); if (!q) return '';
-    const provider = s.sourceName || tr('источника','source');
     const value = q.unavailable ? tr('Нет доступности для этого запроса','Unavailable for this request') : `${new Intl.NumberFormat(lang === 'en' ? 'en-US' : 'ru-RU',{maximumFractionDigits:2}).format(q.total)} ${q.currency} ${tr('всего','total')}`;
     const checked = q.checkedAt ? `<span class="verified-date">${tr('Проверено','Checked')}: ${escape(String(q.checkedAt).slice(0,10))}</span>` : '';
     const current = quoteMatches(q,a,b,g);
     const dateFormat = new Intl.DateTimeFormat(lang === 'en' ? 'en-US' : 'ru-RU',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
     const dateLabel = dateFormat.formatRange(new Date(dateTime(q.arrival)),new Date(dateTime(q.departure)));
-    return `<div class="reference-quote${compact ? ' reference-quote--compact' : ''}"><span class="quote-eyebrow">${tr('Справочный расчёт','Reference quote')} · ${escape(provider)}</span><strong class="quote-total">${value}</strong><p class="quote-meta">${escape(dateLabel)} · ${tr('гостей','guests')}: ${q.guests} · ${tr('ночей','nights')}: ${count(q.arrival,q.departure)}</p>${checked}${compact ? '' : `<p class="quote-context">${current ? tr('Параметры совпадают с вашим поиском. Актуальность уточните в источнике.','These details match your search. Confirm current availability and price at the source.') : tr('Это другие даты или число гостей. Для вашего запроса нужен новый расчёт.','These dates or guest count differ from your search. Your request needs a new quote.')}</p>`}<p class="quote-disclaimer">${compact ? tr('Пример Airbnb, цена может измениться.','Airbnb reference, price may change.') : tr('Справка по всей поездке, не постоянный тариф за ночь и не подтверждение бронирования.','A reference for the whole trip, not a fixed nightly rate or booking confirmation.')}</p></div>`;
+    return `<div class="reference-quote${compact ? ' reference-quote--compact' : ''}"><span class="quote-eyebrow">${tr('Справочный расчёт','Reference quote')} · Views</span><strong class="quote-total">${value}</strong><p class="quote-meta">${escape(dateLabel)} · ${tr('гостей','guests')}: ${q.guests} · ${tr('ночей','nights')}: ${count(q.arrival,q.departure)}</p>${checked}${compact ? '' : `<p class="quote-context">${current ? tr('Параметры совпадают с вашим поиском. Для подтверждения создайте запрос внутри Vertex.','These details match your search. Create a request inside Vertex to confirm.') : tr('Это другие даты или число гостей. Для вашего запроса нужен новый расчёт.','These dates or guest count differ from your search. Your request needs a new quote.')}</p>`}<p class="quote-disclaimer">${tr('Справочный исторический расчёт; не постоянный тариф и не подтверждение бронирования.','Historical reference only; not a fixed rate or booking confirmation.')}</p></div>`;
   }
-  function sourceLink(s,a = $('arrival').value,b = $('departure').value,g = Number($('guests').value)) {
-    let href = sourceUrl(s.sourceUrl || s.quote?.sourceUrl); if (!href) return '';
-    if (s.sourceName === 'Airbnb') {
-      const url = new URL(href);
-      if (url.hostname === 'airbnb.com' || url.hostname.endsWith('.airbnb.com')) {
-        ['check_in','check_out','adults','guests'].forEach(name => url.searchParams.delete(name));
-        if (Number.isFinite(dateTime(a)) && Number.isFinite(dateTime(b)) && count(a,b) > 0) { url.searchParams.set('check_in',a); url.searchParams.set('check_out',b); }
-        if (Number.isInteger(Number(g)) && Number(g) > 0) { url.searchParams.set('adults',String(g)); url.searchParams.set('guests',String(g)); }
-        href = url.href;
-      }
-    }
-    const label = s.sourceName === 'Airbnb' ? tr('Цена и бронирование на Airbnb ↗','Price & booking on Airbnb ↗') : `${tr('Уточнить в','Enquire on')} ${s.sourceName || tr('источнике','source')} ↗`;
-    return `<a class="source-link outline" href="${escape(href)}" target="_blank" rel="noopener noreferrer">${escape(label)}</a>`;
-  }
+  function sourceLink() { return ''; }
   function photosOf(s) {
     return [...new Set([s.photo,...(Array.isArray(s.photos) ? s.photos : [])].filter(photo => typeof photo === 'string' && photo.trim()))];
   }
@@ -176,7 +160,7 @@
     if (!Number.isFinite(n) || n < 1 || n > 365 || a < today()) return tr('Выберите даты от сегодняшнего дня: от 1 до 365 ночей.','Choose today or a later check-in date, for 1 to 365 nights.');
     if (!Number.isInteger(g) || g < 1 || g > 20 || hasCapacity(s) && g > s.capacity) return tr('Укажите число гостей в пределах вместимости объекта (до 20 в одном запросе).','Choose a guest count within the property capacity (up to 20 per request).');
     const quoted = referenceQuote(s);
-    if (quoted?.unavailable && quoteMatches(quoted,a,b,g)) return tr('При проверке Airbnb этот запрос был недоступен. Выберите другие даты или уточните доступность по ссылке на Airbnb.','Airbnb showed this request as unavailable when checked. Choose different dates or check availability using the Airbnb link.');
+    if (quoted?.unavailable && quoteMatches(quoted,a,b,g)) return tr('Для этого исторического запроса была отмечена недоступность. Выберите другие даты или создайте запрос в Vertex.','This historical request was marked unavailable. Choose different dates or create a request in Vertex.');
     if (!available(s.id,a,b)) return tr('Эти даты заняты демо-заявкой или закрыты хозяином. Выберите другие даты.','These dates have a demo request or are blocked by the host. Choose different dates.');
     return '';
   }
@@ -198,7 +182,7 @@
       ${amenities.length ? `<div class="amenities">${amenities.map(item => `<span>${item}</span>`).join('')}</div>` : ''}
       <div id="rentalReferenceQuote">${quoteBlock(s,false,$('arrival').value,$('departure').value,initialGuests)}</div>
       <div id="rentalSourceLink">${sourceLink(s,$('arrival').value,$('departure').value,initialGuests)}</div>
-      <div class="place"><strong>${tr('Хозяин:','Host:')} ${escape(hostName)}</strong><p>${s.ownerConfirmed ? tr('Актуальную цену, условия и наличие подтвердите у хозяина по ссылке на источник.','Confirm the current price, terms and availability with the host using the source link.') : tr('Условный профиль для демонстрации','Illustrative demonstration profile')}</p><button id="contactHost" class="outline">${tr('Открыть обсуждение','Open discussion')}</button></div>
+      <div class="place"><strong>${tr('Хозяин:','Host:')} ${escape(hostName)}</strong><p>${s.ownerConfirmed ? tr('Актуальную цену, условия и наличие подтвердите через запрос или обсуждение внутри Vertex.','Confirm the current price, terms and availability through a Vertex request or discussion.') : tr('Условный профиль для демонстрации','Illustrative demonstration profile')}</p><button id="contactHost" class="outline">${tr('Открыть обсуждение','Open discussion')}</button></div>
       <p class="notice">${tr('Ниже можно сохранить локальный демо-запрос. Он не отправляется хозяину, не бронирует квартиру и не списывает деньги.','You can save a local demo request below. It is not sent to the host, does not reserve the property and does not charge a payment.')}</p>
       <form id="bookingForm" class="biz-form"><label>${tr('Имя гостя','Guest name')}<input name="guest" required maxlength="80" autocomplete="name" placeholder="${tr('Как к вам обращаться?','What should we call you?')}"></label>
       <div class="booking-dates"><label>${tr('Заезд','Check-in')}<input name="arrival" type="date" min="${today()}" value="${escape($('arrival').value)}" required></label><label>${tr('Выезд','Check-out')}<input name="departure" type="date" value="${escape($('departure').value)}" required></label></div>
@@ -230,10 +214,10 @@
       const a = f.elements.arrival.value, b = f.elements.departure.value, g = Number(f.elements.guests.value), guest = f.elements.guest.value.trim();
       const problem = validate(s,a,b,g);
       if (problem || !guest || !f.elements.agree.checked) { error(problem || (!guest ? tr('Введите имя гостя.','Enter the guest name.') : tr('Подтвердите условия демо-запроса.','Accept the demo request terms.'))); return; }
-      const booking = {id:crypto.randomUUID(),listingId:s.id,title:s.ru,city:s.city,guest,arrival:a,departure:b,guests:g,...breakdown(s,a,b),referenceQuote:referenceQuote(s),sourceUrl:sourceUrl(s.sourceUrl),status:'Запрос отправлен',created:new Date().toISOString()};
+      const booking = {id:crypto.randomUUID(),listingId:s.id,title:s.ru,city:s.city,guest,arrival:a,departure:b,guests:g,...breakdown(s,a,b),referenceQuote:referenceQuote(s),status:'Запрос отправлен',created:new Date().toISOString()};
       data.bookings.push(booking); if (!persist()) { data.bookings.pop(); return; }
       window.dispatchEvent(new CustomEvent('vertex-booking',{detail:booking})); render();
-      show(tr('Демо-запрос сохранён','Demo request saved'),`<div class="booking-success">✓</div><h3>${escape(titleOf(s))}</h3><p>${a} → ${b} · ${tr('гостей','guests')}: ${g}</p><p>№ ${booking.id.slice(0,8).toUpperCase()} · ${money(booking.total,booking.currency)}</p><p class="notice">${tr('Запрос сохранён только на устройстве. Ничего не забронировано и не оплачено. Для реального бронирования перейдите к источнику.','The request is saved only on this device. Nothing is booked or paid. Use the source for a real booking.')}</p>${sourceLink(s,a,b,g)}<button id="openMyTrips" class="dark wide">${tr('Поездки','Trips')}</button>`);
+      show(tr('Демо-запрос сохранён','Demo request saved'),`<div class="booking-success">✓</div><h3>${escape(titleOf(s))}</h3><p>${a} → ${b} · ${tr('гостей','guests')}: ${g}</p><p>№ ${booking.id.slice(0,8).toUpperCase()} · ${money(booking.total,booking.currency)}</p><p class="notice">${tr('Запрос сохранён только на устройстве. Ничего не забронировано и не оплачено. Для подтверждения продолжите общение и оформление внутри Vertex.','The request is saved only on this device. Nothing is booked or paid. Continue the conversation and request inside Vertex to confirm.')}</p>${sourceLink(s,a,b,g)}<button id="openMyTrips" class="dark wide">${tr('Поездки','Trips')}</button>`);
       $('openMyTrips').onclick = trips;
     };
   }
