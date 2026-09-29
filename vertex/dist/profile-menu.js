@@ -31,7 +31,7 @@ function open(id){
   if(id==='translate')return translation();
   if(id==='access')return access();
   if(id==='tax')return taxes();
-  if(id==='host'&&root.VertexRentals?.showHost)return root.VertexRentals.showHost();
+  if(id==='host'&&root.VertexHostConsole?.open)return root.VertexHostConsole.open('today');
   if(id==='listing'&&root.VertexRentals?.createListing)return root.VertexRentals.createListing();
   if(id==='analytics'&&root.VertexRentals?.showOwnerReport)return root.VertexRentals.showOwnerReport();
   if(id==='team'&&root.VertexGroup?.requests)return root.VertexGroup.requests();
