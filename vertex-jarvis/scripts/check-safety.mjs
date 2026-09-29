@@ -7,6 +7,7 @@ const required = [
   "src/agents.ts",
   "src/policy.ts",
   "src/prompt.ts",
+  "src/redact.ts",
   "wrangler.jsonc",
   "SECURITY.md",
   "policies/constitution.json",
@@ -56,7 +57,9 @@ for (const invariant of [
   "/v1/kill-switch",
   "approval_required",
   "gpt-6-astra",
-  "web_search"
+  "web_search",
+  "/v1/outcomes",
+  "redactSecrets"
 ]) {
   if (!index.includes(invariant)) fail(`runtime invariant missing: ${invariant}`);
 }
