@@ -22,9 +22,11 @@ assert.ok(release.features.includes('check-in and house rules'));
 assert.ok(release.features.includes('guest service shortcuts'));
 assert.ok(release.features.includes('internal property request actions'));
 assert.ok(release.features.includes('raised mobile navigation'));
+assert.ok(release.features.includes('profile menu routes to working modules'));
+assert.ok(release.features.includes('dialog style reset'));
 
 const gradle=fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8');
-assert.match(gradle,/versionCode\s+14\b/);
+assert.match(gradle,/versionCode\s+15\b/);
 assert.match(gradle,/versionName\s+'1\.10-demo'/);
 
 const index=fs.readFileSync(path.join(web,'index.html'),'utf8');
@@ -41,6 +43,7 @@ assert.match(app,/const cartAmount=/);
 assert.match(app,/Capacity on request · destination imagery/);
 assert.match(app,/paymentPreference/);
 assert.match(app,/Cryptocurrency/);
+assert.match(app,/classList\.remove\('vertex-menu-modal'\)/);
 assert.match(fs.readFileSync(path.join(web,'guest-guide.js'),'utf8'),/arrival-day-before-14:00/);
 
 const rentals=fs.readFileSync(path.join(web,'rentals.js'),'utf8');
@@ -53,10 +56,18 @@ assert.doesNotMatch(rentals,/href=.*(?:airbnb|instagram)/i);
 assert.doesNotMatch(fs.readFileSync(path.join(web,'views-catalog.js'),'utf8'),/https:\/\/www\.(?:airbnb|instagram)\.com/i);
 assert.match(mobile,/profileFavorites/);
 assert.match(mobile,/profileServices/);
+assert.doesNotMatch(mobile,/signed 1\.9 APK is not published|APK 1\.9 не публикуется/i);
+const profileMenu=fs.readFileSync(path.join(web,'profile-menu.js'),'utf8');
+assert.match(profileMenu,/VertexRentals\?\.showHost/);
+assert.match(profileMenu,/VertexRentals\?\.createListing/);
+assert.match(profileMenu,/VertexRentals\?\.showOwnerReport/);
+assert.match(profileMenu,/VertexGroup\?\.requests/);
+assert.match(profileMenu,/VertexGuestGuide\?\.open/);
+assert.match(profileMenu,/\['payment-methods','payment-history','payouts','transactions'\]/);
 assert.match(fs.readFileSync(path.join(web,'design.css'),'utf8'),/bottom:calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
 
 const sw=fs.readFileSync(path.join(web,'sw.js'),'utf8');
-assert.match(sw,/vertex-demo-v110-internal-actions/);
+assert.match(sw,/vertex-demo-v110-stability/);
 assert.doesNotMatch(sw,/bali\.jpg|istanbul\.jpg/i);
 assert.match(sw,/mobility\.js/);
 assert.match(sw,/mobility\.css/);
