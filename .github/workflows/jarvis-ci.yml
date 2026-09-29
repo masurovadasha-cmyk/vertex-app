@@ -10,13 +10,20 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
+  pull_request:
+    paths:
+      - "vertex-jarvis/**"
+      - ".github/workflows/jarvis-ci.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  worker-dry-run:
+  validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -36,6 +43,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Static safety checks
+        run: node vertex-jarvis/scripts/check-safety.mjs
 
       - name: Wrangler dry run
         run: pnpm exec wrangler deploy --dry-run --config vertex-jarvis/wrangler.jsonc
