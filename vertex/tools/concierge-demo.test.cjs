@@ -53,8 +53,9 @@ assert.equal(helpers.validate(panoramic,'2026-11-01','2026-11-04',2),'','dated u
 assert.equal(helpers.validate({id:'unknown',capacity:null},dates.arrival,dates.departure,4),'','unknown capacity allows an unconfirmed request');
 assert.notEqual(helpers.validate(modern,dates.arrival,dates.departure,3),'','confirmed capacity is enforced');
 assert.equal(helpers.compareNightly(modern,{price:250000,currency:'UZS'},'asc'),1,'USD total is never compared to a UZS nightly rate');
-const originalSource=modern.quote.sourceUrl;
 const sourceLink=helpers.sourceLink(modern,'2026-11-01','2026-11-04',1);
-assert.match(sourceLink,/check_in=2026-11-01.*check_out=2026-11-04.*adults=1/);
-assert.equal(modern.quote.sourceUrl,originalSource,'current source links must not alter the historical quote');
-console.log('PASS concierge behavior and dated quote semantics; rental pricing, capacity and source-link guards');
+assert.match(sourceLink,/data-rental-request/);
+assert.match(sourceLink,/Request in Vertex/);
+assert.doesNotMatch(sourceLink,/https?:\/\//);
+assert.doesNotMatch(rentalSource,/href=.*(?:airbnb|instagram)/i);
+console.log('PASS concierge behavior and dated quote semantics; rental pricing, capacity and internal-action guards');
