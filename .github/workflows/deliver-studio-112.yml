@@ -21,16 +21,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Restore reviewed source and align future Android checks
+      - name: Restore reviewed source and fix quota test setup
         shell: bash
         run: |
           set -euo pipefail
           python .ci/studio/apply.py
           python - <<'PY'
           from pathlib import Path
-          p=Path('.github/workflows/build-android-apk.yml')
-          text=p.read_text().replace('com.vertex.demo','com.vertex.studio.preview').replace("versionCode='15'", "versionCode='16'").replace('1.11-demo-code15','1.12-demo-code16').replace('1.11-demo','1.12-demo')
-          p.write_text(text)
+          p=Path('scripts/browser-studio.py')
+          before="Storage.prototype.setItem=function(){throw new DOMException('Quota','QuotaExceededError')}"
+          after="() => { Storage.prototype.setItem=function(){throw new DOMException('Quota','QuotaExceededError')}; }"
+          text=p.read_text()
+          assert text.count(before)==1
+          p.write_text(text.replace(before,after))
           Path('android/README.md').write_text('''# Vertex Studio 1.12-demo\n\nAndroid 8.0+ preview, applicationId `com.vertex.studio.preview`, versionCode 16.\nCore static assets are bundled and open offline. External links need internet.\n\nBuild: JDK 21, SDK 35, build-tools 35.0.0, Gradle 8.11.1. Run `npm install`, `npm run sync:android`, `npm test`, then `gradle -p android assembleDebug`.\n\nThis preview uses a CI-generated debug certificate, not the historical release key. It installs alongside the old `com.vertex.demo` app: do not uninstall the old app. Existing app data is not migrated.\n\nProduction payments, shared accounts, OTA synchronization and AI providers remain unconnected.\n''')
           PY
           mkdir -p artifacts/delivery
@@ -91,17 +94,20 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import zipfile,hashlib,json
-          root=Path('vertex/dist')
+          root=Path('android/app/src/main/assets/site')
           report=[]
           with zipfile.ZipFile('android/app/build/outputs/apk/debug/app-debug.apk') as z:
+              expected=set()
               for p in sorted(root.rglob('*')):
                   if p.is_file():
                       rel=p.relative_to(root).as_posix()
                       data=p.read_bytes()
+                      expected.add('assets/site/'+rel)
                       assert z.read('assets/site/'+rel)==data, rel
                       report.append({'file':rel,'sha256':hashlib.sha256(data).hexdigest()})
+              assert {n for n in z.namelist() if n.startswith('assets/site/') and not n.endswith('/')}==expected
           Path('artifacts/delivery/apk-assets.json').write_text(json.dumps(report,indent=2))
-          print('PASS: APK web assets match current source:',len(report))
+          print('PASS: APK assets match synchronized Android source:',len(report))
           PY
           cp "$APK" artifacts/delivery/Vertex-Studio-1.12-demo-code16.apk
       - name: Save verified source on the preview branch only
@@ -110,9 +116,8 @@ jobs:
           set -euo pipefail
           git config user.name 'Vertex Build'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add vertex/dist vertex/tools scripts/browser-studio.py android docs/HOST-STUDIO-1.12.md package.json .github/workflows/build-android-apk.yml
+          git add vertex/dist vertex/tools scripts/browser-studio.py android docs/HOST-STUDIO-1.12.md package.json
           git rm -r .ci/studio
-          git rm .github/workflows/deliver-studio-112.yml
           git commit -m 'feat: ship verified Host Studio 1.12 preview and Android code16 source'
           git rev-parse HEAD > artifacts/delivery/source-commit.txt
           git archive --format=zip HEAD -o artifacts/delivery/Vertex-Studio-1.12-Source.zip
