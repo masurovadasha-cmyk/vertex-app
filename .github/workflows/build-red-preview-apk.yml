@@ -1,0 +1,147 @@
+name: Build requested Vertex Red preview APK
+
+on:
+  push:
+    branches: [vertex-red-canva-20260929]
+    paths: ['.github/workflows/build-red-preview-apk.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 45e82466c0b90fd4a6247b4524e289327fd82a72
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Recheck approved red source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-red
+          git rev-parse HEAD > release-red/source-commit.txt
+          npm install
+          npm test 2>&1 | tee release-red/tests.log
+          npm run sync:android
+          git diff --exit-code -- android/app/src/main/assets/site
+          python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3
+          python -m playwright install --with-deps chromium
+          python scripts/browser-red.py 2>&1 | tee release-red/browser-red.log
+          cp artifacts/quality/red-tests.json release-red/
+      - name: Isolate preview identity and colour native chrome
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json, shutil, hashlib
+          gradle=Path('android/app/build.gradle')
+          source=gradle.read_text()
+          old="applicationId 'com.vertex.demo'"
+          assert source.count(old)==1
+          source=source.replace(old,"applicationId 'com.vertex.red.preview'")
+          gradle.write_text(source)
+          manifest=Path('android/app/src/main/AndroidManifest.xml')
+          source=manifest.read_text()
+          assert source.count('android:label="Vertex Demo"')==1
+          source=source.replace('android:label="Vertex Demo"','android:label="Vertex Red"')
+          manifest.write_text(source)
+          activity=Path('android/app/src/main/java/com/vertex/demo/MainActivity.java')
+          source=activity.read_text()
+          assert source.count('0xff4255ff')==2
+          source=source.replace('0xff4255ff','0xffe51d57').replace('0xfff7f8fc','0xfff7f7f5')
+          activity.write_text(source)
+          shutil.copyfile('vertex/dist/icon-512.png','android/app/src/main/res/drawable/icon.png')
+          changes={p:hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in [str(gradle),str(manifest),str(activity),'android/app/src/main/res/drawable/icon.png']}
+          Path('release-red/packaging.json').write_text(json.dumps({'source_commit':'45e82466c0b90fd4a6247b4524e289327fd82a72','application_id':'com.vertex.red.preview','version_name':'1.13-demo','version_code':17,'label':'Vertex Red','signing':'development/debug','native_packaging_changes_sha256':changes,'web_assets_modified':False,'production_web_deployed':False,'existing_app_data_migrated':False},indent=2))
+          PY
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install SDK and build APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+          gradle -p android --no-daemon assembleDebug 2>&1 | tee release-red/build.log
+      - name: Verify signature, identity and every bundled web asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee release-red/signature.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" > release-red/badging.txt
+          grep -q "package: name='com.vertex.red.preview'" release-red/badging.txt
+          grep -q "versionCode='17'" release-red/badging.txt
+          grep -q "versionName='1.13-demo'" release-red/badging.txt
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile, hashlib, json
+          root=Path('android/app/src/main/assets/site')
+          with zipfile.ZipFile('android/app/build/outputs/apk/debug/app-debug.apk') as z:
+              results=[]
+              for f in sorted(root.rglob('*')):
+                  if not f.is_file(): continue
+                  archive='assets/site/'+f.relative_to(root).as_posix()
+                  original=f.read_bytes(); packaged=z.read(archive)
+                  assert original==packaged, archive
+                  results.append({'path':archive,'sha256':hashlib.sha256(packaged).hexdigest()})
+              assert any(r['path']=='assets/site/brand-red.css' for r in results)
+              assert any(r['path']=='assets/site/host-icons.js' for r in results)
+              assert json.loads(z.read('assets/site/release.json'))['version']=='1.13-demo'
+          Path('release-red/asset-verification.json').write_text(json.dumps({'verified':True,'count':len(results),'files':results},indent=2))
+          print('PASS exact APK web asset hashes:',len(results))
+          PY
+          cp "$APK" release-red/Vertex-Red-1.13-demo-code17.apk
+          (cd release-red && sha256sum Vertex-Red-1.13-demo-code17.apk > SHA256SUMS.txt)
+      - name: Read-only check of the existing public web address
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          import json, datetime
+          base='https://vertex-app.masurovadasha.workers.dev'
+          result={'checked_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'url':base,'deployed_by_this_workflow':False}
+          with sync_playwright() as p:
+              browser=p.chromium.launch(headless=True,args=['--no-sandbox'])
+              page=browser.new_page(viewport={'width':390,'height':844},locale='ru-RU',timezone_id='Asia/Tashkent',service_workers='block')
+              errors=[]; page.on('pageerror',lambda e:errors.append(str(e)))
+              try:
+                  r=page.goto(base,wait_until='domcontentloaded',timeout=25000)
+                  page.wait_for_timeout(1200)
+                  result.update({'http_status':r.status if r else None,'final_url':page.url,'title':page.title(),'rental_api_ready':page.evaluate('typeof window.VertexRentals === "object"'),'host_api_ready':page.evaluate('typeof window.VertexHostConsole === "object"'),'text':page.locator('body').inner_text()[:2000],'javascript_errors':errors})
+                  page.screenshot(path='release-red/public-web.png')
+                  meta=page.request.get(base+'/release.json',timeout=15000)
+                  result['release_http_status']=meta.status
+                  result['release']=meta.json() if meta.ok else meta.text()[:500]
+              except Exception as e:
+                  result['check_error']=str(e)
+              finally:
+                  browser.close()
+          Path('release-red/public-web-check.json').write_text(json.dumps(result,ensure_ascii=False,indent=2))
+          print(json.dumps({k:v for k,v in result.items() if k not in ['text','release']},ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Vertex-Red-1.13-demo-code17-preview
+          path: release-red/
+          retention-days: 30
+          if-no-files-found: error
