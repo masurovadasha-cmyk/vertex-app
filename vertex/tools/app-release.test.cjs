@@ -22,22 +22,23 @@ assert.ok(release.features.includes('check-in and house rules'));
 assert.ok(release.features.includes('guest service shortcuts'));
 
 const gradle=fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8');
-assert.match(gradle,/versionCode\s+10\b/);
-assert.match(gradle,/versionName\s+'1\.8-demo'/);
+assert.match(gradle,/versionCode\s+11\b/);
+assert.match(gradle,/versionName\s+'1\.9-demo'/);
 
 const index=fs.readFileSync(path.join(web,'index.html'),'utf8');
 assert.match(index,/<title>Vertex 1\.9/);
 for(const required of ['views-catalog.js','app.js','mobile.js','business.js','rentals.js','concierge-demo.js','group.js','mobility.js','guest-guide.js']) assert.ok(index.includes(required),'missing script '+required);
 
 const mobile=fs.readFileSync(path.join(web,'mobile.js'),'utf8');
-assert.match(mobile,/Android APK · 1\.8-demo/);
+assert.match(mobile,/Android APK · 1\.9-demo/);
 const shell=fs.readFileSync(path.join(web,'design-shell.js'),'utf8');
-assert.match(shell,/1\.8-demo/);
+assert.match(shell,/1\.9-demo/);
 const app=fs.readFileSync(path.join(web,'app.js'),'utf8');
 assert.match(app,/const cartAmount=/);
 assert.match(app,/Capacity on request · destination imagery/);
 assert.match(app,/paymentPreference/);
 assert.match(app,/Cryptocurrency/);
+assert.match(fs.readFileSync(path.join(web,'guest-guide.js'),'utf8'),/arrival-day-before-14:00/);
 
 const rentals=fs.readFileSync(path.join(web,'rentals.js'),'utf8');
 assert.match(rentals,/function discussion\(listingId\)/);
