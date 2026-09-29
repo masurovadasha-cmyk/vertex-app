@@ -74,7 +74,7 @@
     $('tripTitle').textContent = tr('Планы, которые\nвдохновляют.', 'Plans to look\nforward to.');
     $('tripCopy').textContent = tr('Жильё, трансфер и приятные мелочи — собери свою поездку.', 'A stay, a ride and your favourite extras. Bring your trip together.');
     $('viewTrip').textContent = tr('Все поездки и услуги', 'All trips and extras');
-    $('footerText').textContent = tr('Путешествия по Узбекистану · 1.8-demo', 'Travel across Uzbekistan · 1.8-demo');
+    $('footerText').textContent = tr('Путешествия по Узбекистану · 1.9-demo', 'Travel across Uzbekistan · 1.9-demo');
     destinations.replaceChildren(...destinationCities().map(({id,ru,en})=>{
       const button = document.createElement('button');
       button.type = 'button'; button.textContent = tr(ru,en) + ' ↗';
