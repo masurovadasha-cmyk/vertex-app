@@ -18,7 +18,9 @@
     "payment preference selector",
     "guest guide",
     "check-in and house rules",
-    "guest service shortcuts"
+    "guest service shortcuts",
+    "internal property request actions",
+    "raised mobile navigation"
   ],
   "boundaries": [
     "No real payments or payouts",

@@ -20,9 +20,11 @@ assert.ok(release.features.includes('payment preference selector'));
 assert.ok(release.features.includes('guest guide'));
 assert.ok(release.features.includes('check-in and house rules'));
 assert.ok(release.features.includes('guest service shortcuts'));
+assert.ok(release.features.includes('internal property request actions'));
+assert.ok(release.features.includes('raised mobile navigation'));
 
 const gradle=fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8');
-assert.match(gradle,/versionCode\s+12\b/);
+assert.match(gradle,/versionCode\s+13\b/);
 assert.match(gradle,/versionName\s+'1\.9-demo'/);
 
 const index=fs.readFileSync(path.join(web,'index.html'),'utf8');
@@ -46,9 +48,15 @@ assert.match(rentals,/function discussion\(listingId\)/);
 assert.match(rentals,/function ownerReport\(\)/);
 assert.match(rentals,/data\.threads/);
 assert.match(rentals,/real messaging is connected/);
+assert.match(rentals,/data-rental-request/);
+assert.doesNotMatch(rentals,/href=.*(?:airbnb|instagram)/i);
+assert.doesNotMatch(fs.readFileSync(path.join(web,'views-catalog.js'),'utf8'),/https:\/\/www\.(?:airbnb|instagram)\.com/i);
+assert.match(mobile,/profileFavorites/);
+assert.match(mobile,/profileServices/);
+assert.match(fs.readFileSync(path.join(web,'design.css'),'utf8'),/bottom:calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
 
 const sw=fs.readFileSync(path.join(web,'sw.js'),'utf8');
-assert.match(sw,/vertex-demo-v19/);
+assert.match(sw,/vertex-demo-v19-internal-actions/);
 assert.doesNotMatch(sw,/bali\.jpg|istanbul\.jpg/i);
 assert.match(sw,/mobility\.js/);
 assert.match(sw,/mobility\.css/);

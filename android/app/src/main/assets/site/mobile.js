@@ -58,9 +58,22 @@ render=function(){
   bottomNavigation();saveLocal();
 };
 function showProfile(){
-  modal(tr('Профиль и приложение','Profile & app'),`<p class="notice">${tr('Гостевой демо-профиль. Поездка сохраняется только в этом браузере на этом устройстве.','Guest demo profile. Your trip is saved only in this browser on this device.')}</p><div class="line-item"><strong>${tr('Язык','Language')}</strong><button class="outline" id="profileLanguage">${lang==='ru'?'English':'Русский'}</button></div><button id="profileInstall" class="dark wide">${tr('Добавить Vertex на телефон','Add Vertex to your phone')}</button><button id="profileGuestGuide" class="outline wide">${tr('Гид гостя','Guest guide')}</button><p class="demo">${storageAvailable?tr('Демо-корзина сохранена на устройстве.','Demo trip saved on this device.'):tr('Сохранение недоступно в этом браузере.','Storage is unavailable in this browser.')}</p>`);
+  modal(tr('Профиль Vertex','Vertex profile'),`
+    <p class="notice">${tr('Все основные действия доступны внутри Vertex. Демо-данные сохраняются только на этом устройстве.','All main actions are available inside Vertex. Demo data is saved only on this device.')}</p>
+    <div class="profile-grid">
+      <button class="outline" id="profileTrips"><span>▤</span><strong>${tr('Поездки','Trips')}</strong><small>${tr('Заявки и корзина','Requests & cart')}</small></button>
+      <button class="outline" id="profileFavorites"><span>♡</span><strong>${tr('Избранное','Favorites')}</strong><small>${tr('Сохранённое жильё','Saved stays')}</small></button>
+      <button class="outline" id="profileServices"><span>✧</span><strong>${tr('Сервисы','Services')}</strong><small>${tr('Трансфер, клининг и другое','Transfer, cleaning & more')}</small></button>
+      <button class="outline" id="profileGuestGuide"><span>⌂</span><strong>${tr('Гид гостя','Guest guide')}</strong><small>${tr('Заселение и правила','Check-in & rules')}</small></button>
+    </div>
+    <div class="line-item"><strong>${tr('Язык','Language')}</strong><button class="outline" id="profileLanguage">${lang==='ru'?'English':'Русский'}</button></div>
+    <button id="profileInstall" class="dark wide">${tr('Установка Vertex','Install Vertex')}</button>
+    <p class="demo">${storageAvailable?tr('Локальные данные сохранены на устройстве.','Local data is saved on this device.'):tr('Сохранение недоступно в этом браузере.','Storage is unavailable in this browser.')}</p>`);
   $('profileLanguage').onclick=()=>{lang=lang==='ru'?'en':'ru';render();showProfile();};
   $('profileInstall').onclick=showInstall;
+  $('profileTrips').onclick=()=>window.VertexRentals?.showTrips?.()||showCart();
+  $('profileFavorites').onclick=()=>window.VertexRentals?.showFavorites?.();
+  $('profileServices').onclick=()=>{$('modal').close();activeTab='services';category='all';render();$('sectionHeading').scrollIntoView({behavior:'smooth'});};
   $('profileGuestGuide').onclick=()=>window.VertexGuestGuide?.open();
 }
 async function showInstall(){

@@ -14,3 +14,30 @@ footer{border-color:var(--line);color:#8990a3;margin-top:35px;font-size:11px}dia
 @media(max-width:370px){.hero-copy{padding:23px 19px}.intro h1{font-size:32px}.head-actions .dark{font-size:11px;padding:10px}.brand{font-size:24px}.photo{height:200px}.hero .eyebrow{font-size:7px}.destination-pills button{padding:7px 9px}}
 .business-entry{margin-top:30px}.filter-disclosure{border:1px solid var(--line);background:#fff;border-radius:16px;overflow:hidden}.filter-disclosure summary{cursor:pointer;padding:16px;font-size:12px;font-weight:700;color:#626985;min-height:48px}.filter-disclosure summary:focus-visible{outline:3px solid #7180ff;outline-offset:-3px}.filter-disclosure .rent-filters{border:0;border-top:1px solid var(--line);border-radius:0}.photo .heart{position:absolute;z-index:2}.heart[aria-pressed=true] .vx-icon{fill:currentColor}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.card:hover,button:hover,button:active{transform:none!important}}
+
+
+/* Vertex mobile refinement 1.9: internal profile actions and raised navigation. */
+.profile-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 16px}
+.profile-grid button{display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;min-height:92px;padding:14px;text-align:left;border-radius:16px}
+.profile-grid button>span{font-size:22px;line-height:1}
+.profile-grid button>strong{font-size:13px;line-height:1.25;color:var(--ink)}
+.profile-grid button>small{font-size:10px;line-height:1.35;color:var(--muted);font-weight:600}
+#profileInstall{margin-top:14px}
+.source-link{width:calc(100% - 14px);margin:10px 7px 0;min-height:44px;font-weight:700}
+@media(max-width:760px){
+  body{padding-bottom:128px}
+  #mobileNav{
+    left:12px;
+    right:12px;
+    bottom:calc(12px + env(safe-area-inset-bottom));
+    border:1px solid #e3e6f1;
+    border-radius:22px;
+    padding:7px 8px;
+    box-shadow:0 12px 34px #20233e1f;
+    overflow:hidden;
+  }
+  #mobileNav button{min-height:54px}
+  #toast{bottom:132px}
+  .profile-grid button{min-height:86px;padding:13px}
+}
+@media(max-width:370px){.profile-grid{grid-template-columns:1fr}.profile-grid button{min-height:72px}}
