@@ -88,7 +88,9 @@
     "n-minus-one-schema-compatibility",
     "rollback-policy",
     "production-promotion-evidence",
-    "production-backup-restore-evidence"
+    "production-backup-restore-evidence",
+    "trusted-release-controller",
+    "effective-read-only-backup-principal"
   ],
   "kernel": {
     "routePolicy": "vision/backend/kernel.mjs",
@@ -154,6 +156,14 @@
     "workflow": ".github/workflows/vision-promotion-gate.yml",
     "productionBackupWorkflow": ".github/workflows/vision-production-backup-restore.yml",
     "mutationAllowed": false,
-    "passed": false
+    "passed": false,
+    "trustedController": {
+      "version": "0.1",
+      "requiredRef": "refs/heads/master",
+      "candidateCheckout": "separate-exact-sha",
+      "evidenceWorkflowMetadataVerified": true,
+      "firstPartyActionsPinnedByCommit": true,
+      "productionMutationAllowed": false
+    }
   }
 }
