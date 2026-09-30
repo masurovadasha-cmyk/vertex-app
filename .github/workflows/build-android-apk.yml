@@ -32,10 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Install web test dependencies
@@ -87,7 +87,7 @@ jobs:
           cp "$APK" release-apk/Vertex-Vision-1.16-rc1-code20.apk
           (cd release-apk && sha256sum Vertex-Vision-1.16-rc1-code20.apk > SHA256SUMS.txt)
           git rev-parse HEAD > release-apk/source-commit.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Vertex-Vision-1.16-rc1-code20-${{ github.sha }}
           path: release-apk/
