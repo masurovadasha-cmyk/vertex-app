@@ -122,3 +122,27 @@ browser fields.
 A green source test is not a cloud-auth claim. Record the real Supabase project ref,
 synthetic Auth UUIDs, migration checksum state and the successful genuine-auth E2E before
 marking cloud staging verified.
+
+
+## Application Assembly 0.1
+
+The dedicated staging Worker now assembles the platform as one application:
+
+- `/` — VERTEX Vision Hub from the canonical Module Registry.
+- `/views` — stable redirect into Views Operations.
+- `/operations/` — authenticated Views workspace.
+- `/api/vision/v1/modules` — public product metadata only.
+- `/api/v1/auth/*` — staging Auth bootstrap.
+- `/api/v1/views/*` — Views operational API.
+- `/healthz` — liveness/configuration only.
+
+Only Views is ACTIVE. All other registered modules remain COMING_SOON.
+
+The assembly workflow may deploy only the dedicated `vertex-vision-staging` Worker when
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` exist in the staging environment.
+It never deploys the production `vertex-app` Worker.
+
+When `VISION_STAGING_URL` is configured, CI verifies the assembled root Hub, health
+metadata and the 19-module registry after deployment. The genuine Supabase E2E is then
+executed only when the synthetic Auth credentials and test customer ID are also present.
+Missing cloud configuration is reported as SKIP, never as verified cloud readiness.
