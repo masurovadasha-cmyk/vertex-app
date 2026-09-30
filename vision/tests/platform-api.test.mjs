@@ -11,3 +11,13 @@ test('registry mutation and health mutation are rejected',async()=>{assert.equal
 test('static content is served only through the configured assets binding',async()=>{let count=0;const r=await handle(req('/index.html'),{ASSETS:{fetch:async request=>{count++;assert.equal(new URL(request.url).pathname,'/index.html');return new Response('static');}}});assert.equal(await r.text(),'static');assert.equal(count,1);assert.equal((await handle(req('/index.html'))).status,503);});
 test('non-GET asset methods do not reach assets',async()=>{const r=await handle(req('/index.html',{method:'POST'}),{ASSETS:{fetch:()=>{throw Error('must not run');}}});assert.equal(r.status,405);});
 test('HEAD health is bodyless',async()=>{const r=await handle(req('/health',{method:'HEAD'}));assert.equal(r.status,200);assert.equal(await r.text(),'');});
+
+test('public deployment fails closed for Views operations APIs',async()=>{
+  for(const path of ['/api/v1/views/bookings','/api/v1/views/units','/api/v1/views/cleaning','/api/v1/views/commands']){
+    const r=await handle(req(path,{method:path.endsWith('/commands')?'POST':'GET'}));
+    assert.equal(r.status,503);
+    const body=await r.json();
+    assert.equal(body.error,'cloud_backend_not_connected');
+    assert.equal(body.activeModule,'views');
+  }
+});

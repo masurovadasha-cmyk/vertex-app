@@ -7,7 +7,7 @@
   'use strict';
   const VERSION='1.16-rc1', REVISION='vision-views-active-rc1', CORE_VERSION='1.0.0';
   const entries=[
-    ['views','Views Hotel & Apartments','stays','Апартаменты, бронирования и кабинет собственника.','Apartments, reservations and host workspace.','demo','local-tested',['catalog','host','trips']],
+    ['views','Views Hotel & Apartments','stays','Апартаменты, бронирования и кабинет собственника.','Apartments, reservations and host workspace.','demo','local-tested',['operations','catalog','host','trips']],
     ['managing','Vertex Managing IO','property','Управление объектами и контроль сервиса.','Property operations and service oversight.','demo','planned',['host','service-control']],
     ['real-estate','Vertex Real Estate','property','Покупка, продажа и долгосрочная аренда.','Property purchase, sale and long-term rental.','demo','planned',['property-request']],
     ['engineers','Vertex Engineers','property','Электрика, сантехника и обслуживание объектов.','Electrical, plumbing and property maintenance.','demo','planned',['engineering-request']],

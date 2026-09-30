@@ -50,5 +50,19 @@
       "cleaning_verify"
     ],
     "cloudStagingVerified": false
+  },
+  "viewsUI": {
+    "status": "implemented-in-branch",
+    "primaryAction": "operations",
+    "tabs": [
+      "dashboard",
+      "calendar",
+      "bookings",
+      "units",
+      "cleaning"
+    ],
+    "dataPolicy": "real-staging-only-no-demo-fallback",
+    "sessionPolicy": "in-memory-auth-session-only",
+    "cloudStagingVerified": false
   }
 }

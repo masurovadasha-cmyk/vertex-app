@@ -1,0 +1,61 @@
+/* VERTEX VISION / Views Operations UI */
+.vvo-dialog{width:min(1180px,calc(100% - 24px));height:min(860px,calc(100dvh - 24px));max-width:none;max-height:none;padding:0;border:1px solid #dedfe4;border-radius:22px;background:#f7f7f9;color:#202128;overflow:hidden;font:14px/1.5 system-ui}
+.vvo-dialog::backdrop{background:#15161dcc;backdrop-filter:blur(4px)}
+.vvo-shell{height:100%;display:grid;grid-template-rows:auto auto 1fr}
+.vvo-head{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:24px 26px 18px;background:#fff;border-bottom:1px solid #e3e4e8}
+.vvo-head small{display:block;color:#b01946;font-weight:750;letter-spacing:.12em;margin-bottom:5px}
+.vvo-head h2{margin:0;font-size:28px;letter-spacing:-.035em}
+.vvo-head p{margin:6px 0 0;color:#6c727c}
+.vvo-head-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.vvo-head-actions button,.vvo-connect button,.vvo-error button,.vvo-row-actions button{border:1px solid #dedfe4;background:#fff;color:#25262c;border-radius:10px;min-height:40px;padding:9px 12px;font-weight:650;cursor:pointer}
+.vvo-head-actions button:hover,.vvo-connect button:hover,.vvo-error button:hover,.vvo-row-actions button:hover{border-color:#e51d57;background:#fff4f7}
+.vvo-head-actions button[data-vvo-close]{width:42px;font-size:24px;line-height:1;padding:0}
+.vvo-connection{display:inline-flex;align-items:center;border-radius:999px;padding:7px 10px;background:#eceef1;color:#606773;font-size:10px;font-weight:800;letter-spacing:.08em}
+.vvo-connection.is-on{background:#eaf7ee;color:#23723a}
+.vvo-tabs{display:flex;gap:4px;padding:10px 18px;background:#fff;border-bottom:1px solid #e3e4e8;overflow:auto}
+.vvo-tabs button{border:0;background:transparent;color:#626975;border-radius:9px;padding:10px 13px;font-weight:700;white-space:nowrap;cursor:pointer}
+.vvo-tabs button[aria-current="page"]{background:#202128;color:#fff}
+.vvo-main{padding:22px;overflow:auto;min-width:0}
+.vvo-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:20px}
+.vvo-kpis article{background:#fff;border:1px solid #e1e2e6;border-radius:14px;padding:16px;min-width:0}
+.vvo-kpis span{display:block;color:#717782;font-size:11px;line-height:1.4}
+.vvo-kpis strong{display:block;margin-top:8px;font-size:25px;line-height:1}
+.vvo-columns{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.vvo-columns>section{min-width:0}
+.vvo-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 10px}
+.vvo-section-head h3{margin:0;font-size:18px;letter-spacing:-.02em}
+.vvo-section-head>span{color:#777e88;font-size:12px}
+.vvo-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;background:#fff;border:1px solid #e0e2e5;border-radius:13px;padding:14px;margin-bottom:9px}
+.vvo-row>div{display:grid;gap:4px;min-width:0}
+.vvo-row>div:last-child{justify-items:end;text-align:right}
+.vvo-row small,.vvo-row span{color:#747b85;font-size:11px;overflow-wrap:anywhere}
+.vvo-row strong{font-size:14px;overflow-wrap:anywhere}
+.vvo-row b{font-size:12px}
+.vvo-row-actions{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px}
+.vvo-row-actions button{min-height:32px;padding:6px 9px;font-size:11px}
+.vvo-status{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:4px 8px;background:#eceef1;color:#59616d;font-size:9px;font-weight:800;letter-spacing:.04em}
+.vvo-status-checked-in,.vvo-status-occupied{background:#eaf2ff;color:#285fa8}
+.vvo-status-confirmed,.vvo-status-ready,.vvo-status-verified{background:#e9f7ed;color:#25713b}
+.vvo-status-cleaning,.vvo-status-in-progress,.vvo-status-inspection,.vvo-status-required{background:#fff4df;color:#906012}
+.vvo-status-cancelled,.vvo-status-blocked,.vvo-status-maintenance{background:#feecee;color:#a62c3c}
+.vvo-unit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.vvo-unit-grid article{background:#fff;border:1px solid #e0e2e5;border-radius:13px;padding:15px}
+.vvo-unit-grid article>div{display:flex;align-items:end;justify-content:space-between;gap:10px;margin-bottom:10px}
+.vvo-unit-grid small{color:#767c86}.vvo-unit-grid strong{font-size:20px}.vvo-unit-grid p{margin:9px 0 0;color:#737985;font-size:12px}
+.vvo-calendar{display:grid;gap:8px}
+.vvo-calendar article{display:grid;grid-template-columns:90px 1fr;gap:12px;align-items:start;background:#fff;border:1px solid #e0e2e5;border-radius:12px;padding:12px}
+.vvo-calendar article>strong{font-size:15px}
+.vvo-calendar article>div{display:flex;gap:7px;flex-wrap:wrap}
+.vvo-calendar article>div>span{display:inline-flex;align-items:center;gap:4px;border:1px solid #e5e6e9;border-radius:8px;padding:5px 7px;font-size:11px}
+.vvo-calendar em{font-style:normal;color:#8a9098;font-size:11px}
+.vvo-empty,.vvo-connect,.vvo-error{display:grid;gap:9px;place-items:start;background:#fff;border:1px dashed #d8dbe0;border-radius:14px;padding:24px;color:#606772}
+.vvo-empty strong,.vvo-connect strong,.vvo-error strong{color:#26272d;font-size:16px}
+.vvo-empty p,.vvo-connect p,.vvo-error p{margin:0;max-width:680px}
+.vvo-connect{border-style:solid;border-left:4px solid #e51d57}
+.vvo-loading{display:grid;gap:10px}
+.vvo-loading span{height:76px;border-radius:13px;background:linear-gradient(90deg,#eceef1,#f6f7f8,#eceef1);background-size:220% 100%;animation:vvoPulse 1.2s linear infinite}
+@keyframes vvoPulse{to{background-position:-220% 0}}
+.vvo-dialog button:focus-visible{outline:3px solid #d41b50;outline-offset:2px}
+@media(max-width:900px){.vvo-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.vvo-columns{grid-template-columns:1fr}.vvo-unit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.vvo-dialog{width:100%;height:100dvh;border:0;border-radius:0}.vvo-head{padding:18px 15px 12px;display:grid}.vvo-head h2{font-size:24px}.vvo-head-actions{justify-content:flex-start}.vvo-main{padding:14px}.vvo-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.vvo-unit-grid{grid-template-columns:1fr}.vvo-calendar article{grid-template-columns:62px 1fr}.vvo-row{display:grid}.vvo-row>div:last-child{justify-items:start;text-align:left}.vvo-row-actions{justify-content:flex-start}}
+@media(prefers-reduced-motion:reduce){.vvo-loading span{animation:none}}

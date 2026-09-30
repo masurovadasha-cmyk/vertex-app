@@ -100,3 +100,23 @@ The required smoke sequence is:
 `create_booking → confirm_booking → check_in → check_out → cleaning_start → cleaning_submit → cleaning_verify`.
 The final state must be booking `COMPLETED`, cleaning `VERIFIED` and unit `READY`.
 An overlapping confirmed booking must fail with conflict, while adjacent date ranges are allowed.
+
+
+## Views UI Integration 0.1
+
+The active Views Hub action opens `VertexVisionViews`, a real-data operations workspace
+with Dashboard, Calendar, Bookings, Units and Cleaning tabs. It does not substitute
+legacy/demo metrics when an operational session is missing.
+
+The browser session is configured in memory only:
+
+`VertexVisionViews.configure({ tenantId, token, permissions })`
+
+The access token is not written to localStorage by this module. A future Auth layer must
+provide the verified Supabase session and exact permission list. Without that session the
+workspace shows an explicit NOT CONNECTED state and keeps the legacy Host Studio separate
+as a demo-only surface.
+
+The dedicated `vertex-vision-staging` Worker now serves the built VISION assets and runs
+first for `/api/*` and `/health`, so staging UI and staging API can remain same-origin.
+The public production Worker continues to fail closed for `/api/v1/views/*`.

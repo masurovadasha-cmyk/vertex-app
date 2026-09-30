@@ -35,7 +35,7 @@ assert.match(gradle,/versionName\s+'1\.16-rc1'/);
 assert.match(gradle,/applicationId\s+'com\.vertex\.vision\.demo'/);
 const index=fs.readFileSync(path.join(web,'index.html'),'utf8');
 assert.match(index,/<title>VERTEX VISION 1\.16-rc1/);
-for(const required of ['views-catalog.js','app.js','mobile.js','business.js','rentals.js','concierge-demo.js','group.js','mobility.js','guest-guide.js','profile-menu.js','host-console.js','host-console-more.js','host-domain.js','web-entry.js','vision-core.js','vision-shell.js'])assert.ok(index.includes(required),'missing script '+required);
+for(const required of ['views-catalog.js','app.js','mobile.js','business.js','rentals.js','concierge-demo.js','group.js','mobility.js','guest-guide.js','profile-menu.js','host-console.js','host-console-more.js','host-domain.js','web-entry.js','vision-core.js','vision-views.js','vision-shell.js'])assert.ok(index.includes(required),'missing script '+required);
 const mobile=fs.readFileSync(path.join(web,'mobile.js'),'utf8');
 assert.match(mobile,/https:\/\/vertex-app\.masurovadasha\.workers\.dev\/Vertex-Latest\.apk/);
 assert.match(mobile,/signing key|ключ подписи/);
@@ -70,7 +70,7 @@ assert.match(fs.readFileSync(path.join(web,'design.css'),'utf8'),/bottom:calc\(1
 const sw=fs.readFileSync(path.join(web,'sw.js'),'utf8');
 assert.match(sw,/vertex-vision-1-16-rc1-vision-views-active-rc1/);
 assert.doesNotMatch(sw,/bali\.jpg|istanbul\.jpg/i);
-for(const file of ['mobility.js','mobility.css','guest-guide.js','guest-guide.css','host-console.js','host-console-more.js','host-console.css','vision-core.js','vision-shell.js','vision-shell.css'])assert.ok(sw.includes(file));
+for(const file of ['mobility.js','mobility.css','guest-guide.js','guest-guide.css','host-console.js','host-console-more.js','host-console.css','vision-core.js','vision-views.js','vision-views.css','vision-shell.js','vision-shell.css'])assert.ok(sw.includes(file));
 const hostCore=fs.readFileSync(path.join(web,'host-console.js'),'utf8');
 assert.match(hostCore,/Сегодня/);assert.match(hostCore,/Календарь/);assert.match(hostCore,/Объявления/);assert.match(hostCore,/Сообщения/);assert.match(hostCore,/Меню/);
 const hostMore=fs.readFileSync(path.join(web,'host-console-more.js'),'utf8');assert.match(hostMore,/Аналитика/);assert.match(hostMore,/Правила дома/);assert.match(hostMore,/Редактор объявления/);
