@@ -140,7 +140,7 @@ const report={
   status:'passed',
   syntheticOnly:true,
   stagingURL:worker.origin,
-  sourceCommit:process.env.GITHUB_SHA||null,
+  sourceCommit:process.env.VISION_CANDIDATE_SHA||process.env.GITHUB_SHA||null,
   architectureVersion:readiness.data.architectureVersion,
   latestMigration:readiness.data.latestMigration,
   tenantId:provision.tenantId,
