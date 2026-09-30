@@ -5,7 +5,7 @@
   if(root&&root.document)root.VertexVisionCore=core;
 })(typeof globalThis==='undefined'?this:globalThis,function(){
   'use strict';
-  const VERSION='1.15-demo', REVISION='vision-unified1', CORE_VERSION='1.0.0';
+  const VERSION='1.16-rc1', REVISION='vision-views-active-rc1', CORE_VERSION='1.0.0';
   const entries=[
     ['views','Views Hotel & Apartments','stays','Апартаменты, бронирования и кабинет собственника.','Apartments, reservations and host workspace.','demo','local-tested',['catalog','host','trips']],
     ['managing','Vertex Managing IO','property','Управление объектами и контроль сервиса.','Property operations and service oversight.','demo','planned',['host','service-control']],
@@ -27,11 +27,15 @@
     ['ventures','Vertex Ventures','capital','Стартапы, партнёрства и венчурное направление.','Startups, partnerships and venture development.','planned','planned',[]],
     ['training','Views Training Center','education','Обучение команды и стандарты качества.','Team training and service standards.','planned','planned',[]]
   ];
-  const modules=entries.map(([id,name,domain,ru,en,mode,backend,actions])=>({
-    id,name,domain,description:{ru,en},parent:'vertex-vision',core:'1.x',version:'0.1.0',
-    dependencies:['vision-core'],mode,backend,cloudEnabled:false,actions,
-    dataBoundary:{identity:'vision-core',organization:'vision-core',orders:'vision-core',tasks:'vision-core',audit:'vision-core',privateSchema:id.replaceAll('-','_')}
-  }));
+  const modules=entries.map(([id,name,domain,ru,en,mode,backend,registeredActions])=>{
+    const status=id==='views'?'active':'coming-soon';
+    return {
+      id,name,domain,description:{ru,en},parent:'vertex-vision',core:'1.x',version:'0.2.0',
+      dependencies:['vision-core'],status,mode,backend,cloudEnabled:false,
+      actions:status==='active'?registeredActions:[],
+      dataBoundary:{identity:'vision-core',organization:'vision-core',orders:'vision-core',tasks:'vision-core',audit:'vision-core',privateSchema:id.replaceAll('-','_')}
+    };
+  });
   function freeze(value){if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;}
   function validate(items){
     if(!Array.isArray(items)||!items.length)throw new Error('module_registry_required');
@@ -41,9 +45,12 @@
       ids.add(item.id);
       if(item.parent!=='vertex-vision'||item.core!=='1.x')throw new Error('invalid_module_parent');
       if(!Array.isArray(item.dependencies)||item.dependencies.length!==1||item.dependencies[0]!=='vision-core')throw new Error('business_module_coupling_forbidden');
+      if(!['active','coming-soon','disabled'].includes(item.status))throw new Error('invalid_module_status');
+      if(item.id==='views'&&item.status!=='active')throw new Error('views_must_be_active');
+      if(item.id!=='views'&&item.status==='active')throw new Error('future_module_cannot_be_active');
       if(!['demo','planned'].includes(item.mode)||!['planned','local-tested'].includes(item.backend)||item.cloudEnabled!==false)throw new Error('unverified_cloud_capability');
       if(!Array.isArray(item.actions)||item.actions.some(a=>!/^([a-z]+)(-[a-z]+)*$/.test(a))||new Set(item.actions).size!==item.actions.length)throw new Error('invalid_module_actions');
-      if(item.mode==='planned'&&item.actions.length)throw new Error('planned_module_cannot_launch');
+      if(item.status!=='active'&&item.actions.length)throw new Error('inactive_module_cannot_launch');
       if(typeof item.name!=='string'||!item.description?.ru||!item.description?.en)throw new Error('module_copy_required');
     }
     return true;
@@ -63,7 +70,7 @@
     modules,services,validate,
     module:id=>typeof id==='string'?byId.get(id)||null:null,
     list:domain=>modules.filter(m=>!domain||m.domain===domain),
-    canLaunch:(id,action)=>!!byId.get(id)?.actions.includes(action),
-    readiness:()=>({mode:'local-demo',sharedDatabase:'not-connected',authenticated:false,payments:false,notifications:false,productionReady:false,jarvis:'separate-project'})
+    canLaunch:(id,action)=>byId.get(id)?.status==='active'&&!!byId.get(id)?.actions.includes(action),
+    readiness:()=>({mode:'release-candidate',activeModule:'views',sharedDatabase:'not-connected',authenticated:false,payments:false,notifications:false,productionReady:false,jarvis:'separate-project'})
   });
 });
