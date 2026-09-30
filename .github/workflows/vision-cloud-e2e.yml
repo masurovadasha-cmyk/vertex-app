@@ -17,23 +17,7 @@ jobs:
     environment: staging
     env:
       SUPABASE_STAGING_REF: ${{ vars.SUPABASE_STAGING_REF }}
-      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
-      VISION_STAGING_DATABASE_URL: ${{ secrets.VISION_STAGING_DATABASE_URL }}
       VISION_STAGING_URL: ${{ vars.VISION_STAGING_URL }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      VISION_E2E_GUEST_EMAIL: ${{ secrets.VISION_E2E_GUEST_EMAIL }}
-      VISION_E2E_GUEST_PASSWORD: ${{ secrets.VISION_E2E_GUEST_PASSWORD }}
-      VISION_E2E_VIEWS_EMAIL: ${{ secrets.VISION_E2E_VIEWS_EMAIL }}
-      VISION_E2E_VIEWS_PASSWORD: ${{ secrets.VISION_E2E_VIEWS_PASSWORD }}
-      VISION_E2E_DISPATCHER_EMAIL: ${{ secrets.VISION_E2E_DISPATCHER_EMAIL }}
-      VISION_E2E_DISPATCHER_PASSWORD: ${{ secrets.VISION_E2E_DISPATCHER_PASSWORD }}
-      VISION_E2E_STAFF_EMAIL: ${{ secrets.VISION_E2E_STAFF_EMAIL }}
-      VISION_E2E_STAFF_PASSWORD: ${{ secrets.VISION_E2E_STAFF_PASSWORD }}
-      VISION_E2E_QUALITY_EMAIL: ${{ secrets.VISION_E2E_QUALITY_EMAIL }}
-      VISION_E2E_QUALITY_PASSWORD: ${{ secrets.VISION_E2E_QUALITY_PASSWORD }}
-      VISION_E2E_AUDIT_EMAIL: ${{ secrets.VISION_E2E_AUDIT_EMAIL }}
-      VISION_E2E_AUDIT_PASSWORD: ${{ secrets.VISION_E2E_AUDIT_PASSWORD }}
 
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +30,23 @@ jobs:
 
       - name: Validate staging-only configuration without printing secrets
         shell: bash
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          VISION_STAGING_DATABASE_URL: ${{ secrets.VISION_STAGING_DATABASE_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VISION_E2E_GUEST_EMAIL: ${{ secrets.VISION_E2E_GUEST_EMAIL }}
+          VISION_E2E_GUEST_PASSWORD: ${{ secrets.VISION_E2E_GUEST_PASSWORD }}
+          VISION_E2E_VIEWS_EMAIL: ${{ secrets.VISION_E2E_VIEWS_EMAIL }}
+          VISION_E2E_VIEWS_PASSWORD: ${{ secrets.VISION_E2E_VIEWS_PASSWORD }}
+          VISION_E2E_DISPATCHER_EMAIL: ${{ secrets.VISION_E2E_DISPATCHER_EMAIL }}
+          VISION_E2E_DISPATCHER_PASSWORD: ${{ secrets.VISION_E2E_DISPATCHER_PASSWORD }}
+          VISION_E2E_STAFF_EMAIL: ${{ secrets.VISION_E2E_STAFF_EMAIL }}
+          VISION_E2E_STAFF_PASSWORD: ${{ secrets.VISION_E2E_STAFF_PASSWORD }}
+          VISION_E2E_QUALITY_EMAIL: ${{ secrets.VISION_E2E_QUALITY_EMAIL }}
+          VISION_E2E_QUALITY_PASSWORD: ${{ secrets.VISION_E2E_QUALITY_PASSWORD }}
+          VISION_E2E_AUDIT_EMAIL: ${{ secrets.VISION_E2E_AUDIT_EMAIL }}
+          VISION_E2E_AUDIT_PASSWORD: ${{ secrets.VISION_E2E_AUDIT_PASSWORD }}
         run: |
           set -euo pipefail
           mkdir -p artifacts/staging
@@ -86,6 +87,21 @@ jobs:
 
       - name: Apply checksum-tracked migrations and map real synthetic Auth identities
         shell: bash
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          VISION_STAGING_DATABASE_URL: ${{ secrets.VISION_STAGING_DATABASE_URL }}
+          VISION_E2E_GUEST_EMAIL: ${{ secrets.VISION_E2E_GUEST_EMAIL }}
+          VISION_E2E_GUEST_PASSWORD: ${{ secrets.VISION_E2E_GUEST_PASSWORD }}
+          VISION_E2E_VIEWS_EMAIL: ${{ secrets.VISION_E2E_VIEWS_EMAIL }}
+          VISION_E2E_VIEWS_PASSWORD: ${{ secrets.VISION_E2E_VIEWS_PASSWORD }}
+          VISION_E2E_DISPATCHER_EMAIL: ${{ secrets.VISION_E2E_DISPATCHER_EMAIL }}
+          VISION_E2E_DISPATCHER_PASSWORD: ${{ secrets.VISION_E2E_DISPATCHER_PASSWORD }}
+          VISION_E2E_STAFF_EMAIL: ${{ secrets.VISION_E2E_STAFF_EMAIL }}
+          VISION_E2E_STAFF_PASSWORD: ${{ secrets.VISION_E2E_STAFF_PASSWORD }}
+          VISION_E2E_QUALITY_EMAIL: ${{ secrets.VISION_E2E_QUALITY_EMAIL }}
+          VISION_E2E_QUALITY_PASSWORD: ${{ secrets.VISION_E2E_QUALITY_PASSWORD }}
+          VISION_E2E_AUDIT_EMAIL: ${{ secrets.VISION_E2E_AUDIT_EMAIL }}
+          VISION_E2E_AUDIT_PASSWORD: ${{ secrets.VISION_E2E_AUDIT_PASSWORD }}
         run: |
           set -euo pipefail
           export SUPABASE_URL="https://${SUPABASE_STAGING_REF}.supabase.co"
@@ -93,6 +109,10 @@ jobs:
 
       - name: Deploy only the dedicated staging Worker with public Supabase configuration
         shell: bash
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
           export SUPABASE_URL="https://${SUPABASE_STAGING_REF}.supabase.co"
@@ -122,6 +142,16 @@ jobs:
 
       - name: Run genuine Supabase Auth, Worker and direct-RLS E2E
         shell: bash
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          VISION_E2E_GUEST_EMAIL: ${{ secrets.VISION_E2E_GUEST_EMAIL }}
+          VISION_E2E_GUEST_PASSWORD: ${{ secrets.VISION_E2E_GUEST_PASSWORD }}
+          VISION_E2E_VIEWS_EMAIL: ${{ secrets.VISION_E2E_VIEWS_EMAIL }}
+          VISION_E2E_VIEWS_PASSWORD: ${{ secrets.VISION_E2E_VIEWS_PASSWORD }}
+          VISION_E2E_STAFF_EMAIL: ${{ secrets.VISION_E2E_STAFF_EMAIL }}
+          VISION_E2E_STAFF_PASSWORD: ${{ secrets.VISION_E2E_STAFF_PASSWORD }}
+          VISION_E2E_QUALITY_EMAIL: ${{ secrets.VISION_E2E_QUALITY_EMAIL }}
+          VISION_E2E_QUALITY_PASSWORD: ${{ secrets.VISION_E2E_QUALITY_PASSWORD }}
         run: |
           set -euo pipefail
           export SUPABASE_URL="https://${SUPABASE_STAGING_REF}.supabase.co"
