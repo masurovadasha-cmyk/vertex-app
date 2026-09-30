@@ -20,7 +20,7 @@ export async function handle(request,env={}){
     }
     if(['/api/vision/v1/commands','/api/vision/v1/orders','/api/vision/v1/tasks','/api/vision/v1/audit'].includes(path)){
       // No fallback to demo identities, privileged credentials or browser-owned roles.
-      return json({error:'cloud_backend_not_connected',mode:'local-demo',authenticated:false},503);
+      return json({error:'cloud_backend_not_connected',mode:'release-candidate',activeModule:'views',authenticated:false},503);
     }
     return json({error:'not_found'},404);
   }
