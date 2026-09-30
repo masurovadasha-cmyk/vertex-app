@@ -1,4 +1,4 @@
-# VERTEX VISION Foundation and Golden Flow
+# VERTEX VISION RC1 — Hub, Views and Golden Flow
 
 This directory is the additive foundation for the future Vertex Group operating system. It does not replace the current red Vertex web app, Host Studio or Taxi demo.
 
@@ -9,6 +9,13 @@ This directory is the additive foundation for the future Vertex Group operating 
 - JARVIS remains a separate project and may only integrate through future VISION API contracts.
 - Business modules do not read/write another module's private storage directly.
 - Critical writes require server-side authorization, idempotency, audit and transactional outbox.
+
+## RC1 module policy
+- VERTEX VISION is the root Hub.
+- Views Hotel & Apartments is the only `ACTIVE` launchable module.
+- Every other registered direction is `COMING_SOON` and exposes no Hub actions.
+- The Hub reads this policy from the canonical registry; migration `0006` persists matching database release metadata.
+- JARVIS remains a separate project and may integrate only through a future external API.
 
 ## Implemented
 Organization graph, tenant-safe foreign keys, identity membership/RBAC, Customer,
@@ -30,5 +37,6 @@ Local development success is not proof of a deployed staging environment.
 - [Permission and transaction contract](PERMISSIONS.md)
 - [Development startup and staging setup](STAGING.md)
 
-The current production UI remains untouched. Production deployment requires the
-owner's explicit approval after a verified cloud staging Golden Flow.
+The RC branch does not authorize a production release. Production deployment requires the
+owner's explicit approval after a verified cloud staging Golden Flow, migration/RLS checks,
+smoke tests and rollback validation.
