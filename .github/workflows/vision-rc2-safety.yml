@@ -45,11 +45,11 @@ jobs:
           --health-retries 12
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
 
@@ -140,7 +140,7 @@ jobs:
           fs.writeFileSync('artifacts/rc2/rc2-safety-report.json',JSON.stringify(report,null,2)+'\n');
           JS
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: Vertex-Vision-RC2-Safety-${{ github.sha }}
