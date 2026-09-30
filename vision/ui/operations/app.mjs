@@ -84,11 +84,11 @@ async function send(command){
  catch(error){if(own!==revision)return;if(error.uncertain){pending=command;message('Ответ не получен. Операция могла выполниться. Сохранена исходная команда для безопасного повтора.');}else{pending=null;if(error.status===401||error.status===403){logout();}message(errorText(error));}}
  finally{if(own===revision){busy=false;controls();}}
 }
-function activateOrganization(organization){
+async function activateOrganization(organization){
  if(!authSession||!authContext||!organization)return;
  revision++;controller?.abort();clearData();pending=null;
  session={scope:{tenant:authContext.tenantId,organization:organization.id},token:authSession.accessToken,refreshToken:authSession.refreshToken,expiresAt:authSession.expiresAt,userId:authSession.userId};
- load();
+ await load();
 }
 $('connectForm').addEventListener('submit',async event=>{
  event.preventDefault();if(busy)return;const f=event.currentTarget,email=f.elements.email.value.trim(),password=f.elements.password.value;f.elements.password.value='';
@@ -97,14 +97,14 @@ $('connectForm').addEventListener('submit',async event=>{
   const next=await auth.signIn(email,password),context=await auth.context(next);
   if(!context.organizations.length){await auth.signOut(next).catch(()=>{});throw Object.assign(new Error('no_access'),{code:'no_access'});}
   authSession=next;authContext=context;$('connect').hidden=true;$('logout').hidden=false;
-  if(context.organizations.length===1){activateOrganization(context.organizations[0]);return;}
+  if(context.organizations.length===1){await activateOrganization(context.organizations[0]);return;}
   const select=$('scopeForm').elements.organization;select.replaceChildren();
   for(const organization of context.organizations){const option=element('option',organization.name+' · '+organization.code);option.value=organization.id;select.append(option);}
   $('scope').hidden=false;message('Вход подтверждён. Выберите разрешённую организацию.');
  }catch(error){authSession=null;authContext=null;session=null;$('connect').hidden=false;$('scope').hidden=true;$('logout').hidden=true;message(errorText(error));}
  finally{busy=false;controls();}
 });
-$('scopeForm').addEventListener('submit',event=>{event.preventDefault();const id=event.currentTarget.elements.organization.value;const organization=authContext?.organizations.find(item=>item.id===id);if(!organization){message('Организация недоступна.');return;}activateOrganization(organization);});
+$('scopeForm').addEventListener('submit',async event=>{event.preventDefault();if(busy)return;const id=event.currentTarget.elements.organization.value;const organization=authContext?.organizations.find(item=>item.id===id);if(!organization){message('Организация недоступна.');return;}busy=true;controls();try{await activateOrganization(organization);}finally{busy=false;controls();}});
 $('rangeForm').addEventListener('submit',event=>{event.preventDefault();if(!busy)load();});
 $('bookingForm').addEventListener('submit',event=>{event.preventDefault();execute('create_booking',null,Object.fromEntries(new FormData(event.currentTarget)));});
 $('logout').addEventListener('click',logout);$('retry').addEventListener('click',()=>{if(pending&&!busy)send(pending);});
