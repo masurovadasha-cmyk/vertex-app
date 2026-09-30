@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "module": "taxi",
+  "envelope": {
+    "required": [
+      "event_id",
+      "event_type",
+      "schema_version",
+      "tenant_id",
+      "organization_id",
+      "aggregate_id",
+      "aggregate_version",
+      "correlation_id",
+      "occurred_at",
+      "payload"
+    ],
+    "delivery": "at-least-once",
+    "consumerRule": "deduplicate_by_event_id"
+  },
+  "events": {
+    "taxi.ride.v1.requested": {
+      "requiredPayload": ["ride_id", "service_class_id", "quote_id"]
+    },
+    "taxi.ride.v1.driver_assigned": {
+      "requiredPayload": ["ride_id", "driver_id", "vehicle_id"]
+    },
+    "taxi.trip.v1.started": {
+      "requiredPayload": ["ride_id", "driver_id", "started_at"]
+    },
+    "taxi.trip.v1.completed": {
+      "requiredPayload": ["ride_id", "completed_at"]
+    },
+    "taxi.ride.v1.cancelled": {
+      "requiredPayload": ["ride_id", "reason"]
+    },
+    "taxi.payment.v1.completed": {
+      "requiredPayload": ["ride_id", "payment_id", "currency", "amount_minor"]
+    },
+    "taxi.safety.v1.incident_created": {
+      "requiredPayload": ["ride_id", "incident_id", "severity"]
+    }
+  }
+}
