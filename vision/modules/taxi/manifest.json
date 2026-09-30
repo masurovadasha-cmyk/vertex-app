@@ -1,0 +1,37 @@
+{
+  "id": "taxi",
+  "name": "Vertex Taxi",
+  "version": "0.1.0",
+  "core": ">=0.1",
+  "permissions": [
+    "taxi.ride.read",
+    "taxi.ride.create",
+    "taxi.ride.monitor",
+    "taxi.dispatch.read"
+  ],
+  "services": [
+    "taxi.rides",
+    "taxi.dispatch",
+    "taxi.safety"
+  ],
+  "events": [
+    "taxi.ride.v1.requested",
+    "taxi.ride.v1.driver_assigned",
+    "taxi.trip.v1.started",
+    "taxi.trip.v1.completed",
+    "taxi.ride.v1.cancelled",
+    "taxi.payment.v1.completed",
+    "taxi.safety.v1.incident_created"
+  ],
+  "workflows": [
+    "taxi-ride-v1"
+  ],
+  "integration": {
+    "type": "external-api",
+    "basePath": "/integration/v1",
+    "databaseAccess": "none",
+    "privateSchema": false,
+    "serviceBindingReady": true,
+    "browserAppUrl": "https://vertex-taxi-prototype.higgsfield.app"
+  }
+}
