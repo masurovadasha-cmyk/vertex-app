@@ -70,3 +70,10 @@ test('versioned Views API routes commands to the dedicated RPC and fixes read fi
   assert.equal(upstream.searchParams.get('select'),'*');
   assert.equal(upstream.searchParams.get('limit'),'50');
 });
+
+test('staging worker serves static assets without requiring backend secrets',async()=>{
+  let seen=0;
+  const assets={fetch:async request=>{seen++;assert.equal(new URL(request.url).pathname,'/index.html');return new Response('vision-ui',{status:200});}};
+  const response=await handle(new Request('https://vision.example/index.html'),{VISION_ENV:'staging',ASSETS:assets});
+  assert.equal(response.status,200);assert.equal(await response.text(),'vision-ui');assert.equal(seen,1);
+});
