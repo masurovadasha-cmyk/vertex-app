@@ -4,8 +4,29 @@
   "platformVersion": "1.16-rc1",
   "api": "v1",
   "databaseMigration": "0008_views_integrity.sql",
-  "activeModules": ["views"],
-  "comingSoonModules": ["managing", "real-estate", "engineers", "aura-design", "travel", "aviation", "rent-car", "taxi", "concierge", "cleaning", "laundry", "ditalia", "market", "bar", "technologies", "investment", "ventures", "training"],
+  "activeModules": [
+    "views"
+  ],
+  "comingSoonModules": [
+    "managing",
+    "real-estate",
+    "engineers",
+    "aura-design",
+    "travel",
+    "aviation",
+    "rent-car",
+    "taxi",
+    "concierge",
+    "cleaning",
+    "laundry",
+    "ditalia",
+    "market",
+    "bar",
+    "technologies",
+    "investment",
+    "ventures",
+    "training"
+  ],
   "cloudStagingVerified": false,
   "productionApproved": false,
   "productionReady": false,
@@ -18,19 +39,34 @@
   "viewsOperations": {
     "status": "implemented-in-branch",
     "apiBase": "/api/v1/views",
-    "commands": ["create_booking", "confirm_booking", "check_in", "check_out", "cancel_booking", "cleaning_start", "cleaning_submit", "cleaning_verify"],
+    "commands": [
+      "create_booking",
+      "confirm_booking",
+      "check_in",
+      "check_out",
+      "cancel_booking",
+      "cleaning_start",
+      "cleaning_submit",
+      "cleaning_verify"
+    ],
     "cloudStagingVerified": false
   },
   "viewsUI": {
     "status": "implemented-in-branch",
     "primaryAction": "operations",
-    "tabs": ["dashboard", "calendar", "bookings", "units", "cleaning"],
+    "tabs": [
+      "dashboard",
+      "calendar",
+      "bookings",
+      "units",
+      "cleaning"
+    ],
     "dataPolicy": "real-staging-only-no-demo-fallback",
     "sessionPolicy": "in-memory-auth-session-only",
     "cloudStagingVerified": false
   },
   "architectureVersion": "1.1",
-  "technicalStage": "views-integrity-1",
+  "technicalStage": "integrated-application-assembly-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -44,5 +80,12 @@
     "maxLimit": 100,
     "cursorHeader": "X-Next-Cursor",
     "projection": "allowlisted-fields"
+  },
+  "integratedAssembly": {
+    "status": "implemented-in-branch",
+    "manifest": "vision/assembly/manifest.json",
+    "verifier": "vision/tools/verify-assembly.mjs",
+    "workflow": ".github/workflows/vision-assembly.yml",
+    "productionApproved": false
   }
 }
