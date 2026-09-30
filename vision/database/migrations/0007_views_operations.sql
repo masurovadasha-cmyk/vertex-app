@@ -161,7 +161,7 @@ declare
  b public.vision_views_bookings; u public.vision_views_units; job public.vision_views_cleaning_jobs;
  customer uuid; unit uuid; booking uuid; cleaning uuid;
  expected bigint; ci date; co date; source_name text; curr text; amount numeric;
- old_status text; event_name text; event_id uuid:=gen_random_uuid(); request_id uuid:=gen_random_uuid();
+ old_status text; event_name text; event_id uuid:=gen_random_uuid(); cleaning_event_id uuid; request_id uuid:=gen_random_uuid();
  response jsonb; payload jsonb; allowed boolean:=false;
 begin
  if jsonb_typeof(command) is distinct from 'object' or exists(
@@ -333,9 +333,10 @@ begin
         case when kind like 'cleaning_%' then job.id else b.id end,b.correlation_id,payload);
 
  if kind='check_out' then
-   insert into public.vision_outbox_events(tenant_id,event_type,aggregate_type,aggregate_id,correlation_id,payload)
-   values(tenant,'views.cleaning.required','cleaning_job',job.id,b.correlation_id,
-     payload||jsonb_build_object('event_id',gen_random_uuid(),'cleaning_job_id',job.id,'cleaning_status',job.status));
+   cleaning_event_id:=gen_random_uuid();
+   insert into public.vision_outbox_events(id,tenant_id,event_type,aggregate_type,aggregate_id,correlation_id,payload)
+   values(cleaning_event_id,tenant,'views.cleaning.required','cleaning_job',job.id,b.correlation_id,
+     payload||jsonb_build_object('event_id',cleaning_event_id,'cleaning_job_id',job.id,'cleaning_status',job.status));
  end if;
 
  response:=jsonb_build_object(
