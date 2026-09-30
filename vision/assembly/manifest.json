@@ -85,6 +85,7 @@
     "expand-only-migration-policy",
     "read-only-release-preflight",
     "backup-restore-drill",
+    "n-minus-one-schema-compatibility",
     "rollback-policy"
   ],
   "kernel": {
@@ -139,6 +140,10 @@
     "workflow": ".github/workflows/vision-rc2-safety.yml",
     "backupRestoreRequired": true,
     "readOnlyPreflightRequired": true,
-    "productionApproved": false
+    "productionApproved": false,
+    "nMinusOneCompatibility": "vision/production/check-n-minus-one-compatibility.mjs",
+    "ciBackupRestoreDrillRequired": true,
+    "productionBackupRestoreVerified": false,
+    "stagingDeployMode": "manual-only"
   }
 }
