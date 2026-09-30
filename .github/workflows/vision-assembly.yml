@@ -1,0 +1,113 @@
+name: VERTEX VISION Integrated Assembly
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'vision/**'
+      - 'vertex/**'
+      - 'android/**'
+      - 'scripts/**'
+      - 'docs/architecture/**'
+      - 'package.json'
+      - 'wrangler.jsonc'
+      - '.github/workflows/vision-assembly.yml'
+  push:
+    branches: ['vision-foundation-rc-*']
+    paths:
+      - 'vision/**'
+      - 'vertex/**'
+      - 'android/**'
+      - 'scripts/**'
+      - 'docs/architecture/**'
+      - 'package.json'
+      - 'wrangler.jsonc'
+      - '.github/workflows/vision-assembly.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vision-assembly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  assemble:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: vision_test_assembly
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install verification dependencies
+        run: |
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3
+          python -m playwright install --with-deps chromium
+          mkdir -p artifacts/assembly
+      - name: Build and verify integrated application contract
+        run: |
+          set -o pipefail
+          npm run build:vision 2>&1 | tee artifacts/assembly/build.txt
+          npm run check:vision-assembly 2>&1 | tee artifacts/assembly/assembly-contract.txt
+      - name: Full application regressions
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee artifacts/assembly/regressions.txt
+      - name: PostgreSQL RLS, integrity and transaction gates
+        env:
+          VISION_TEST_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_test_assembly
+        run: |
+          set -o pipefail
+          node --test vision/tests/database.test.mjs 2>&1 | tee artifacts/assembly/postgresql-core.txt
+          node --test vision/tests/next-stage.test.mjs 2>&1 | tee artifacts/assembly/postgresql-integrity.txt
+      - name: Desktop and mobile browser integration
+        run: |
+          set -o pipefail
+          python scripts/browser-vision.py 2>&1 | tee artifacts/assembly/browser.txt
+      - name: Verify Android web payload equality
+        run: node scripts/check-android-sync.cjs | tee artifacts/assembly/android-assets.txt
+      - name: Compile both Cloudflare targets without deployment
+        run: |
+          set -o pipefail
+          npx wrangler deploy --dry-run --outdir artifacts/assembly/production-worker 2>&1 | tee artifacts/assembly/production-worker.txt
+          npx wrangler deploy --config vision/wrangler.jsonc --dry-run --outdir artifacts/assembly/staging-worker 2>&1 | tee artifacts/assembly/staging-worker.txt
+      - name: Record immutable assembly evidence
+        run: |
+          git rev-parse HEAD > artifacts/assembly/source-commit.txt
+          cp vision/assembly/manifest.json artifacts/assembly/assembly-manifest.json
+          cp vision/release/0.1-RC1.json artifacts/assembly/release-manifest.json
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const files=['vision/assembly/manifest.json','vision/release/0.1-RC1.json','wrangler.jsonc','vision/wrangler.jsonc'];
+          const hashes=Object.fromEntries(files.map(file=>[file,createHash('sha256').update(fs.readFileSync(file)).digest('hex')]));
+          fs.writeFileSync('artifacts/assembly/manifest-hashes.json',JSON.stringify(hashes,null,2)+'\n');
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Vertex-Vision-Integrated-Assembly-${{ github.sha }}
+          path: artifacts/assembly/
+          retention-days: 30
+          if-no-files-found: error
