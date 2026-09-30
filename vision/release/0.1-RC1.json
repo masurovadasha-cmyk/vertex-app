@@ -95,5 +95,14 @@
     "contextEndpoint": "/api/v1/context",
     "permissionSource": "postgresql-rbac-only",
     "clientPermissionClaimsTrusted": false
+  },
+  "design": {
+    "id": "sand-luxury",
+    "version": "1.0.0",
+    "hub": "graphite-champagne",
+    "views": "ivory-sand",
+    "moduleVisuals": 19,
+    "motion": "respects-reduced-motion",
+    "changesBusinessCapabilities": false
   }
 }

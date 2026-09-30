@@ -2,6 +2,8 @@
 (function(root){
   'use strict';
   const core=root.VertexVisionCore;
+  const design=root.VertexVisionDesign;
+  const icon=name=>{const node=element('span');node.innerHTML=design?.icon(name)||'';return node;};
   if(!core||!document.querySelector('main')||document.getElementById('visionHome'))return;
   const tx=(ru,en)=>document.documentElement.lang==='en'?en:ru;
   const element=(tag,className,text)=>{const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
@@ -39,10 +41,14 @@
     const module=core.module(id);if(!module)return false;
     activeModule=id;if(!dialog.open)lastFocus=document.activeElement;
     dialog.replaceChildren();
+    const visual=design?.modules[id];
+    dialog.dataset.vsTheme=visual?.theme||'champagne';
+    const emblem=element('div','vs-module-emblem');emblem.append(icon(id));dialog.append(emblem);
     const top=element('div','vv-dialog-top');const title=element('h2','',module.name);title.id='visionModuleTitle';dialog.setAttribute('aria-labelledby',title.id);
     const dismiss=button('×',close,'vv-close');dismiss.setAttribute('aria-label',tx('Закрыть','Close'));top.append(title,dismiss);dialog.append(top);
     dialog.append(element('p','vv-path','VERTEX VISION / '+module.name),element('p','',tx(module.description.ru,module.description.en)));
     dialog.append(element('p','vv-disclosure',module.status==='active'?tx('Views — активный модуль VERTEX VISION. Ниже доступны проверенные функции Views.','Views is the active VERTEX VISION module. Verified Views functions are available below.'):tx('Coming Soon · Направление уже зарегистрировано в архитектуре VERTEX VISION, но рабочие функции ещё не включены.','Coming Soon · This direction is registered in the VERTEX VISION architecture, but operational functions are not enabled yet.')));
+    if(visual){const flow=element('div','vs-workflow');flow.setAttribute('aria-label',tx('Логика направления','Module workflow'));for(const step of visual[document.documentElement.lang==='en'?'en':'ru'])flow.append(element('span','',step));dialog.append(flow);}
     const meta=element('dl','vv-meta');
     for(const [label,value] of [[tx('Основа','Foundation'),'VISION Core '+core.coreVersion],[tx('Общие сервисы','Shared services'),tx('Клиенты · заказы · задачи · права · аудит','Customers · orders · tasks · permissions · audit')],[tx('Серверный процесс','Backend workflow'),module.backend==='local-tested'?tx('Views → Cleaning проверен локально; не запущен в облаке','Views → Cleaning tested locally; not running in the cloud'):tx('Планируется','Planned')],[tx('Общая база','Shared database'),tx('Целевая PostgreSQL / Supabase; не подключена','Target: PostgreSQL / Supabase; not connected')]]){meta.append(element('dt','',label),element('dd','',value));}
     dialog.append(meta);
@@ -59,18 +65,19 @@
     const search=query.toLocaleLowerCase().trim();
     const items=core.list(domain).filter(m=>[m.id,m.name,m.description.ru,m.description.en].join(' ').toLocaleLowerCase().includes(search));
     for(const m of items){
-      const card=button('',()=>details(m.id),'vv-card');card.dataset.vvOpen=m.id;
+      const card=button('',()=>details(m.id),'vv-card');card.dataset.vvOpen=m.id;card.dataset.vsTheme=design?.modules[m.id]?.theme||'champagne';
       const active=m.status==='active';
-      const head=element('div','vv-card-top');const identity=element('div','vv-card-identity');identity.append(element('span','vv-card-icon',m.icon),element('span','vv-card-domain',tx(...groups[m.domain])));head.append(identity,element('span','vv-tag '+(active?'':'vv-tag-planned'),active?tx('Активно','Active'):tx('Скоро','Coming Soon')));
+      const head=element('div','vv-card-top');const identity=element('div','vv-card-identity');const glyph=element('span','vv-card-icon');glyph.append(icon(m.id));identity.append(glyph,element('span','vv-card-domain',tx(...groups[m.domain])));head.append(identity,element('span','vv-tag '+(active?'':'vv-tag-planned'),active?tx('Активно','Active'):tx('Скоро','Coming Soon')));
       card.append(head,element('h3','',m.name),element('p','',tx(m.description.ru,m.description.en)),element('span','vv-card-link',active?tx('Открыть Views →','Open Views →'):tx('Будущая ветка →','Future branch →')));box.append(card);
     }
+    if(!query.trim()&&!domain){const signature=element('div','vs-signature');signature.append(element('span','',tx('Люди. Места. Возможности.','People. Places. Possibilities.')),element('small','',tx('Разные направления. Единое видение.','Different directions. A shared vision.')));box.append(signature);}
     document.getElementById('visionCount').textContent=tx('В реестре: '+core.modules.length+' · показано: '+items.length,'Registered: '+core.modules.length+' · shown: '+items.length);
     if(!items.length)box.append(element('p','vv-empty',tx('Направлений по этому запросу нет.','No modules match this search.')));
   }
   function render(){
     home.replaceChildren();
-    const hero=element('div','vv-hero');const copy=element('div','vv-hero-copy');
-    copy.append(element('p','vv-kicker','VERTEX GROUP / VISION CORE'),element('h1','vv-title',tx('Одна платформа.\nВсе направления.','One platform.\nEvery direction.')),element('p','vv-lead',tx('VERTEX VISION — общая основа. Views и все направления группы — модули единой экосистемы.','VERTEX VISION is the shared foundation. Views and every group direction are modules of one ecosystem.')));
+    const hero=element('div','vv-hero');const image=element('img','vs-hero-image');image.src='views-modern-1.avif';image.alt=tx('Вечерний Ташкент — визуальный референс из каталога Views','Tashkent at night — visual reference from the Views catalog');image.width=900;image.height=600;image.decoding='async';hero.append(image);const copy=element('div','vv-hero-copy');
+    copy.append(element('p','vv-kicker','VERTEX GROUP / VISION CORE'),element('h1','vv-title',tx('Одна платформа.\nВсе направления.','One platform.\nEvery direction.')),element('p','vv-lead',tx('Проживание, сервис и новые возможности. Всё начинается с вашего пространства.','Stays, service and new possibilities. Everything starts with your own space.')));
     const shortcuts=element('div','vv-actions');
     for(const [ru,en,id,action] of [['Открыть Views','Open Views','views','operations']]){const b=button(tx(ru,en),()=>navigate(id,action));b.dataset.vvShortcut=id;shortcuts.append(b);}copy.append(shortcuts);
     const foundation=element('div','vv-foundation');foundation.append(element('p','vv-kicker','VISION / CORE '+core.coreVersion),element('h2','',tx('Общее ядро','Shared foundation')));
@@ -81,12 +88,17 @@
     const selectLabel=element('label','',tx('Категория','Category'));const select=element('select');select.id='visionDomain';select.append(new Option(tx('Все направления','All modules'),''));for(const [id,label] of Object.entries(groups))select.append(new Option(tx(...label),id));select.value=domain;select.onchange=()=>{domain=select.value;cards();};selectLabel.append(select);filters.append(label,selectLabel);tools.append(filters);home.append(tools);
     const grid=element('div','vv-grid');grid.id='visionModules';home.append(grid);
     const footer=element('div','vv-map');footer.append(element('strong','','VERTEX VISION'),element('span','',tx('Общее ядро → модули → услуги → заявки → исполнение → качество','Shared core → modules → services → requests → execution → quality')),element('small','',tx('JARVIS — отдельный проект; в эту кодовую базу не включён.','JARVIS is a separate project; it is not included in this codebase.')));home.append(footer);
+    const dock=element('nav','vs-dock');dock.setAttribute('aria-label',tx('Навигация VISION','VISION navigation'));
+    const actions=[['home','Главная','Home',()=>home.scrollIntoView({block:'start',behavior:'auto'})],['search','Поиск','Search',()=>document.getElementById('visionSearch').focus()],['views','Views','Views',()=>navigate('views','operations')],['grid','Направления','Modules',()=>document.getElementById('visionDomain').focus()],['info','О Views','About Views',()=>details('views')]];
+    for(const [key,ru,en,fn] of actions){const b=button('',fn,'vs-dock-button');b.dataset.vsDock=key;b.setAttribute('aria-label',tx(ru,en));b.append(icon(key==='views'?'vision':key));if(key!=='views')b.append(element('span','',tx(ru,en)));dock.append(b);}
+    home.append(dock);
     const message=element('p','vv-message');message.id='visionMessage';message.setAttribute('role','status');home.append(message);
     cards();
     const brand=document.querySelector('header .brand');if(brand){brand.setAttribute('aria-label','VERTEX VISION');brand.replaceChildren(element('span','mark','v'),element('span','vv-wordmark','VERTEX VISION'));brand.onclick=e=>{e.preventDefault();home.scrollIntoView({block:'start',behavior:'auto'});};}
     const oldTitle=document.getElementById('visionViewsBoundary');if(!oldTitle){const boundary=element('div','vv-views-boundary',tx('VERTEX VISION / VIEWS · Проживание и поездки','VERTEX VISION / VIEWS · Stays & journeys'));boundary.id='visionViewsBoundary';home.after(boundary);}else oldTitle.textContent=tx('VERTEX VISION / VIEWS · Проживание и поездки','VERTEX VISION / VIEWS · Stays & journeys');
   }
   root.VertexVision=Object.freeze({core,navigate,details,home:()=>home.scrollIntoView({block:'start',behavior:'auto'}),adapters:Object.freeze(Object.keys(adapters))});
+  if(typeof IntersectionObserver==='function'){new IntersectionObserver(entries=>{document.documentElement.dataset.visionArea=entries[0].isIntersecting?'hub':'catalog';}).observe(home);}
   render();new MutationObserver(()=>{const opened=dialog.open?activeModule:null;render();if(opened)details(opened);}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
   document.documentElement.dataset.visionReady='true';
   root.dispatchEvent(new CustomEvent('vertex:vision-ready',{detail:{version:core.version}}));

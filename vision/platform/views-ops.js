@@ -3,6 +3,7 @@
   'use strict';
   if(!root.document||root.VertexVisionViews)return;
   const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const icon=name=>root.VertexVisionDesign?.icon(name)||'';
   const T=(ru,en)=>document.documentElement.lang==='en'?en:ru;
   const E=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const today=()=>new Date().toISOString().slice(0,10);
@@ -148,7 +149,7 @@
     }).join('')+'</div>';
   }
   function content(){
-    if(!configured())return '<section class="vvo-connect"><strong>'+T('Рабочее подключение не настроено','Operational connection is not configured')+'</strong><p>'+T('Этот экран не подставляет демо-данные. Для реальной работы нужны staging Auth session и tenant ID.','This workspace never substitutes demo data. A staging Auth session and tenant ID are required for real operations.')+'</p><button data-vvo-demo>'+T('Открыть отдельный демо Host Studio','Open separate demo Host Studio')+'</button></section>';
+    if(!configured())return '<div class="vs-unavailable-kpis" aria-label="'+T('Показатели ещё не загружены','Metrics are not loaded')+'">'+[T('Апартаменты','Units'),T('Заезды','Arrivals'),T('Задачи','Tasks')].map(label=>'<article><span>'+E(label)+'</span><b>—</b></article>').join('')+'</div><section class="vvo-connect"><strong>'+T('Рабочее подключение не настроено','Operational connection is not configured')+'</strong><p>'+T('Этот экран не подставляет демо-данные. Для реальной работы нужны staging Auth session и tenant ID.','This workspace never substitutes demo data. A staging Auth session and tenant ID are required for real operations.')+'</p><button data-vvo-demo>'+T('Открыть отдельный демо Host Studio','Open separate demo Host Studio')+'</button></section>';
     if(typeof navigator!=='undefined'&&navigator.onLine===false)return empty(T('Нет сети','Offline'),T('Критические операции отключены до восстановления соединения.','Critical actions are disabled until connectivity returns.'));
     if(state.loading)return loading();
     if(state.error){
@@ -160,9 +161,10 @@
   function render(){
     ensure();
     const tabs=[['dashboard',T('Главная','Dashboard')],['calendar',T('Календарь','Calendar')],['bookings',T('Брони','Bookings')],['units',T('Апартаменты','Units')],['cleaning',T('Уборка','Cleaning')]];
-    state.root.innerHTML='<header class="vvo-head"><div><small>VERTEX VISION / VIEWS</small><h2>'+T('Операционный центр','Operations')+'</h2><p>'+T('Реальные staging-данные · без фиктивных показателей','Real staging data · no fabricated metrics')+'</p></div><div class="vvo-head-actions"><span class="vvo-connection '+(configured()?'is-on':'')+'">'+(configured()?T('STAGING SESSION','STAGING SESSION'):T('НЕ ПОДКЛЮЧЕНО','NOT CONNECTED'))+'</span><button data-vvo-refresh aria-label="'+T('Обновить','Refresh')+'">↻</button><button data-vvo-close aria-label="'+T('Закрыть','Close')+'">×</button></div></header>'+
-      '<nav class="vvo-tabs">'+tabs.map(([id,label])=>'<button data-vvo-tab="'+id+'" aria-current="'+(state.tab===id?'page':'false')+'">'+E(label)+'</button>').join('')+'</nav>'+
-      '<main class="vvo-main">'+content()+'</main>';
+    state.root.innerHTML='<header class="vvo-head"><div><div class="vs-views-identity">'+icon('views')+'<div><small>VERTEX VISION / VIEWS</small><h2>Views</h2><span>Hotel &amp; Apartments</span></div></div><p>'+T('Реальные staging-данные · без фиктивных показателей','Real staging data · no fabricated metrics')+'</p></div><div class="vvo-head-actions"><span class="vvo-connection '+(configured()?'is-on':'')+'">'+(configured()?T('STAGING SESSION','STAGING SESSION'):T('НЕ ПОДКЛЮЧЕНО','NOT CONNECTED'))+'</span><button data-vvo-refresh aria-label="'+T('Обновить','Refresh')+'">↻</button><button data-vvo-close aria-label="'+T('Закрыть','Close')+'">×</button></div></header>'+
+      '<section class="vs-views-hero"><div><strong>'+T('Гостеприимство в деталях.','Hospitality in the details.')+'</strong><p>'+T('Ташкент · Узбекистан','Tashkent · Uzbekistan')+'</p></div><span class="vs-hero-caption">'+T('Визуальный референс из каталога Views','Visual reference from the Views catalog')+'</span></section>'+
+      '<nav class="vvo-tabs" aria-label="'+T('Разделы Views','Views sections')+'">'+tabs.map(([id,label])=>'<button data-vvo-tab="'+id+'" aria-current="'+(state.tab===id?'page':'false')+'">'+icon({dashboard:'home',calendar:'calendar',bookings:'bookings',units:'views',cleaning:'cleaning'}[id])+'<span>'+E(label)+'</span></button>').join('')+'</nav>'+
+      '<main class="vvo-main">'+(configured()?'<p class="vs-data-note">'+T('Показаны загруженные записи. Это не итог по всему фонду.','Showing loaded records, not totals for the entire portfolio.')+'</p>':'')+content()+'</main>';
   }
   async function configure(session){
     const tenantId=session?.tenantId||'',organizationId=session?.organizationId||'',token=session?.token||'';

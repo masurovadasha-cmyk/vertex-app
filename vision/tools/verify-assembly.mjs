@@ -78,6 +78,9 @@ assert.equal(assembly.kernel.clientPermissionClaimsTrusted,false);
 assert.equal(release.applicationKernel.contextEndpoint,'/api/v1/context');
 assert.equal(release.viewsUI.sessionPolicy,'server-authoritative-context-from-verified-jwt');
 
+assert.equal(assembly.design.id,'sand-luxury');
+assert.equal(assembly.design.id,release.design.id);
+for(const asset of ['vision-design.js','vision-sand.css','vision-mark.svg'])assert.ok(exists('vertex/dist/'+asset),'missing design asset '+asset);
 const rootPkg=json('package.json');
 assert.ok(rootPkg.scripts?.['check:vision-assembly']);
 assert.ok(rootPkg.scripts?.['build:vision']);
