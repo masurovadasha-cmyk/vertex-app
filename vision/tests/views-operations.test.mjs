@@ -54,7 +54,22 @@ test('Views Operations booking, stay and cleaning vertical slice',async t=>{
   });
   const denied=(fn,pattern=/forbidden|permission denied/)=>assert.rejects(fn,pattern);
 
+  const context=user=>as(user,async()=>(
+    await db.query('select public.vision_session_context($1,$2) result',[tenant,views])
+  ).rows[0].result);
+
   let booking,cleaning;
+  await t.test('session context derives permissions and guest capability only from database grants',async()=>{
+    const managerContext=await context(manager);
+    assert.equal(managerContext.module,'views');assert.equal(managerContext.module_enabled,true);assert.equal(managerContext.guest_linked,false);
+    assert.ok(managerContext.roles.includes('views-ops-manager'));
+    for(const code of ['views.operations.read','views.booking.create','views.booking.manage','views.cleaning.execute','views.cleaning.verify'])assert.ok(managerContext.permissions.includes(code));
+    assert.equal(managerContext.capabilities.manage_booking,true);assert.equal(managerContext.capabilities.verify_cleaning,true);
+    const guestContext=await context(guest);
+    assert.equal(guestContext.guest_linked,true);assert.deepEqual(guestContext.permissions,[]);assert.equal(guestContext.capabilities.manage_booking,false);
+    await denied(()=>as(manager,()=>db.query('select public.vision_session_context($1,$2)',[tenant,randomUUID()])));
+  });
+
   await t.test('manager creates idempotent booking and RLS exposes it only to scoped manager/guest',async()=>{
     const payload=create('2026-10-10','2026-10-12');
     booking=await command(manager,payload);
