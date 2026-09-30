@@ -1,13 +1,13 @@
 {
   "product": "VERTEX Vision",
   "assembly": "0.1",
-  "architectureVersion": "1.5",
+  "architectureVersion": "1.6",
   "releaseManifest": "vision/release/0.1-RC1.json",
   "platformVersion": "1.16-rc1",
   "apiVersion": "v1",
   "database": {
-    "latestMigration": "0010_runtime_readiness.sql",
-    "migrationsExpected": 10,
+    "latestMigration": "0011_event_inbox.sql",
+    "migrationsExpected": 11,
     "sourceOfTruth": "PostgreSQL/Supabase",
     "productionApplied": false
   },
@@ -73,6 +73,7 @@
     "typed-response-contract",
     "request-correlation-trace",
     "runtime-readiness",
+    "event-inbox-idempotency",
     "unit-regression",
     "postgresql-rls",
     "views-vertical-flow",
@@ -109,7 +110,8 @@
       "required-tables",
       "required-rpcs",
       "rls",
-      "views-release-active"
+      "views-release-active",
+      "event-inbox"
     ],
     "serviceRoleRequired": false
   },
@@ -121,5 +123,10 @@
       "verified": false,
       "productionChanged": false
     }
+  },
+  "reliability": {
+    "outbox": "transactional-at-least-once",
+    "inbox": "durable-deduplication-with-lease",
+    "globalExactlyOnce": false
   }
 }
