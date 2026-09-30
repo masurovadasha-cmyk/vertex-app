@@ -57,8 +57,10 @@ for(const required of [
   'vision/platform/registry.cjs',
   'vision/platform/views-ops.js',
   'vision/backend/worker.mjs',
+  'vision/backend/kernel.mjs',
   'vision/database/migrations/0007_views_operations.sql',
   'vision/database/migrations/0008_views_integrity.sql',
+  'vision/database/migrations/0009_application_kernel.sql',
   'vision/modules/views/manifest.json',
   'docs/architecture/TARGET-ARCHITECTURE-1.0.md'
 ]) assert.ok(exists(required),'missing assembly component '+required);
@@ -71,6 +73,10 @@ for(const command of assembly.views.commands)
   assert.ok(release.viewsOperations.commands.includes(command),'release manifest missing command '+command);
 assert.equal(release.viewsUI.dataPolicy,'real-staging-only-no-demo-fallback');
 assert.equal(assembly.views.demoFallbackInOperations,false);
+assert.equal(assembly.kernel.permissionSource,'postgresql-rbac-only');
+assert.equal(assembly.kernel.clientPermissionClaimsTrusted,false);
+assert.equal(release.applicationKernel.contextEndpoint,'/api/v1/context');
+assert.equal(release.viewsUI.sessionPolicy,'server-authoritative-context-from-verified-jwt');
 
 const rootPkg=json('package.json');
 assert.ok(rootPkg.scripts?.['check:vision-assembly']);
