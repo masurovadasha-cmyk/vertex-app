@@ -79,7 +79,8 @@
     "browser-desktop-mobile",
     "android-build-signature-assets",
     "cloudflare-production-dry-run",
-    "cloudflare-staging-dry-run"
+    "cloudflare-staging-dry-run",
+    "real-supabase-auth-e2e"
   ],
   "kernel": {
     "routePolicy": "vision/backend/kernel.mjs",
@@ -111,5 +112,14 @@
       "views-release-active"
     ],
     "serviceRoleRequired": false
+  },
+  "externalGates": {
+    "realStagingAuthE2E": {
+      "workflow": ".github/workflows/vision-cloud-e2e.yml",
+      "mode": "manual-staging-environment",
+      "required": true,
+      "verified": false,
+      "productionChanged": false
+    }
   }
 }
