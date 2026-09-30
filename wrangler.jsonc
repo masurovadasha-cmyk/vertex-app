@@ -1,7 +1,14 @@
 {
   "name": "vertex-app",
-  "compatibility_date": "2026-09-28",
+  "main": "vision/platform/worker.mjs",
+  "compatibility_date": "2026-09-30",
+  "keep_vars": true,
+  "build": {
+    "command": "npm run build:vision"
+  },
   "assets": {
-    "directory": "./vertex/dist"
+    "directory": "./vertex/dist",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*", "/health", "/vision", "/vision/*"]
   }
 }
