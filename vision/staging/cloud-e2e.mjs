@@ -106,12 +106,7 @@ let booking=created.data;
 const replay=await command(credentials.views,create);
 if(JSON.stringify(replay.data)!==JSON.stringify(booking))throw new Error('create_idempotency_failed');
 
-let overlap=await command(credentials.views,{...create,idempotency_key:randomUUID()});
-overlap=await command(credentials.views,{...base('confirm_booking'),booking_id:overlap.data.booking_id,expected_version:overlap.data.booking_version});
 booking=(await command(credentials.views,{...base('confirm_booking'),booking_id:booking.booking_id,expected_version:booking.booking_version})).data;
-if(overlap.response.status!==200)throw new Error('overlap_setup_failed');
-const conflict=await command(credentials.views,{...base('confirm_booking'),booking_id:created.data.booking_id,expected_version:created.data.booking_version},409).catch(()=>null);
-// The first create has already been confirmed above through 'booking'; create a fresh pending conflict candidate instead.
 const conflictCandidate=await command(credentials.views,{...create,idempotency_key:randomUUID()});
 const conflictResult=await command(credentials.views,{...base('confirm_booking'),booking_id:conflictCandidate.data.booking_id,expected_version:conflictCandidate.data.booking_version},409);
 if(conflictResult.data.error!=='conflict')throw new Error('overlap_not_rejected');
