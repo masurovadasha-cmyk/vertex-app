@@ -48,6 +48,9 @@ jobs:
           npm test
           npm run release:check
 
+      - name: Build VISION public runtime assets
+        run: npm run build:vision
+
       - name: VISION integration tests
         run: node --test vision/tests/engineers-integration.test.mjs
 
