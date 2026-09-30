@@ -3,7 +3,8 @@ import path from 'node:path';
 
 const root=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
 const policy=JSON.parse(fs.readFileSync(path.join(root,'vision/production/promotion-policy.json'),'utf8'));
-const release=JSON.parse(fs.readFileSync(path.join(root,'vision/release/0.1-RC1.json'),'utf8'));
+const candidateRoot=process.env.VISION_PROMOTION_CANDIDATE_ROOT?path.resolve(process.env.VISION_PROMOTION_CANDIDATE_ROOT):root;
+const release=JSON.parse(fs.readFileSync(path.join(candidateRoot,'vision/release/0.1-RC1.json'),'utf8'));
 const args=new Set(process.argv.slice(2));
 const policyOnly=args.has('--policy-only');
 const evidenceDir=process.env.VISION_PROMOTION_EVIDENCE_DIR||process.argv.find(x=>!x.startsWith('--'));
