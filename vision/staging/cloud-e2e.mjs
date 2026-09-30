@@ -3,6 +3,7 @@ import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {validateSupabaseStaging,signInSynthetic} from './auth.mjs';
 
+const release=JSON.parse(fs.readFileSync(new URL('../release/0.1-RC1.json',import.meta.url),'utf8'));
 const required=name=>{
   const value=process.env[name];
   if(!value)throw new Error('missing_staging_secret:'+name);
@@ -74,7 +75,7 @@ async function directBookings(session){
 }
 
 const readiness=await workerJSON('/readyz');
-if(readiness.response.status!==200||readiness.data.ready!==true||readiness.data.latestMigration!=='0010_runtime_readiness.sql')throw new Error('staging_not_ready');
+if(readiness.response.status!==200||readiness.data.ready!==true||readiness.data.latestMigration!==release.databaseMigration||readiness.data.architectureVersion!==release.architectureVersion)throw new Error('staging_not_ready');
 
 const managerContext=await context(credentials.views);
 const cleanerContext=await context(credentials.staff);
