@@ -26,6 +26,8 @@
 #visionHome .vv-card{padding:21px;text-align:left;border:1px solid #e2e4e8;border-radius:16px;display:flex;flex-direction:column;align-items:stretch;background:#fff;color:#222;min-width:0;cursor:pointer;white-space:normal;min-height:220px;transition:border-color .15s,box-shadow .15s}
 #visionHome .vv-card:hover{border-color:#e51d57;box-shadow:0 4px 20px #8010300a}
 #visionHome .vv-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+#visionHome .vv-card-identity{display:flex;align-items:center;gap:9px;min-width:0}
+#visionHome .vv-card-icon{display:grid;place-items:center;width:38px;height:38px;border:1px solid #eadde2;border-radius:11px;background:#fff7f9;font-size:20px;line-height:1;flex:0 0 auto}
 #visionHome .vv-card-domain{font:600 10px/1.5 system-ui;letter-spacing:.03em;color:#737984}
 #visionHome .vv-tag{font:650 10px/1.5 system-ui;border-radius:20px;padding:4px 9px;background:#fff0f5;color:#b71947}
 #visionHome .vv-tag-planned{background:#f0f1f3;color:#68717e}
@@ -47,7 +49,7 @@ header .brand .vv-wordmark{font:800 13px/1.2 system-ui;letter-spacing:-.03em;whi
 .vv-close{border:1px solid #e2e3e7;background:#f8f8fa;color:#222;border-radius:50%;min-width:44px;height:44px;font-size:24px;line-height:1;cursor:pointer}
 .vv-dialog .vv-path{font:650 11px/1.6 system-ui;letter-spacing:.04em;color:#ac214c;overflow-wrap:anywhere}
 .vv-meta{display:grid;grid-template-columns:minmax(120px,.65fr) minmax(0,1.3fr);gap:12px 20px;font-size:12px;border-top:1px solid #e7e8eb;padding-top:20px}
-.vv-meta dt{font-weight:650;color:#66707c}.vv-meta dd{margin:0;color:#303640}
+.vv-meta dt{font-weight:650;color:#66707c}.vv-meta dd{margin:0;color:#303640}.vv-coming-soon{display:inline-flex;align-items:center;min-height:42px;padding:10px 13px;border-radius:10px;background:#f3f4f6;color:#646c78;font:650 12px/1.4 system-ui}
 #visionHome button:focus-visible,.vv-dialog button:focus-visible,#visionHome input:focus-visible,#visionHome select:focus-visible{outline:3px solid #ce174b;outline-offset:3px}
 @media(max-width:960px){#visionHome .vv-hero{grid-template-columns:1fr 1fr;gap:20px}#visionHome .vv-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#visionHome .vv-foundation{padding:20px}}
 @media(max-width:620px){#visionHome .vv-hero{grid-template-columns:1fr;padding-top:22px;gap:22px}#visionHome .vv-title{font-size:39px}#visionHome .vv-lead{font-size:15px}#visionHome .vv-grid{grid-template-columns:1fr}#visionHome .vv-card{min-height:190px}#visionHome .vv-card-top{margin-bottom:15px}#visionHome .vv-tools{display:block}#visionHome .vv-filters{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;width:100%}#visionHome .vv-filters input{width:100%}#visionHome .vv-actions .vv-button{flex:1 1 calc(50% - 10px);padding:11px 9px}.vv-dialog{padding:20px}.vv-meta{grid-template-columns:1fr;gap:5px}.vv-meta dd{margin:0 0 12px}header .brand .vv-wordmark{font-size:11px}}
