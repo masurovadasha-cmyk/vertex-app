@@ -1,11 +1,13 @@
 {
   "version": "0.2.0",
-  "status": "implementation_aligned",
-  "screens": [
+  "ui_version": "simple-six-area-0.1",
+  "status": "integrated_preview",
+  "app_entry": "ui/app/index.html",
+  "navigation": [
     {
       "id": "dashboard",
-      "title": "Engineers Dashboard",
-      "implemented_data": [
+      "title": "Dashboard",
+      "data": [
         "projects",
         "assets",
         "work_orders"
@@ -14,152 +16,77 @@
         "GET /projects",
         "GET /assets",
         "GET /work-orders"
-      ],
-      "permissions": [
-        "engineers.dashboard.read"
-      ],
-      "states": [
-        "loading",
-        "empty",
-        "ready",
-        "error"
       ]
     },
     {
-      "id": "project-control",
-      "title": "Project Control",
-      "implemented_data": [
+      "id": "projects",
+      "title": "Projects",
+      "data": [
         "project"
       ],
       "api": [
         "GET /projects",
         "POST /projects",
         "POST /projects/{projectId}/stage"
-      ],
-      "permissions": [
-        "engineers.project.read",
-        "engineers.project.write"
-      ],
-      "states": [
-        "loading",
-        "empty",
-        "ready",
-        "invalid_transition",
-        "error"
       ]
     },
     {
-      "id": "elevator-center",
-      "title": "Elevator Center",
-      "implemented_data": [
-        "elevator_asset"
+      "id": "equipment",
+      "title": "Equipment",
+      "data": [
+        "elevator_asset",
+        "hvac_asset",
+        "product_reference"
       ],
       "api": [
         "GET /assets",
         "POST /assets/elevators",
-        "POST /assets/{assetId}/commission"
-      ],
-      "permissions": [
-        "engineers.asset.read",
-        "engineers.asset.write"
-      ],
-      "states": [
-        "loading",
-        "empty",
-        "ready",
-        "error"
-      ]
-    },
-    {
-      "id": "hvac-studio",
-      "title": "HVAC / MEP Studio",
-      "implemented_data": [
-        "hvac_asset"
-      ],
-      "api": [
-        "GET /assets",
         "POST /assets/hvac",
-        "POST /assets/{assetId}/commission"
-      ],
-      "permissions": [
-        "engineers.asset.read",
-        "engineers.asset.write"
-      ],
-      "states": [
-        "loading",
-        "empty",
-        "ready",
-        "error"
+        "POST /assets/{assetId}/commission",
+        "GET /product-references"
       ]
     },
     {
-      "id": "service-dispatch",
-      "title": "Service Dispatch",
-      "implemented_data": [
+      "id": "service",
+      "title": "Service",
+      "data": [
         "work_order"
       ],
       "api": [
         "GET /work-orders",
         "POST /work-orders",
         "POST /work-orders/{workOrderId}/transition"
-      ],
-      "permissions": [
-        "engineers.maintenance.read",
-        "engineers.maintenance.dispatch"
-      ],
-      "states": [
-        "loading",
-        "empty",
-        "ready",
-        "invalid_transition",
-        "error"
       ]
     },
     {
-      "id": "product-reference-library",
-      "title": "Reference Equipment",
-      "implemented_data": [
-        "product_reference"
-      ],
-      "api": [
-        "GET /product-references"
-      ],
-      "permissions": [
-        "engineers.asset.read"
-      ],
-      "states": [
-        "loading",
-        "empty",
-        "ready",
-        "error"
-      ],
-      "disclaimer_required": true
-    },
-    {
-      "id": "compliance",
-      "title": "Compliance",
-      "implemented_data": [
-        "compliance_state_calculation",
-        "database_contract"
+      "id": "team",
+      "title": "Team",
+      "data": [
+        "technician",
+        "qualification_documents"
       ],
       "api": [],
-      "permissions": [
-        "engineers.compliance.read",
-        "engineers.compliance.manage"
+      "runtime_note": "Technician persistence/API is not active in runtime 0.2."
+    },
+    {
+      "id": "documents",
+      "title": "Documents",
+      "data": [
+        "project_documents",
+        "compliance_documents",
+        "service_reports"
       ],
-      "states": [
-        "design_contract_only"
-      ],
-      "note": "Compliance persistence/API CRUD is not implemented in runtime 0.2."
+      "api": [],
+      "runtime_note": "Document persistence/API is not active in runtime 0.2."
     }
   ],
+  "equipment_filters": [
+    "elevators",
+    "ventilation",
+    "heating",
+    "air_conditioning",
+    "other"
+  ],
   "api_base": "/api/v1/engineers",
-  "operational_scope_headers": [
-    "x-tenant-id",
-    "x-organization-id"
-  ],
-  "public_routes": [
-    "GET /health"
-  ],
-  "integration_note": "Standalone now; future VERTEX Vision mount only through versioned contracts."
+  "integration_note": "Standalone UI preview now; future VERTEX VISION mount /engineers remains registration-only."
 }

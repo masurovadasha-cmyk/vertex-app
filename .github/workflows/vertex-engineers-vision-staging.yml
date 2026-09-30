@@ -47,6 +47,9 @@ jobs:
         run: |
           npm test
           npm run release:check
+          test -f ui/app/index.html
+          test -f ui/app/engineers.css
+          test -f ui/app/engineers.js
 
       - name: Build VISION public runtime assets
         run: npm run build:vision
