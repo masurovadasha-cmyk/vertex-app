@@ -1,4 +1,5 @@
 import {handle as baseHandle} from './worker.mjs';
+import {handleAuth} from './auth.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ASSETS=new Set(['/operations/','/operations/index.html','/operations/app.mjs','/operations/client.mjs','/operations/styles.css']);
@@ -30,6 +31,7 @@ export async function handle(request,env={},fetcher=fetch){
   if(!env.OPERATIONS_UI?.fetch)return json({error:'ui_not_configured'},503);
   try{const response=await env.OPERATIONS_UI.fetch(request);return new Response(request.method==='HEAD'?null:response.body,{status:response.status,headers:{...Object.fromEntries(response.headers),...security}});}catch{return json({error:'ui_unavailable'},503);}
  }
+ if(url.pathname.startsWith('/api/v1/auth/'))return handleAuth(request,env,fetcher);
  if(['/health','/healthz'].includes(url.pathname)){
   if(!['GET','HEAD'].includes(request.method))return json({error:'method_not_allowed'},405);
   return new Response(request.method==='HEAD'?null:JSON.stringify({service:'VERTEX VISION',environment:'staging',configured:configured(env),ui:'operations-0.1',productionReady:false}),{headers:{...security,'content-type':'application/json'}});
