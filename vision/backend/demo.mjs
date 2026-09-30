@@ -60,6 +60,14 @@ export async function provisionDemo(db, identities=Object.fromEntries(profiles.m
     }
     // This is the explicitly synthetic development fixture, not a production grant.
     await insert('module_installations',{tenant_id:demo.tenant_id,organization_id:demo.views_id,module_id:'views',state:'ENABLED'});
+    const cleaner=identities.staff,cleanerMembership=id(303),cleanerRole=id(304);
+    const cleanerBound=(await db.query('select user_id from public.vision_memberships where id=$1',[cleanerMembership])).rows[0];
+    if(cleanerBound&&cleanerBound.user_id!==cleaner)throw new Error('Synthetic Views cleaner is already bound to another identity');
+    await insert('memberships',{id:cleanerMembership,tenant_id:demo.tenant_id,user_id:cleaner,organization_id:demo.views_id});
+    await insert('roles',{id:cleanerRole,tenant_id:demo.tenant_id,code:'demo-views-cleaner',name:'Synthetic Views cleaner'});
+    await insert('membership_roles',{tenant_id:demo.tenant_id,membership_id:cleanerMembership,role_id:cleanerRole});
+    await db.query("insert into public.vision_role_permissions(role_id,permission_id) select $1,id from public.vision_permissions where code='views.cleaning.execute' on conflict do nothing",[cleanerRole]);
+
     const reviewer=identities.quality,reviewMembership=id(301),reviewRole=id(302);
     const bound=(await db.query('select user_id from public.vision_memberships where id=$1',[reviewMembership])).rows[0];
     if(bound&&bound.user_id!==reviewer)throw new Error('Synthetic Views reviewer is already bound to another identity');
