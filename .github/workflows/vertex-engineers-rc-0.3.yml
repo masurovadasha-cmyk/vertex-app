@@ -1,0 +1,44 @@
+name: VERTEX Engineers RC 0.3
+on:
+  push:
+    branches:
+      - "vertex-engineers-rc-0.3"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Engineers dependencies
+        working-directory: vertex-engineers
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Full Engineers suite
+        working-directory: vertex-engineers
+        run: npm test
+      - name: Build RC bundle
+        run: |
+          set -euo pipefail
+          OUT="vertex-engineers/release-dist"
+          NAME="vertex-engineers-0.3.0-rc.1"
+          rm -rf "$OUT"
+          mkdir -p "$OUT/$NAME"
+          rsync -a --exclude='release-dist/' --exclude='node_modules/' vertex-engineers/ "$OUT/$NAME/"
+          (cd "$OUT/$NAME" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > ../FILE-SHA256SUMS.txt)
+          tar -czf "$OUT/$NAME.tar.gz" -C "$OUT" "$NAME"
+          (cd "$OUT" && zip -qr "$NAME.zip" "$NAME" && sha256sum "$NAME.tar.gz" "$NAME.zip" > ARCHIVE-SHA256SUMS.txt)
+      - name: Upload RC bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: vertex-engineers-0.3.0-rc.1
+          path: |
+            vertex-engineers/release-dist/vertex-engineers-0.3.0-rc.1.zip
+            vertex-engineers/release-dist/vertex-engineers-0.3.0-rc.1.tar.gz
+            vertex-engineers/release-dist/FILE-SHA256SUMS.txt
+            vertex-engineers/release-dist/ARCHIVE-SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30
