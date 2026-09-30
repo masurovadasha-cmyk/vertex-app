@@ -1,5 +1,5 @@
 {
-  "version": "1.14-demo",
+  "version": "1.15-demo",
   "date": "2026-09-30",
   "mode": "local-demo",
   "features": [
@@ -50,7 +50,11 @@
     "Separate UZS and USD trip budgets",
     "Local guest care resolution history",
     "Offline downloadable trip summary",
-    "Internal place overview without external redirects"
+    "Internal place overview without external redirects",
+    "VERTEX VISION primary platform",
+    "19 registered child modules",
+    "Versioned platform registry and API",
+    "Explicit adapters preserving existing module data"
   ],
   "boundaries": [
     "No real payments or payouts",
@@ -60,8 +64,37 @@
     "Owner/staff roles are demonstrational and not authentication",
     "Only local demo listings are editable; confirmed catalog and photo uploads are read-only",
     "Host messages are local property discussions, not a connected guest inbox",
-    "Taxi requests stay in this browser; drivers are not notified. No live dispatch, GPS, route engine or taxi payments connected."
+    "Taxi requests stay in this browser; drivers are not notified. No live dispatch, GPS, route engine or taxi payments connected.",
+    "Shared cloud database and real authentication are not connected",
+    "Registration does not enable a module or imply completed workflows",
+    "JARVIS is a separate project",
+    "The existing hosted APK link is the previous Vertex 1.14 release, not VISION 1.15"
   ],
-  "revision": "unified-journey1",
-  "web_entry": "https://vertex-app.masurovadasha.workers.dev/"
+  "revision": "vision-unified1",
+  "web_entry": "https://vertex-app.masurovadasha.workers.dev/",
+  "platform": "vertex-vision",
+  "core_version": "1.0.0",
+  "modules": [
+    "views",
+    "managing",
+    "real-estate",
+    "engineers",
+    "aura-design",
+    "travel",
+    "aviation",
+    "rent-car",
+    "taxi",
+    "concierge",
+    "cleaning",
+    "laundry",
+    "ditalia",
+    "market",
+    "bar",
+    "technologies",
+    "investment",
+    "ventures",
+    "training"
+  ],
+  "cloud_database_connected": false,
+  "unified_apk_hosted": false
 }
