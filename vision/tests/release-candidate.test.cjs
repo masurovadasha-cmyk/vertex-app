@@ -31,6 +31,6 @@ test('RC future modules expose icons but no launch actions',()=>{
 test('RC migration encodes one active Views release state',()=>{
   const sql=fs.readFileSync('vision/database/migrations/0006_views_active_release_state.sql','utf8');
   assert.match(sql,/when id='views' then 'ACTIVE' else 'COMING_SOON'/);
-  assert.match(sql,/vision_single_active_release_module/);
-  assert.match(sql,/where release_state='ACTIVE'/);
+  assert.match(sql,/vision_module_release_state_idx/);
+  assert.doesNotMatch(sql,/unique index[^;]*release_state/is);
 });
