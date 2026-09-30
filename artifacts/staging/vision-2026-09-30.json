@@ -1,0 +1,55 @@
+{
+  "verified_at": "2026-09-30T13:13:57.369Z",
+  "supabase_ref": "cqtmunppcyjdkhsnkvfh",
+  "worker_deployment": "fc62da51cc084505ac329f0ede6fe461",
+  "tests": [
+    {
+      "path": "/",
+      "status": 200
+    },
+    {
+      "path": "/directions/views",
+      "status": 200
+    },
+    {
+      "path": "/health",
+      "status": 200,
+      "data": {
+        "service": "VERTEX VISION",
+        "environment": "staging",
+        "configured": true
+      }
+    },
+    {
+      "path": "/release.json",
+      "status": 200,
+      "data": {
+        "service": "VERTEX VISION",
+        "mode": "public-preview",
+        "source_commit": "d07e18c3351863f094a75edcfa149b6318dfa21a",
+        "backend_status": "auth_onboarding_pending",
+        "red_version": "1.14-demo"
+      }
+    },
+    {
+      "path": "/api/orders?tenant_id=00000000-0000-4000-8000-000000000001",
+      "status": 401
+    },
+    {
+      "path": "/api/orders?tenant_id=00000000-0000-4000-8000-000000000001",
+      "status": 401
+    },
+    {
+      "path": "/api/profiles",
+      "status": 404
+    },
+    {
+      "path": "/download/android",
+      "status": 302,
+      "location": "https://vertex-app.masurovadasha.workers.dev/Vertex-Latest.apk"
+    }
+  ],
+  "red_apk_sha256": "6922325b8ae3a21d57e5a9b36417aef74c0eab4b6f2e3307e1c567fe4065704c",
+  "cloud_sql_smoke": "passed; synthetic JWT claims; fixtures rolled back",
+  "real_user_auth": "pending owner account"
+}

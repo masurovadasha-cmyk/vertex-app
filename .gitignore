@@ -22,7 +22,7 @@ node_modules/
 .dev.vars
 .dev.vars.*
 vision/.data/
-vision/.build/
+.build/
 
 # Built phone installer served alongside the web release
 vertex/dist/*.apk
