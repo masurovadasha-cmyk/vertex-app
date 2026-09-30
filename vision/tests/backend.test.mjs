@@ -28,6 +28,15 @@ test('bad JWT is rejected by Auth, no RPC runs',async()=>{
   let calls=0;const response=await handle(request('/api/commands',{method:'POST'}),env,async()=>{calls++;return Response.json({error:'invalid'},{status:401});});
   assert.equal(response.status,401);assert.equal(calls,1);
 });
+
+test('upstream redirects never forward bearer tokens or count as successful Auth',async()=>{
+  let calls=0;
+  const response=await handle(request('/api/orders?tenant_id='+uid),env,async(url,options)=>{
+    calls++;assert.equal(options.redirect,'manual');
+    return new Response(null,{status:302,headers:{location:'https://different-project.example/user'}});
+  });
+  assert.equal(response.status,503);assert.equal(calls,1);
+});
 test('SQL conflict and denied access map without leaking database details',async()=>{
   for(const [code,status] of [['40001',409],['23505',409],['42501',403],['22023',400],['XX000',503]]){
     const r=await handle(request('/api/commands',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}),env,async url=>

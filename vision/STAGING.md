@@ -29,6 +29,26 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
 
 ## Cloud staging
 
+### Installed staging, 2026-09-30
+
+- Supabase project: `cqtmunppcyjdkhsnkvfh` (`vertex-vision-staging`, Sydney).
+- Worker: https://vertex-vision-staging.masurovadasha.workers.dev
+- Migrations 0001–0005 were installed atomically through SQL Editor, with normalized
+  SHA-256 receipts in `vision_private.schema_migrations` (not the Supabase CLI ledger).
+- The Worker has the pinned project URL/ref and a publishable key only.
+- `node vision/tools/build-staging-smoke.mjs` generates owner-only SQL in
+  `vision/.build/staging-smoke.sql`. Run it in SQL Editor: it refuses existing
+  fixture IDs and rolls back all fixtures. Golden Flow, RLS, retries, optimistic
+  version conflicts, audit and outbox passed on the cloud database.
+- This SQL test simulates gateway JWT claims; it does **not** verify real Auth
+  login, email delivery, six real identities, or concurrent cloud sessions.
+- Real-user onboarding and authenticated end-to-end staging acceptance remain
+  pending. Public UI remains a preview; no production cutover is authorized.
+
+Workerd rejects `redirect: 'error'` in the installed runtime despite that value
+appearing in some API references. Upstream fetch uses `manual` and rejects 3xx
+without following them. `worker-runtime.test.mjs` guards this with real workerd.
+
 The public preview serves only `vision/public` pages, the reviewed Views stylesheet
 and icon, release metadata and a fixed Android-download redirect. Local profile
 selection, local commands and development database files are never bundled.

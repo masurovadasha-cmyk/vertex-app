@@ -21,7 +21,13 @@ export async function handle(request,env,fetcher=fetch) {
   const authorization=request.headers.get('authorization');
   if(!authorization?.match(/^Bearer [A-Za-z0-9_.-]+$/) || authorization.length>8192)return json({error:'unauthorized'},401);
   const headers={apikey:env.SUPABASE_PUBLISHABLE_KEY,authorization,'content-type':'application/json'};
-  const upstream=(path,options={})=>fetcher(env.SUPABASE_URL+path,{...options,headers,redirect:'error',signal:AbortSignal.timeout(10000)});
+  const upstream=async(path,options={})=>{
+    // Workerd supports manual/follow, not redirect:error. Never forward a user's
+    // bearer token to a redirect target, including a different Supabase project.
+    const response=await fetcher(env.SUPABASE_URL+path,{...options,headers,redirect:'manual',signal:AbortSignal.timeout(10000)});
+    if(response.status>=300 && response.status<400){await response.body?.cancel();throw new Error('upstream_redirect');}
+    return response;
+  };
   try{
     const identity=await upstream('/auth/v1/user');
     if(!identity.ok)return json({error:identity.status>=500?'auth_unavailable':'unauthorized'},identity.status>=500?503:401);
