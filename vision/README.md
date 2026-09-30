@@ -112,3 +112,19 @@ level, critical Views tables/RPCs, RLS and the ACTIVE Views release state.
 
 The readiness probe returns no tenant or customer data and does not require a service-role
 credential. Authenticated end-to-end workflows remain a separate staging gate.
+
+
+## Real staging Auth E2E
+
+The next release gate is implemented as
+`.github/workflows/vision-cloud-e2e.yml`. It is manual and restricted to the GitHub
+`staging` environment because it uses a dedicated Supabase staging database, synthetic
+Auth credentials and Cloudflare staging deployment credentials.
+
+`vision/staging/provision.mjs` applies checksum-tracked migrations, signs in six distinct
+synthetic Supabase Auth identities and maps their verified UUIDs to VISION roles.
+`vision/staging/cloud-e2e.mjs` then runs the complete Views workflow through the deployed
+staging Worker and separately checks Supabase RLS using real bearer tokens.
+
+The repository records this gate as **required but not yet verified**. Production approval
+does not change until that real cloud run succeeds and its sanitized evidence is reviewed.
