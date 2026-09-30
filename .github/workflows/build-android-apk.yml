@@ -85,7 +85,7 @@ jobs:
           Path('release-apk/apk-assets.txt').write_text('PASS: every embedded web asset matches the generated, synchronization-checked source.\nNative Android runtime is not tested by this job.\n')
           PY
           cp "$APK" release-apk/Vertex-Vision-1.16-rc1-code20.apk
-          (cd release-apk && sha256sum Vertex-Vision-1.15-demo-code19.apk > SHA256SUMS.txt)
+          (cd release-apk && sha256sum Vertex-Vision-1.16-rc1-code20.apk > SHA256SUMS.txt)
           git rev-parse HEAD > release-apk/source-commit.txt
       - uses: actions/upload-artifact@v4
         with:
