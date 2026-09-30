@@ -31,4 +31,5 @@ jobs:
           test -f vision/database/migrations/0001_vision_foundation.sql
           test -f vision/contracts/events-v1.json
           test -f vision/module-sdk/module-contract-v1.json
-          ! grep -RniE 'password[[:space:]]*=|secret[[:space:]]*=|door.?code|passport' vision/database/seeds
+          node vision/tools/check-seeds.cjs
+

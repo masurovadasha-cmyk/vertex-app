@@ -12,4 +12,9 @@ test('RLS enabled on sensitive foundation tables',()=>['vision_users','vision_me
 test('event contract is versioned and correlated',()=>Object.values(events.events).forEach(e=>{assert.ok(e.required.includes('event_id'));assert.ok(e.required.includes('correlation_id'));assert.ok(e.required.includes('tenant_id'))}));
 test('module SDK requires boundaries',()=>['id','version','permissions','services','events','workflows'].forEach(x=>assert.ok(sdk.required.includes(x))));
 test('Views and Cleaning are independent modules',()=>{assert.equal(views.id,'views');assert.equal(cleaning.id,'cleaning');assert.ok(!views.dependencies?.includes('cleaning'));assert.ok(cleaning.permissions.every(x=>x.startsWith('cleaning.')))});
-test('seed contains no obvious credentials or door codes',()=>{const seed=fs.readFileSync('vision/database/seeds/0001_vertex_group_demo.sql','utf8');assert.doesNotMatch(seed,/(password|secret|door.?code|passport)\\s*[:=]|[A-Z0-9._%+-]+@(gmail|mail|yahoo)\\./i)});
+const {containsSensitiveValue}=require('../tools/check-seeds.cjs');
+test('seed has no obvious sensitive values',()=>assert.equal(containsSensitiveValue(fs.readFileSync('vision/database/seeds/0001_vertex_group_demo.sql','utf8')),false));
+test('seed guard permits safety comments',()=>assert.equal(containsSensitiveValue('-- no passwords, secrets, door codes or passport data'),false));
+test('seed guard rejects assigned values including comments',()=>{
+  for(const value of ['password = "example"','secret: example','door_code = 1234','passport: example','-- secret = example','"password": "example"','demo@gmail.com']) assert.equal(containsSensitiveValue(value),true);
+});
