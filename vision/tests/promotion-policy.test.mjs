@@ -27,12 +27,18 @@ test('candidate release flags stay false while promotion evidence is evaluated e
 
 test('promotion policy forbids deployment side effects and requires same-source evidence',()=>{
   const policy=JSON.parse(fs.readFileSync('vision/production/promotion-policy.json','utf8'));
-  assert.equal(policy.version,'0.2');
+  assert.equal(policy.version,'0.3');
   assert.equal(policy.mode,'evidence-only-no-deploy');
   assert.equal(policy.productionMutationAllowed,false);
   assert.equal(policy.candidateSourceCommitRequired,true);
   assert.equal(policy.externalOwnerApprovalRequired,true);
   assert.equal(policy.successStatus,'EVIDENCE_PASS');
+  assert.equal(policy.trustedController.requiredRef,'refs/heads/master');
+  assert.equal(policy.trustedController.policySource,'trusted-controller-checkout');
+  assert.equal(policy.trustedController.candidateSource,'separate-immutable-checkout');
+  assert.equal(policy.trustedController.validateEvidenceWorkflowMetadata,true);
+  assert.equal(policy.trustedController.pinFirstPartyActionsByCommit,true);
+  assert.equal(policy.rules.rc2Safety.backupPrincipalPolicyVerified,true);
   assert.deepEqual(policy.requiredEvidence.map(x=>x.id),[
     'integrated-assembly','rc2-safety','real-staging-auth-e2e','production-backup-restore'
   ]);
