@@ -30,5 +30,34 @@
     "engineers_database_adapter",
     "staging_e2e",
     "explicit_owner_approval"
-  ]
+  ],
+  "verification": {
+    "status": "registration_compatible",
+    "source_commit": "32383ea64df9d325c1acbf0822fe54c0a2b54b01",
+    "github_actions_run_id": 36777281134,
+    "standalone_engineers": {
+      "tests": 14,
+      "pass": 14,
+      "fail": 0
+    },
+    "integration_contract": {
+      "tests": 5,
+      "pass": 5,
+      "fail": 0
+    },
+    "full_vision": {
+      "tests": 88,
+      "pass": 87,
+      "fail": 0,
+      "skipped": 1
+    },
+    "postgres_isolation": {
+      "tests": 12,
+      "pass": 12,
+      "fail": 0
+    },
+    "root_release_check": "passed",
+    "cloudflare_dry_run": "passed"
+  },
+  "next_gate": "real_cloud_staging_identity_database_e2e"
 }
