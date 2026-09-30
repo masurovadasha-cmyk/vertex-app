@@ -10,6 +10,8 @@ const json=p=>JSON.parse(read(p));
 const exists=p=>fs.existsSync(path.join(root,p));
 const assembly=json('vision/assembly/manifest.json');
 const release=json(assembly.releaseManifest);
+const safety=json('vision/production/safety-manifest.json');
+const rollback=json('vision/production/rollback-plan.json');
 const core=require(path.join(root,'vision/platform/registry.cjs'));
 const prod=json('wrangler.jsonc');
 const staging=json('vision/wrangler.jsonc');
@@ -72,6 +74,13 @@ for(const required of [
   'vision/staging/provision.mjs',
   'vision/staging/cloud-e2e.mjs',
   '.github/workflows/vision-cloud-e2e.yml',
+  '.github/workflows/vision-rc2-safety.yml',
+  'vision/production/safety-manifest.json',
+  'vision/production/rollback-plan.json',
+  'vision/production/check-migration-safety.mjs',
+  'vision/production/preflight.mjs',
+  'vision/production/seed-restore-fixture.mjs',
+  'vision/production/verify-restore.mjs',
   'vision/modules/views/manifest.json',
   'docs/architecture/TARGET-ARCHITECTURE-1.0.md'
 ]) assert.ok(exists(required),'missing assembly component '+required);
@@ -108,14 +117,24 @@ assert.equal(release.runtimeReadiness.rpc,'public.vision_runtime_readiness()');
 assert.equal(release.eventReliability.deliveryModel,'at-least-once');
 assert.equal(release.eventReliability.deduplication,'tenant-consumer-event-id');
 assert.equal(assembly.reliability.globalExactlyOnce,false);
-assert.equal(release.eventReliability.deliveryModel,'at-least-once');
-assert.equal(release.eventReliability.deduplication,'tenant-consumer-event-id');
-assert.equal(assembly.reliability.globalExactlyOnce,false);
+assert.equal(assembly.productionSafety.productionApproved,false);
+assert.equal(release.productionSafety.productionApproved,false);
+assert.equal(safety.productionApproved,false);
+assert.equal(safety.productionDeployAllowed,false);
+assert.equal(safety.databasePolicy.downMigrations,false);
+assert.equal(rollback.databaseRollback.automaticDownMigrations,false);
+assert.equal(rollback.approval.explicitOwnerApprovalRequired,true);
+
+const adrDir=path.join(root,'docs/architecture');
+const adrFiles=fs.readdirSync(adrDir).filter(name=>/^ADR-\d{3}-.+\.md$/.test(name));
+const adrNumbers=adrFiles.map(name=>name.slice(4,7));
+assert.equal(new Set(adrNumbers).size,adrNumbers.length,'ADR numbers must be unique');
 
 const rootPkg=json('package.json');
 assert.ok(rootPkg.scripts?.['check:vision-assembly']);
 assert.ok(rootPkg.scripts?.['build:vision']);
 assert.ok(rootPkg.scripts?.['test:vision']);
+assert.ok(rootPkg.scripts?.['check:production-safety']);
 
 console.log(JSON.stringify({
   status:'PASS',
