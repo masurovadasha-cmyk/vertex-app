@@ -3,7 +3,7 @@
   "release": "0.1-RC1",
   "platformVersion": "1.16-rc1",
   "api": "v1",
-  "databaseMigration": "0009_application_kernel.sql",
+  "databaseMigration": "0010_runtime_readiness.sql",
   "activeModules": [
     "views"
   ],
@@ -65,8 +65,8 @@
     "sessionPolicy": "server-authoritative-context-from-verified-jwt",
     "cloudStagingVerified": false
   },
-  "architectureVersion": "1.4",
-  "technicalStage": "response-contract-trace-0.1",
+  "architectureVersion": "1.5",
+  "technicalStage": "runtime-readiness-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -106,5 +106,20 @@
       "X-Request-ID",
       "X-Correlation-ID"
     ]
+  },
+  "runtimeReadiness": {
+    "status": "implemented-in-branch",
+    "endpoint": "/readyz",
+    "rpc": "public.vision_runtime_readiness()",
+    "authRole": "anon-via-publishable-key",
+    "checks": [
+      "migration-level",
+      "required-tables",
+      "required-rpcs",
+      "rls",
+      "views-release-active"
+    ],
+    "serviceRoleRequired": false,
+    "cloudVerified": false
   }
 }
