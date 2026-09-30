@@ -1,0 +1,71 @@
+name: VISION Next Stage Verification
+on:
+  push:
+    branches: [vision-next-stage-20260930]
+permissions:
+  contents: read
+concurrency:
+  group: vision-next-stage-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: vision_test_next
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ['5432:5432']
+        options: --health-cmd 'pg_isready -U postgres' --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Export exact committed source, excluding keys and font files
+        run: |
+          mkdir -p artifacts/next-stage
+          python - <<'PY'
+          import subprocess, zipfile
+          from pathlib import Path
+          excluded={'.ttf','.otf','.woff','.woff2','.ttc','.eot','.pem','.key','.jks','.keystore','.apk','.zip'}
+          with zipfile.ZipFile('artifacts/next-stage/source.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in subprocess.check_output(['git','ls-files','-z']).decode().split('\0'):
+                  p=Path(name)
+                  if name and p.is_file() and p.suffix.lower() not in excluded and p.name not in {'.env','.dev.vars','local.properties'}:
+                      z.write(p)
+          Path('artifacts/next-stage/source-sha.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD']).decode())
+          PY
+      - name: Install pinned dependencies
+        run: |
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+      - name: Existing application and VISION tests
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee artifacts/next-stage/tests.txt
+      - name: PostgreSQL integration and competing transactions
+        run: |
+          set -o pipefail
+          node --test vision/tests/database.test.mjs 2>&1 | tee artifacts/next-stage/postgresql.txt
+          if test -f vision/tests/next-stage.test.mjs; then
+            node --test vision/tests/next-stage.test.mjs 2>&1 | tee artifacts/next-stage/postgresql-next.txt
+          fi
+        env:
+          VISION_TEST_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_test_next
+      - name: Compile staging Worker without deployment
+        run: |
+          set -o pipefail
+          npx wrangler deploy --config vision/wrangler.jsonc --dry-run --outdir artifacts/next-stage/worker 2>&1 | tee artifacts/next-stage/worker-build.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vision-next-stage-${{ github.sha }}
+          path: artifacts/next-stage/
+          retention-days: 14
+          if-no-files-found: error
