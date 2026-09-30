@@ -35,10 +35,10 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: Install without deployment credentials
@@ -129,7 +129,7 @@ jobs:
           echo "## VERTEX VISION staging" >> "$GITHUB_STEP_SUMMARY"
           echo "Source: $GITHUB_SHA. Production/master untouched. No cloud SQL migration or Auth E2E is performed by this workflow." >> "$GITHUB_STEP_SUMMARY"
           if test -f artifacts/staging/deployment.json; then cat artifacts/staging/deployment.json >> "$GITHUB_STEP_SUMMARY"; fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: vision-staging-result-${{ github.sha }}
