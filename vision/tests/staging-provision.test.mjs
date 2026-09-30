@@ -29,6 +29,8 @@ test('synthetic staging identities keep manager, cleaner, quality and guest boun
 
   assert.equal(manager.capabilities.create_booking,true);
   assert.equal(manager.capabilities.manage_booking,true);
+  assert.equal(manager.capabilities.execute_cleaning,false);
+  assert.equal(manager.capabilities.verify_cleaning,false);
   assert.equal(cleaner.capabilities.execute_cleaning,true);
   assert.equal(cleaner.capabilities.verify_cleaning,false);
   assert.equal(cleaner.permissions.includes('views.booking.manage'),false);
