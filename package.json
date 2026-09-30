@@ -17,7 +17,8 @@
     "test:server": "node --test concierge-server/atomic-store.test.mjs concierge-server/test.mjs",
     "test:vision": "node --test vision/tests/*.test.cjs vision/tests/*.test.mjs",
     "test:journey": "node journey.test.cjs && node journey-budget.test.cjs && node journey-care.test.cjs && node vertex/tools/journey-integration.test.cjs",
-    "check:vision-assembly": "node vision/tools/verify-assembly.mjs"
+    "check:vision-assembly": "node vision/tools/verify-assembly.mjs",
+    "assemble:vision": "npm run build:vision && npm run check:vision-assembly && node vision/tools/assemble.mjs"
   },
   "devDependencies": {
     "wrangler": "4.143.0"
