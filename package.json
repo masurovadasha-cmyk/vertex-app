@@ -1,6 +1,6 @@
 {
   "name": "vertex-vision-platform",
-  "version": "1.15.0",
+  "version": "1.16.0-rc.1",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
