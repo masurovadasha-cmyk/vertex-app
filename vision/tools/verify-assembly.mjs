@@ -59,6 +59,7 @@ for(const required of [
   'vision/backend/worker.mjs',
   'vision/backend/kernel.mjs',
   'vision/modules/views/command-contract.mjs',
+  'vision/modules/views/response-contract.mjs',
   'vision/database/migrations/0007_views_operations.sql',
   'vision/database/migrations/0008_views_integrity.sql',
   'vision/database/migrations/0009_application_kernel.sql',
@@ -82,6 +83,9 @@ assert.equal(release.applicationKernel.contextEndpoint,'/api/v1/context');
 assert.equal(assembly.kernel.commandContract,'vision/modules/views/command-contract.mjs');
 assert.deepEqual(assembly.kernel.commandValidationLayers,['api-contract','postgresql-domain']);
 assert.equal(release.applicationKernel.commandSchemaVersion,'v1');
+assert.equal(assembly.kernel.responseContract,'vision/modules/views/response-contract.mjs');
+assert.equal(assembly.kernel.responseProjection,'allowlisted-command-dto');
+assert.deepEqual(assembly.kernel.traceHeaders,['X-Request-ID','X-Correlation-ID']);
 assert.equal(release.viewsUI.sessionPolicy,'server-authoritative-context-from-verified-jwt');
 
 const rootPkg=json('package.json');
