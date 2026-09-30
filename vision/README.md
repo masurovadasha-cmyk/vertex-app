@@ -58,3 +58,22 @@ active reservations while allowing adjacent stays.
 
 These APIs remain staging-only until the dedicated Supabase staging project and real Auth
 identities are configured and verified.
+
+
+## Integrated application assembly
+
+Use the canonical whole-product build:
+
+```sh
+npm run assemble:vision
+```
+
+It rebuilds the VISION web payload, synchronizes Android assets, verifies the architecture
+contract and writes `artifacts/assembly/integrated-assembly.json` with the source commit
+and SHA256 checksums for the release-critical files and all ordered database migrations.
+
+The machine-readable source of truth is `vision/assembly/manifest.json`. The dedicated
+`VERTEX VISION Integrated Assembly` workflow additionally runs the complete regression
+suite, PostgreSQL/RLS/integrity tests, desktop/mobile browser verification and dry-runs
+both Cloudflare configurations. A green assembly is required but does not authorize a
+production merge, production deployment or production database migration.
