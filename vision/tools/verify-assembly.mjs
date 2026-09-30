@@ -37,6 +37,8 @@ assert.equal(staging.name,assembly.runtimes.stagingWorker.name);
 assert.equal(prod.name,assembly.runtimes.productionWorker.name);
 assert.notEqual(staging.name,prod.name);
 assert.equal(staging.vars?.VISION_ENV,'staging');
+assert.ok(staging.assets?.run_worker_first?.includes('/readyz'));
+assert.ok(prod.assets?.run_worker_first?.includes('/readyz'));
 assert.equal(assembly.runtimes.productionWorker.approved,false);
 assert.equal(release.productionApproved,false);
 assert.equal(release.productionReady,false);
