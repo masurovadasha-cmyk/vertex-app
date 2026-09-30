@@ -11,4 +11,4 @@ const store=fs.readFileSync(path.join(root,"ui/app/prototype-store.js"),"utf8");
 test("prototype UI loads isolated runtime assets",()=>{assert.match(html,/prototype\.css/);assert.match(app,/prototypeSnapshot/);assert.match(app,/handlePrototypeAction/);});
 test("prototype supports project equipment and service actions",()=>{for(const action of ["project","equipment","service","reset-demo"])assert.match(proto,new RegExp(action));assert.match(proto,/advance:/);});
 test("prototype persistence is browser-local and does not call production",()=>{assert.match(store,/localStorage/);assert.doesNotMatch(store,/fetch\(/);assert.doesNotMatch(store,/workers\.dev|supabase|production/i);});
-test("prototype is visibly labeled demo",()=>{assert.match(app,/WORKING PROTOTYPE/);assert.match(proto,/DEMO \\/ LOCAL ONLY/);});
+test("prototype is visibly labeled demo",()=>{assert.match(app,/WORKING PROTOTYPE/);assert.ok(proto.includes("DEMO / LOCAL ONLY"));});
