@@ -46,6 +46,15 @@ def run(live=False):
                         def serve(route):
                             parsed=urlparse(route.request.url)
                             if parsed.hostname!='vision.test':route.abort();return
+                            if parsed.path.startswith('/api/v1/views/'):
+                                if parsed.path.endswith('/units'):
+                                    route.fulfill(status=200,content_type='application/json',body=json.dumps([{'id':'22222222-2222-4222-8222-222222222222','unit_number':'TEST-235','unit_type':'apartment','status':'READY'}]));return
+                                if parsed.path.endswith('/bookings'):
+                                    route.fulfill(status=200,content_type='application/json',body=json.dumps([{'id':'33333333-3333-4333-8333-333333333333','unit_id':'22222222-2222-4222-8222-222222222222','public_no':'VB-TEST','check_in':'2026-10-10','check_out':'2026-10-12','status':'CONFIRMED','currency':'USD','total':1200,'version':2,'created_at':'2026-09-30T12:00:00Z'}]));return
+                                if parsed.path.endswith('/cleaning'):
+                                    route.fulfill(status=200,content_type='application/json',body='[]');return
+                                if parsed.path.endswith('/commands'):
+                                    route.fulfill(status=200,content_type='application/json',body=json.dumps({'ok':True}));return
                             file=(SITE/unquote(parsed.path.lstrip('/') or 'index.html')).resolve()
                             if not file.is_relative_to(SITE.resolve()) or not file.is_file():route.fulfill(status=404,body='Not found');return
                             kind='application/javascript' if file.suffix=='.js' else mimetypes.guess_type(str(file))[0] or 'application/octet-stream'
@@ -72,6 +81,17 @@ def run(live=False):
                         check(str(width)+': '+module+' dialog fits',page.locator('#visionModuleDialog').evaluate('e=>e.scrollWidth<=e.clientWidth+1'))
                         page.keyboard.press('Escape')
                     page.evaluate("document.querySelectorAll('dialog[open]').forEach(d=>d.close())")
+                    check(str(width)+': Views operations adapter is launchable',page.evaluate("VertexVision.navigate('views','operations')"))
+                    check(str(width)+': disconnected operations state is explicit',page.locator('#visionViewsOperations .vvo-connect').is_visible())
+                    page.keyboard.press('Escape')
+                    if not live:
+                        page.evaluate("VertexVisionViews.configure({tenantId:'11111111-1111-4111-8111-111111111111',token:'test.jwt.token',permissions:['views.operations.read','views.booking.manage','views.cleaning.execute','views.cleaning.verify']})")
+                        check(str(width)+': configured Views operations opens',page.evaluate("VertexVision.navigate('views','operations')"))
+                        page.wait_for_selector('#visionViewsOperations .vvo-kpis')
+                        check(str(width)+': real-data workspace renders mocked unit',page.locator('#visionViewsOperations').get_by_text('TEST-235').count()>0)
+                        check(str(width)+': operations status reports one unit',page.evaluate("VertexVisionViews.status().counts.units===1"))
+                        page.keyboard.press('Escape')
+                        page.evaluate("VertexVisionViews.clearSession()")
                     check(str(width)+': Views adapter remains launchable',page.evaluate("VertexVision.navigate('views','host')"))
                     check(str(width)+': existing Views UI opens',page.locator('.vh-shell').first.is_visible())
                     for module,action in [('taxi','taxi'),('travel','packages'),('cleaning','cleaning-request'),('concierge','guest-guide')]:
