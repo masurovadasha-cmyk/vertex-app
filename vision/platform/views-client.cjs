@@ -209,7 +209,7 @@
         data[name].push(...result.rows.filter(row => { if (ids.has(row.id)) return false; ids.add(row.id); return true; }));
         pages[name].nextCursor = result.nextCursor;
       } catch (e) { if (current(ticket) && revision === generation) { if(e.status===401||e.status===403)reset(false); setError(e); } }
-      finally { if (current(ticket)) { loadingMore.delete(name); notify(); } }
+      finally { if (current(ticket)) { loadingMore.delete(name); notify(); } else if (!context) notify(); }
     }
 
     function execute(type, fields = {}) {
