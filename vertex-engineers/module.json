@@ -2,7 +2,7 @@
   "schema_version": 1,
   "id": "engineers",
   "name": "VERTEX Engineers",
-  "version": "0.3.0-rc.1",
+  "version": "0.2.0",
   "core": ">=0.1",
   "integration_mode": "detached_until_approved",
   "vision_mount": "/engineers",
