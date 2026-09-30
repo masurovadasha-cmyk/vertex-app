@@ -13,3 +13,13 @@ test('anonymous requests cannot read the snapshot',async()=>assert.equal((await 
 test('RLS denial is returned as a controlled 403',async()=>{const r=await handle(req(),env,async url=>url.includes('/auth/')?Response.json({id:user}):Response.json({code:'42501',message:'private details'},{status:403}));assert.equal(r.status,403);assert.deepEqual(await r.json(),{error:'forbidden'});});
 test('Auth rate limits and malformed upstream bodies fail closed',async()=>{const r=await handle(req(),env,async()=>Response.json({},{status:429}));assert.equal(r.status,503);const bad=await handle(req(),env,async()=>new Response('{bad',{headers:{'content-type':'application/json'}}));assert.equal(bad.status,503);});
 test('a successful RPC cannot return another tenant snapshot',async()=>{const r=await handle(req(),env,async url=>Response.json(url.includes('/auth/')?{id:user}:{contract:'views-operations-ui/v1',tenant_id:randomUUID(),organization_id:org}));assert.equal(r.status,503);});
+
+test('standalone VISION Hub serves only allowlisted root assets and canonical registry',async()=>{
+ let calls=0;const assets={fetch:async request=>{calls++;return new Response('<html>vision-root</html>',{headers:{'content-type':'text/html'}});}};
+ const root=await handle(req('/',{headers:{}}),{...env,OPERATIONS_UI:assets});assert.equal(root.status,200);assert.equal(calls,1);
+ assert.equal((await handle(req('/secret.txt',{headers:{}}),{...env,OPERATIONS_UI:assets})).status,404);
+ const modules=await handle(req('/api/vision/v1/modules',{headers:{}}),env);assert.equal(modules.status,200);const body=await modules.json();
+ assert.equal(body.platform,'vertex-vision');assert.equal(body.activeModule,'views');assert.equal(body.modules.length,19);
+ assert.deepEqual(body.modules.filter(m=>m.status==='active').map(m=>m.id),['views']);assert.ok(body.modules.filter(m=>m.id!=='views').every(m=>m.status==='coming-soon'&&m.route===null));
+});
+test('Views route redirects into the assembled Operations workspace',async()=>{const r=await handle(req('/views',{headers:{}}),env);assert.equal(r.status,308);assert.equal(r.headers.get('location'),'/operations/');});
