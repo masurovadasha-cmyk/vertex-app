@@ -2,7 +2,7 @@ import {handle as baseHandle} from './worker.mjs';
 import {handleAuth} from './auth.mjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const ASSETS=new Set(['/operations/','/operations/index.html','/operations/app.mjs','/operations/client.mjs','/operations/styles.css']);
+const ASSETS=new Set(['/operations/','/operations/index.html','/operations/app.mjs','/operations/auth.mjs','/operations/client.mjs','/operations/styles.css']);
 const security={
  'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer',
  'x-frame-options':'DENY','cross-origin-resource-policy':'same-origin',
