@@ -9,7 +9,7 @@
   const money=(value,currency='USD')=>new Intl.NumberFormat(document.documentElement.lang==='en'?'en-US':'ru-RU',{style:'currency',currency,maximumFractionDigits:2}).format(Number(value)||0);
   const state={tab:'dashboard',session:null,loading:false,error:null,data:{bookings:[],units:[],cleaning:[]},dialog:null,root:null,lastFocus:null};
 
-  function configured(){return !!(state.session&&UUID.test(state.session.tenantId)&&typeof state.session.token==='string'&&state.session.token.length>10);}
+  function configured(){return !!(state.session&&UUID.test(state.session.tenantId)&&UUID.test(state.session.organizationId)&&typeof state.session.token==='string'&&state.session.token.length>10);}
   function can(permission){return !!state.session?.permissions?.includes(permission);}
   function errorText(code,status){
     const map={
@@ -164,13 +164,19 @@
       '<nav class="vvo-tabs">'+tabs.map(([id,label])=>'<button data-vvo-tab="'+id+'" aria-current="'+(state.tab===id?'page':'false')+'">'+E(label)+'</button>').join('')+'</nav>'+
       '<main class="vvo-main">'+content()+'</main>';
   }
-  function configure(session){
-    const tenantId=session?.tenantId||'';
-    const token=session?.token||'';
-    if(!UUID.test(tenantId)||typeof token!=='string'||token.length<=10)throw new Error('invalid_views_session');
-    state.session={tenantId,token,permissions:Array.isArray(session.permissions)?[...new Set(session.permissions)]:[]};
-    if(state.dialog?.open)refresh();
-    return {configured:true,tenantId,permissions:[...state.session.permissions]};
+  async function configure(session){
+    const tenantId=session?.tenantId||'',organizationId=session?.organizationId||'',token=session?.token||'';
+    if(!UUID.test(tenantId)||!UUID.test(organizationId)||typeof token!=='string'||token.length<=10)throw new Error('invalid_views_session');
+    state.session={tenantId,organizationId,token,permissions:[],roles:[],capabilities:{}};
+    try{
+      const context=await api('/api/v1/context?tenant_id='+encodeURIComponent(tenantId)+'&organization_id='+encodeURIComponent(organizationId));
+      if(context.tenantId!==tenantId||context.organizationId!==organizationId||context.module!=='views'||context.moduleEnabled!==true)throw Object.assign(new Error('context_mismatch'),{code:'forbidden',status:403});
+      state.session.permissions=Array.isArray(context.permissions)?[...context.permissions]:[];
+      state.session.roles=Array.isArray(context.roles)?[...context.roles]:[];
+      state.session.capabilities=context.capabilities&&typeof context.capabilities==='object'?{...context.capabilities}:{};
+      if(state.dialog?.open)refresh();
+      return {configured:true,tenantId,organizationId,permissions:[...state.session.permissions],roles:[...state.session.roles],capabilities:{...state.session.capabilities}};
+    }catch(error){state.session=null;state.data={bookings:[],units:[],cleaning:[]};state.error=error;if(state.dialog?.open)render();throw error;}
   }
   function clearSession(){state.session=null;state.data={bookings:[],units:[],cleaning:[]};state.error=null;if(state.dialog?.open)render();}
   function open(tab='dashboard'){
@@ -178,6 +184,6 @@
     render();if(!state.dialog.open)state.dialog.showModal();if(configured())refresh();
     return true;
   }
-  function status(){return {configured:configured(),tenantId:state.session?.tenantId||null,tab:state.tab,counts:{bookings:state.data.bookings.length,units:state.data.units.length,cleaning:state.data.cleaning.length}};}
+  function status(){return {configured:configured(),tenantId:state.session?.tenantId||null,organizationId:state.session?.organizationId||null,roles:[...(state.session?.roles||[])],permissions:[...(state.session?.permissions||[])],tab:state.tab,counts:{bookings:state.data.bookings.length,units:state.data.units.length,cleaning:state.data.cleaning.length}};}
   root.VertexVisionViews=Object.freeze({open,refresh,configure,clearSession,status});
 })(window);
