@@ -29,8 +29,11 @@ for (const required of ["project","engineering_asset","elevator_asset","hvac_ass
 
 const design = readJson("ui/design-system.json");
 assert.equal(design.palette.sand, "#D5B98C");
-assert.ok(design.primary_screens.some((x) => x.id === "elevator-center"));
-assert.ok(design.primary_screens.some((x) => x.id === "hvac-studio"));
+assert.deepEqual(design.navigation, ["Dashboard","Projects","Equipment","Service","Team","Documents"]);
+assert.equal(design.information_architecture.equipment.includes("elevators"), true);
+assert.equal(design.information_architecture.equipment.includes("ventilation"), true);
+assert.equal(design.information_architecture.equipment.includes("heating"), true);
+assert.equal(design.information_architecture.equipment.includes("air conditioning"), true);
 
 const api = readJson("contracts/api-v1.openapi.json");
 assert.equal(api.info.version, manifest.version);
