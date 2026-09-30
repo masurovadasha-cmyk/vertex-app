@@ -29,7 +29,7 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
 1. Create a dedicated free Supabase project `vertex-vision-staging`. Enable Data
    API and automatic RLS, disable automatic table grants. Keep the database
    password in the owner's password manager.
-2. Apply migrations `0001` through `0009` in order with the trusted database
+2. Apply migrations `0001` through `0010` in order with the trusted database
    owner (Supabase SQL editor or a secure migration job). Do not rerun applied
    files manually. `backend/migrate.mjs` provides checksum-tracked application
    for PostgreSQL adapters exposing `query` and `exec`.
@@ -173,3 +173,52 @@ When Supabase staging is configured, `/readyz` must return HTTP 200 with
 `ready=true`, `latestMigration=0010_runtime_readiness.sql`, all table/function/RLS
 checks true, and `viewsReleaseActive=true`. A green health response alone is not
 sufficient for a staging release.
+
+
+## Real Supabase Staging + Auth E2E 0.1
+
+The real cloud gate is intentionally separate from ordinary PR CI and runs only through
+the GitHub Actions workflow **VERTEX VISION Real Staging Auth E2E**. It targets the
+GitHub Environment `staging` and may never use production credentials.
+
+Required staging environment variables:
+
+- `SUPABASE_STAGING_REF`
+- `VISION_STAGING_URL` = `https://vertex-vision-staging.masurovadasha.workers.dev/`
+
+Required staging secrets:
+
+- `SUPABASE_PUBLISHABLE_KEY`
+- `VISION_STAGING_DATABASE_URL` (must point to the same Supabase project and use
+  `sslmode=require` or `verify-full`)
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- six distinct synthetic Auth accounts:
+  - `VISION_E2E_GUEST_EMAIL/PASSWORD`
+  - `VISION_E2E_VIEWS_EMAIL/PASSWORD`
+  - `VISION_E2E_DISPATCHER_EMAIL/PASSWORD`
+  - `VISION_E2E_STAFF_EMAIL/PASSWORD`
+  - `VISION_E2E_QUALITY_EMAIL/PASSWORD`
+  - `VISION_E2E_AUDIT_EMAIL/PASSWORD`
+
+The workflow:
+
+1. validates all targets without printing secrets;
+2. runs the complete source/assembly test suite;
+3. applies checksum-tracked migrations through `0010_runtime_readiness.sql` to the
+   dedicated Supabase staging database;
+4. signs in the six synthetic accounts through genuine Supabase Auth and maps their real
+   Auth UUIDs into VISION RBAC;
+5. provisions a unique synthetic E2E apartment for that run;
+6. deploys only `vertex-vision-staging`;
+7. verifies `/health` and `/readyz`;
+8. executes the real Worker flow:
+   `guest denied → manager create/confirm/check-in/check-out → cleaner start/submit → quality verify`;
+9. checks idempotency, overlap protection and stale-version conflict;
+10. directly queries Supabase with guest and cleaner bearer tokens to prove RLS isolation;
+11. writes only sanitized evidence artifacts. Passwords, bearer tokens and the database
+    connection string are never written to artifacts.
+
+A green local/CI suite does **not** substitute for this cloud gate. Until a real run creates
+`cloud-e2e.json` with `status: passed`, `cloudStagingVerified` and
+`productionReady` remain false.
