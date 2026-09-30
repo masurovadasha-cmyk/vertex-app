@@ -4,9 +4,10 @@ import {createHash} from 'node:crypto';
 import pg from 'pg';
 
 const root=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
-const release=JSON.parse(fs.readFileSync(path.join(root,'vision/release/0.1-RC1.json'),'utf8'));
+const candidateRoot=process.env.VISION_CANDIDATE_ROOT?path.resolve(process.env.VISION_CANDIDATE_ROOT):root;
+const release=JSON.parse(fs.readFileSync(path.join(candidateRoot,'vision/release/0.1-RC1.json'),'utf8'));
 const safety=JSON.parse(fs.readFileSync(path.join(root,'vision/production/safety-manifest.json'),'utf8'));
-const migrationsDir=path.join(root,'vision/database/migrations');
+const migrationsDir=path.join(candidateRoot,'vision/database/migrations');
 const local=fs.readdirSync(migrationsDir)
   .filter(name=>/^\d{4}_.+\.sql$/.test(name)).sort()
   .map(name=>{
