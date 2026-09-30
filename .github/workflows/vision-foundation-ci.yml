@@ -1,0 +1,34 @@
+name: VERTEX VISION Foundation CI
+on:
+  push:
+    branches: ['vision-foundation-*']
+  pull_request:
+    branches: [master]
+    paths:
+      - 'vision/**'
+      - 'docs/architecture/**'
+      - 'package.json'
+      - '.github/workflows/vision-foundation-ci.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm install
+      - name: Existing Vertex plus VISION foundation tests
+        run: npm test
+      - name: Cloudflare compatibility dry-run
+        run: npm run check:deploy
+      - name: Foundation safety assertions
+        run: |
+          test -f vision/database/migrations/0001_vision_foundation.sql
+          test -f vision/contracts/events-v1.json
+          test -f vision/module-sdk/module-contract-v1.json
+          ! grep -RniE 'password[[:space:]]*=|secret[[:space:]]*=|door.?code|passport' vision/database/seeds
