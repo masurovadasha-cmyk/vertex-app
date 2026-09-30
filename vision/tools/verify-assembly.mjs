@@ -67,6 +67,11 @@ for(const required of [
   'vision/database/migrations/0008_views_integrity.sql',
   'vision/database/migrations/0009_application_kernel.sql',
   'vision/database/migrations/0010_runtime_readiness.sql',
+  'vision/staging/auth.mjs',
+  'vision/staging/provision.mjs',
+  'vision/staging/cloud-e2e.mjs',
+  '.github/workflows/vision-cloud-e2e.yml',
+  'vision/database/migrations/0010_runtime_readiness.sql',
   'vision/modules/views/manifest.json',
   'docs/architecture/TARGET-ARCHITECTURE-1.0.md'
 ]) assert.ok(exists(required),'missing assembly component '+required);
@@ -91,6 +96,12 @@ assert.equal(assembly.kernel.responseContract,'vision/modules/views/response-con
 assert.equal(assembly.kernel.responseProjection,'allowlisted-command-dto');
 assert.deepEqual(assembly.kernel.traceHeaders,['X-Request-ID','X-Correlation-ID']);
 assert.equal(release.viewsUI.sessionPolicy,'server-authoritative-context-from-verified-jwt');
+assert.equal(assembly.externalGates.realStagingAuthE2E.required,true);
+assert.equal(assembly.externalGates.realStagingAuthE2E.verified,false);
+assert.equal(assembly.externalGates.realStagingAuthE2E.productionChanged,false);
+assert.equal(release.realStagingE2E.cloudVerified,false);
+assert.equal(release.realStagingE2E.genuineSupabaseAuthRequired,true);
+assert.equal(release.realStagingE2E.directRLSVerification,true);
 assert.equal(assembly.readiness.endpoint,'/readyz');
 assert.equal(assembly.readiness.serviceRoleRequired,false);
 assert.equal(release.runtimeReadiness.rpc,'public.vision_runtime_readiness()');
