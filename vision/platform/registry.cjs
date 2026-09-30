@@ -27,10 +27,16 @@
     ['ventures','Vertex Ventures','capital','Стартапы, партнёрства и венчурное направление.','Startups, partnerships and venture development.','planned','planned',[]],
     ['training','Views Training Center','education','Обучение команды и стандарты качества.','Team training and service standards.','planned','planned',[]]
   ];
+  const icons=Object.freeze({
+    views:'🏨',managing:'🏢','real-estate':'🏠',engineers:'🏗️','aura-design':'🎨',
+    travel:'🧭',aviation:'✈️','rent-car':'🚘',taxi:'🚕',concierge:'🛎️',
+    cleaning:'🧹',laundry:'🧺',ditalia:'🍽️',market:'🛒',bar:'🍸',
+    technologies:'💻',investment:'📈',ventures:'🚀',training:'🎓'
+  });
   const modules=entries.map(([id,name,domain,ru,en,mode,backend,registeredActions])=>{
     const status=id==='views'?'active':'coming-soon';
     return {
-      id,name,domain,description:{ru,en},parent:'vertex-vision',core:'1.x',version:'0.2.0',
+      id,name,domain,icon:icons[id]||'◻',description:{ru,en},parent:'vertex-vision',core:'1.x',version:'0.2.0',
       dependencies:['vision-core'],status,mode,backend,cloudEnabled:false,
       actions:status==='active'?registeredActions:[],
       dataBoundary:{identity:'vision-core',organization:'vision-core',orders:'vision-core',tasks:'vision-core',audit:'vision-core',privateSchema:id.replaceAll('-','_')}
