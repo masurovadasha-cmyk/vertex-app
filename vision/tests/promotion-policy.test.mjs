@@ -67,4 +67,6 @@ test('manual promotion uses protected master as controller and separate immutabl
   assert.match(workflow,/Checkout immutable candidate separately[\s\S]*ref: \$\{\{ inputs\.candidate_sha \}\}[\s\S]*path: candidate/);
   assert.match(workflow,/VISION_PROMOTION_CANDIDATE_ROOT: candidate/);
   assert.match(workflow,/Verify evidence workflow identities before downloading artifacts/);
+  assert.match(workflow,/run\.event!=='workflow_dispatch'/);
+  assert.match(workflow,/run\.head_branch!=='master'/);
 });
