@@ -7,8 +7,10 @@ if(!url)throw new Error('VISION_TEST_DATABASE_URL required');
 const fixturePath=process.env.VISION_FIXTURE_FILE||process.argv[2];
 if(!fixturePath)throw new Error('VISION_FIXTURE_FILE required');
 const fixture=JSON.parse(fs.readFileSync(fixturePath,'utf8'));
-const release=JSON.parse(fs.readFileSync(new URL('../release/0.1-RC1.json',import.meta.url),'utf8'));
-const migrationDir=new URL('../database/migrations/',import.meta.url);
+const controllerRoot=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
+const candidateRoot=process.env.VISION_CANDIDATE_ROOT?path.resolve(process.env.VISION_CANDIDATE_ROOT):controllerRoot;
+const release=JSON.parse(fs.readFileSync(path.join(candidateRoot,'vision/release/0.1-RC1.json'),'utf8'));
+const migrationDir=path.join(candidateRoot,'vision/database/migrations');
 const expectedMigrationCount=fs.readdirSync(migrationDir).filter(name=>/^\d{4}_.+\.sql$/.test(name)).length;
 
 const client=new pg.Client({connectionString:url,application_name:'vertex-vision-rc2-restore-verify'});
