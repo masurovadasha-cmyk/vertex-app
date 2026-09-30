@@ -5,8 +5,8 @@ export class OperationsError extends Error {
 export const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function validDate(value){return /^\d{4}-\d{2}-\d{2}$/.test(value||'')&&Number.isFinite(Date.parse(value+'T00:00:00Z'))&&new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;}
 export function validateRange(from,to){if(!validDate(from)||!validDate(to)||to<=from||Date.parse(to)-Date.parse(from)>31*86400000)throw new OperationsError('invalid_date_range');}
-export function bookingActions(status,permissions){if(!permissions.includes('views.booking.manage'))return [];return ({PENDING:['confirm_booking','cancel_booking'],CONFIRMED:['check_in','cancel_booking'],CHECKED_IN:['check_out']})[status]||[];}
-export function cleaningActions(status,permissions){if(status==='INSPECTION')return permissions.includes('views.cleaning.verify')?['cleaning_verify']:[];if(!permissions.includes('views.cleaning.execute'))return [];return ({REQUIRED:['cleaning_start'],IN_PROGRESS:['cleaning_submit']})[status]||[];}
+export function bookingActions(status,permissions){if(typeof status!=='string'||!Array.isArray(permissions)||!permissions.includes('views.booking.manage'))return [];const commands={PENDING:['confirm_booking','cancel_booking'],CONFIRMED:['check_in','cancel_booking'],CHECKED_IN:['check_out']};return Object.hasOwn(commands,status)?commands[status]:[];}
+export function cleaningActions(status,permissions){if(typeof status!=='string'||!Array.isArray(permissions))return [];if(status==='INSPECTION')return permissions.includes('views.cleaning.verify')?['cleaning_verify']:[];if(!permissions.includes('views.cleaning.execute'))return [];const commands={REQUIRED:['cleaning_start'],IN_PROGRESS:['cleaning_submit']};return Object.hasOwn(commands,status)?commands[status]:[];}
 export function prepareCommand(type,record,scope,fields={},key=crypto.randomUUID()){
  if(!UUID.test(scope?.tenant)||!UUID.test(scope?.organization)||!UUID.test(key))throw new OperationsError('invalid_scope');
  const base={type,tenant_id:scope.tenant,organization_id:scope.organization,idempotency_key:key};
