@@ -1,6 +1,6 @@
 // Synthetic identities for loopback-only development. Never Auth credentials.
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
-export const demo={tenant_id:id(1),views_id:id(2),cleaning_id:id(3),customer_id:id(4),service_id:id(5),staff_id:id(13)};
+export const demo={tenant_id:id(1),views_id:id(2),cleaning_id:id(3),customer_id:id(4),service_id:id(5),staff_id:id(13),property_id:id(50),unit_id:id(51)};
 export const organizations=[
  {id:id(6),code:'vertex-vision',name:'Vertex Vision',kind:'GROUP'},
  {id:demo.views_id,code:'views',name:'Views Hotel & Apartments'},
@@ -19,7 +19,7 @@ export const organizations=[
 ];
 export const profiles=[
  {key:'guest',id:id(10),name:'VISION-GUEST',org:null,permissions:[]},
- {key:'views',id:id(11),name:'Views',org:demo.views_id,permissions:['views.order.read','views.order.create']},
+ {key:'views',id:id(11),name:'Views',org:demo.views_id,permissions:['views.order.read','views.order.create','views.operations.read','views.booking.create','views.booking.manage','views.cleaning.execute','views.cleaning.verify']},
  {key:'dispatcher',id:id(12),name:'Vertex Cleaning',org:demo.cleaning_id,permissions:['cleaning.order.read','cleaning.order.assign']},
  {key:'staff',id:id(13),name:'Cleaning Staff',org:demo.cleaning_id,permissions:['cleaning.task.read_assigned','cleaning.task.update_assigned']},
  {key:'quality',id:id(14),name:'Quality',org:demo.cleaning_id,permissions:['cleaning.quality.review']},
@@ -40,6 +40,8 @@ export async function provisionDemo(db, identities=Object.fromEntries(profiles.m
         [org.name,org.kind?null:id(6),demo.tenant_id,org.id]);
     }
     await insert('customers',{id:demo.customer_id,tenant_id:demo.tenant_id,display_name:'Synthetic VISION Guest'});
+    await insert('views_properties',{id:demo.property_id,tenant_id:demo.tenant_id,organization_id:demo.views_id,code:'u-tower-demo',name:'NRG U-Tower — Synthetic'});
+    await insert('views_units',{id:demo.unit_id,tenant_id:demo.tenant_id,organization_id:demo.views_id,property_id:demo.property_id,unit_number:'TEST-235',unit_type:'apartment'});
     await insert('services',{id:demo.service_id,tenant_id:demo.tenant_id,code:'cleaning.guest',name:'Demo Cleaning',provider_organization_id:demo.cleaning_id});
     for(const [index,p] of profiles.entries()) {
       const user=identities[p.key];if(!user)throw new Error('Missing profile identity: '+p.key);
