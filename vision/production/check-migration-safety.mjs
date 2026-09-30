@@ -12,11 +12,15 @@ const strip=sql=>sql
   .trim();
 
 const forbidden=[
-  [/\bdrop\s+(?:table|column|schema|type|function|index|policy)\b/i,'destructive DROP'],
+  [/\bdrop\s+(?:table|column|schema|type|function|index|policy|view|materialized\s+view|trigger|sequence|extension|domain)\b/i,'destructive DROP'],
   [/\btruncate\b/i,'TRUNCATE'],
+  [/\bdelete\s+from\b/i,'DELETE FROM'],
   [/\balter\s+table\b[^;]*\bdrop\b/i,'ALTER TABLE DROP'],
-  [/\balter\s+table\b[^;]*\brename\s+(?:column|to)\b/i,'table/column rename'],
-  [/\balter\s+table\b[^;]*\balter\s+column\b[^;]*\btype\b/i,'column type rewrite']
+  [/\balter\s+table\b[^;]*\brename\s+(?:column|constraint|to)\b/i,'table/column/constraint rename'],
+  [/\balter\s+table\b[^;]*\balter\s+column\b[^;]*\btype\b/i,'column type rewrite'],
+  [/\balter\s+table\b[^;]*\balter\s+column\b[^;]*\bset\s+not\s+null\b/i,'column nullability tightening'],
+  [/\balter\s+table\b[^;]*\balter\s+column\b[^;]*\bdrop\s+default\b/i,'column default removal'],
+  [/\balter\s+table\b[^;]*\bdrop\s+constraint\b/i,'constraint removal']
 ];
 
 const errors=[];
