@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {handle} from '../backend/worker.mjs';
 const uid='11111111-1111-4111-8111-111111111111';
+const org='22222222-2222-4222-8222-222222222222';
 const env={VISION_ENV:'staging',SUPABASE_STAGING_REF:'abcdefghijklmnopqrst',SUPABASE_URL:'https://abcdefghijklmnopqrst.supabase.co',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test'};
 const request=(path,options={})=>new Request('https://vision.example'+path,{...options,headers:{authorization:'Bearer test.jwt.token',...options.headers}});
 test('unconfigured or production environment fails closed',async()=>{
@@ -60,18 +61,18 @@ test('versioned Views API routes commands to the dedicated RPC and fixes read fi
   assert.deepEqual(JSON.parse(calls[1].options.body),{command});
 
   const urls=[];
-  const read=await handle(request('/api/v1/views/bookings?tenant_id='+uid+'&select=private&limit=50'),env,async url=>{
+  const read=await handle(request('/api/v1/views/bookings?tenant_id='+uid+'&organization_id='+org+'&select=private&limit=50'),env,async url=>{
     urls.push(url);return Response.json(url.endsWith('/user')?{id:uid}:[]);
   });
   assert.equal(read.status,200);
   const upstream=new URL(urls.at(-1));
   assert.match(upstream.pathname,/vision_views_bookings$/);
-  assert.equal(upstream.searchParams.get('tenant_id'),'eq.'+uid);
+  assert.equal(upstream.searchParams.get('tenant_id'),'eq.'+uid);assert.equal(upstream.searchParams.get('organization_id'),'eq.'+org);
   assert.ok(!upstream.searchParams.get('select').includes('*'));
   assert.ok(!upstream.searchParams.get('select').includes('private'));
   assert.equal(upstream.searchParams.get('limit'),'51');
   assert.equal(read.headers.get('x-page-limit'),'50');
-  const oversized=await handle(request('/api/v1/views/bookings?tenant_id='+uid+'&limit=9999'),env,async url=>{
+  const oversized=await handle(request('/api/v1/views/bookings?tenant_id='+uid+'&organization_id='+org+'&limit=9999'),env,async url=>{
     assert.ok(url.endsWith('/user'),'invalid pagination must not query data');return Response.json({id:uid});
   });
   assert.equal(oversized.status,400);
@@ -120,4 +121,10 @@ test('malformed session context from upstream fails closed',async()=>{
     url.endsWith('/user')?Response.json({id:uid}):Response.json({actor_id:uid,tenant_id:uid,organization_id:uid,module:'views',module_enabled:true,roles:[],permissions:['../../admin'],guest_linked:false,capabilities:{}})
   );
   assert.equal(response.status,503);assert.equal((await response.json()).error,'backend_unavailable');
+});
+
+test('Views reads require organization scope and never broaden to all authorized orgs',async()=>{
+  let calls=0;
+  const missing=await handle(request('/api/v1/views/bookings?tenant_id='+uid),env,async url=>{calls++;return Response.json({id:uid});});
+  assert.equal(missing.status,400);assert.equal(calls,1);assert.equal((await missing.json()).error,'organization_id_required');
 });
