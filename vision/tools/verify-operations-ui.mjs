@@ -82,7 +82,16 @@ try{
  browser=await chromium.launch({headless:true,...(process.platform==='win32'?{channel:'msedge'}:{})});
  const context=await browser.newContext({viewport:{width:1440,height:1000}}),page=await context.newPage();
  const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
- await page.goto(origin+'/operations/');
+ await page.goto(origin+'/');
+ await page.waitForSelector('#modules .module');
+ assert.equal(await page.locator('#modules .module').count(),19);
+ assert.equal(await page.locator('#modules [data-open="views"]').count(),1);
+ assert.equal(await page.locator('#modules button:disabled').count(),18);
+ assert.equal(await page.locator('#healthState').textContent(),'Staging backend configured');
+ await page.screenshot({path:new URL('application-hub.png',out).pathname.replace(/^\/(?:([A-Z]:))/,'$1'),fullPage:true});
+ mark('Standalone VISION Hub renders canonical registry with Views as the only active module');
+ await page.locator('[data-open="views"]').click();
+ await page.waitForURL(origin+'/operations/');
  async function login(profile){
   await page.locator('#connectForm [name=email]').fill(profile+'@synthetic.invalid');await page.locator('#connectForm [name=password]').fill('x');
   await page.locator('#connectForm button').click();await page.locator('#workspace').waitFor({state:'visible'});
