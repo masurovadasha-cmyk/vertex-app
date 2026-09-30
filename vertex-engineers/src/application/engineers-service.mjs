@@ -16,7 +16,7 @@ export function createEngineersService({ repository, eventSink }) {
   const emit = async (event) => eventSink?.publish?.(event);
 
   async function requireProject(projectId, context) {
-    const project = await repository.projects.get(projectId);
+    const project = await repository.projects.get(projectId, context);
     if (!project) throw new Error("Project not found");
     assertScope(context, project);
     return project;
@@ -64,7 +64,7 @@ export function createEngineersService({ repository, eventSink }) {
     },
 
     async commissionAsset(assetId, occurredAt, registration, eventContext) {
-      const asset = await repository.assets.get(assetId);
+      const asset = await repository.assets.get(assetId, eventContext);
       if (!asset) throw new Error("Asset not found");
       assertScope(eventContext, asset);
       const updated = commissionAsset(asset, occurredAt, registration);
@@ -79,7 +79,7 @@ export function createEngineersService({ repository, eventSink }) {
     },
 
     async createWorkOrder(input, eventContext) {
-      const asset = await repository.assets.get(input.asset_id);
+      const asset = await repository.assets.get(input.asset_id, eventContext);
       if (!asset) throw new Error("Asset not found");
       assertScope(eventContext, asset);
       const order = createWorkOrder(input);
@@ -94,7 +94,7 @@ export function createEngineersService({ repository, eventSink }) {
     },
 
     async transitionWorkOrder(orderId, nextStatus, patch, eventContext) {
-      const order = await repository.workOrders.get(orderId);
+      const order = await repository.workOrders.get(orderId, eventContext);
       if (!order) throw new Error("Work order not found");
       assertScope(eventContext, order);
       const updated = transitionWorkOrder(order, nextStatus, patch);
