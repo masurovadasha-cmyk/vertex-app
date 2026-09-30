@@ -64,3 +64,28 @@ suite refuses an existing database. Do not point it at staging or production.
 References: [PostgreSQL RLS](https://www.postgresql.org/docs/17/ddl-rowsecurity.html),
 [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security),
 [Supabase functions](https://supabase.com/docs/guides/database/functions).
+
+
+## Views Operations permissions
+
+The Views booking/stay vertical slice uses separate, exact permissions on the Views
+organization:
+
+| Permission | Scope |
+| --- | --- |
+| `views.operations.read` | Read operational properties, units, bookings and internal cleaning jobs |
+| `views.booking.create` | Create a pending booking |
+| `views.booking.manage` | Confirm, check in, check out or cancel a booking |
+| `views.cleaning.execute` | Start and submit an internal checkout-cleaning job |
+| `views.cleaning.verify` | Verify cleaning and return the unit to `READY` |
+
+Guests do not receive staff permissions. RLS may expose only bookings whose customer link
+belongs to the authenticated guest in the same Views organization. Direct client writes
+to Views operational tables remain revoked; mutations go through
+`vision_views_command(jsonb)`, which re-checks active identity, organization-scoped
+permission, version and idempotency inside the transaction.
+
+Booking confirmation serializes on the unit and rejects overlapping `CONFIRMED` or
+`CHECKED_IN` stays. Checkout atomically closes the stay, moves the unit to `CLEANING`,
+creates a cleaning job and writes audit/outbox records. Cleaning verification returns the
+unit to `READY` and completes the checked-out booking.
