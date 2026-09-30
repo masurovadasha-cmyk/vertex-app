@@ -124,6 +124,34 @@
       "source_url": "https://www.systemair.com/en/products/air-handling-units",
       "source_checked_at": "2026-10-01",
       "relationship": "reference_only"
+    },
+    {
+      "id": "heating-daikin-air-to-water",
+      "category": "heating_heat_pump",
+      "brand": "Daikin",
+      "model": "Air-to-Water / Altherma family",
+      "application": "space heating, cooling and domestic hot water",
+      "specs": {
+        "notes": "Global product page describes residential low/high-temperature, hybrid and commercial air-to-water heat-pump applications; regional models vary."
+      },
+      "source_url": "https://www.daikin.com/products/ac/lineup/heat_pump",
+      "source_checked_at": "2026-10-01",
+      "relationship": "reference_only"
+    },
+    {
+      "id": "heating-bosch-cs3000-awp",
+      "category": "heating_heat_pump",
+      "brand": "Bosch",
+      "model": "CS3000 AWP",
+      "application": "commercial air-to-water heat pump for heating, cooling and domestic hot water",
+      "specs": {
+        "output_kw_public_uk_page": "16-89",
+        "cascade": "up to 16 units / 1.42 MW on cited regional page",
+        "notes": "regional availability and configuration vary"
+      },
+      "source_url": "https://www.bosch-industrial.com/gb/en/commercial-industrial/compress-3000.html",
+      "source_checked_at": "2026-10-01",
+      "relationship": "reference_only"
     }
   ]
 }
