@@ -1,10 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {randomUUID} from 'node:crypto';
 import pg from 'pg';
 import {migrate} from '../backend/migrate.mjs';
 import {provisionDemo,demo} from '../backend/demo.mjs';
 
+const controllerRoot=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
+const candidateRoot=process.env.VISION_CANDIDATE_ROOT?path.resolve(process.env.VISION_CANDIDATE_ROOT):controllerRoot;
+const migrationDirectory=pathToFileURL(path.join(candidateRoot,'vision/database/migrations')+path.sep);
 const url=process.env.VISION_TEST_DATABASE_URL;
 if(!url)throw new Error('VISION_TEST_DATABASE_URL required');
 const client=new pg.Client({connectionString:url,application_name:'vertex-vision-rc2-fixture'});
@@ -15,7 +19,7 @@ try{
     const exists=(await client.query('select exists(select 1 from pg_roles where rolname=$1) ok',[role])).rows[0].ok;
     if(!exists)await client.query('create role '+role);
   }
-  await migrate(db);
+  await migrate(db,{directory:migrationDirectory});
   const identities=Object.fromEntries(['guest','views','dispatcher','staff','quality','audit'].map(key=>[key,randomUUID()]));
   await provisionDemo(db,identities);
 
