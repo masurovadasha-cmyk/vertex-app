@@ -1,0 +1,149 @@
+name: VERTEX VISION RC2 Production Safety
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'vision/database/migrations/**'
+      - 'vision/production/**'
+      - 'vision/release/**'
+      - 'vision/assembly/**'
+      - '.github/workflows/vision-rc2-safety.yml'
+  push:
+    branches: ['vision-foundation-rc-*']
+    paths:
+      - 'vision/database/migrations/**'
+      - 'vision/production/**'
+      - 'vision/release/**'
+      - 'vision/assembly/**'
+      - '.github/workflows/vision-rc2-safety.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vision-rc2-safety-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: vision_rc2_source
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d vision_rc2_source"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install verification dependencies
+        run: |
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          mkdir -p artifacts/rc2
+
+      - name: Enforce expand-only migration policy
+        run: node vision/production/check-migration-safety.mjs | tee artifacts/rc2/migration-safety.json
+
+      - name: Build and run complete application regressions
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee artifacts/rc2/tests.txt
+          npm run assemble:vision 2>&1 | tee artifacts/rc2/assembly.txt
+
+      - name: Seed synthetic source database through real migrations and commands
+        env:
+          VISION_TEST_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_rc2_source
+        run: node vision/production/seed-restore-fixture.mjs artifacts/rc2/fixture.json
+
+      - name: Read-only source database preflight
+        env:
+          VISION_RELEASE_TARGET: ci
+          VISION_RELEASE_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_rc2_source
+        run: node vision/production/preflight.mjs artifacts/rc2/source-preflight.json
+
+      - name: Create native PostgreSQL backup and restore into a clean database
+        shell: bash
+        run: |
+          set -euo pipefail
+          PG_CONTAINER="$(docker ps --filter ancestor=postgres:17 --format '{{.ID}}' | head -n1)"
+          test -n "$PG_CONTAINER"
+          docker exec -e PGPASSWORD=disposable-ci-only "$PG_CONTAINER"             pg_dump -U postgres -d vision_rc2_source -Fc --no-owner -f /tmp/vision-rc2.dump
+          docker exec "$PG_CONTAINER" sha256sum /tmp/vision-rc2.dump | awk '{print $1}' > artifacts/rc2/backup-sha256.txt
+          docker exec "$PG_CONTAINER" stat -c '%s' /tmp/vision-rc2.dump > artifacts/rc2/backup-size.txt
+          docker exec -e PGPASSWORD=disposable-ci-only "$PG_CONTAINER" dropdb -U postgres --if-exists vision_rc2_restore
+          docker exec -e PGPASSWORD=disposable-ci-only "$PG_CONTAINER" createdb -U postgres vision_rc2_restore
+          docker exec -e PGPASSWORD=disposable-ci-only "$PG_CONTAINER"             pg_restore -U postgres -d vision_rc2_restore --no-owner --exit-on-error /tmp/vision-rc2.dump
+          docker exec "$PG_CONTAINER" rm -f /tmp/vision-rc2.dump
+          test "$(wc -c < artifacts/rc2/backup-sha256.txt)" -ge 64
+          test "$(cat artifacts/rc2/backup-size.txt)" -gt 0
+
+      - name: Read-only restored database preflight
+        env:
+          VISION_RELEASE_TARGET: ci
+          VISION_RELEASE_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_rc2_restore
+        run: node vision/production/preflight.mjs artifacts/rc2/restore-preflight.json
+
+      - name: Verify restored domain data, audit/outbox, inbox and RLS
+        env:
+          VISION_TEST_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_rc2_restore
+          VISION_FIXTURE_FILE: artifacts/rc2/fixture.json
+        run: node vision/production/verify-restore.mjs artifacts/rc2/fixture.json artifacts/rc2/restore-verification.json
+
+      - name: Compile both Cloudflare targets without deployment
+        run: |
+          set -o pipefail
+          npx wrangler deploy --dry-run --outdir artifacts/rc2/production-worker 2>&1 | tee artifacts/rc2/production-dry-run.txt
+          npx wrangler deploy --config vision/wrangler.jsonc --dry-run --outdir artifacts/rc2/staging-worker 2>&1 | tee artifacts/rc2/staging-dry-run.txt
+
+      - name: Record rollback and release-safety evidence
+        run: |
+          cp vision/production/safety-manifest.json artifacts/rc2/safety-manifest.json
+          cp vision/production/rollback-plan.json artifacts/rc2/rollback-plan.json
+          git rev-parse HEAD > artifacts/rc2/source-commit.txt
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const safety=JSON.parse(fs.readFileSync('vision/production/safety-manifest.json','utf8'));
+          const rollback=JSON.parse(fs.readFileSync('vision/production/rollback-plan.json','utf8'));
+          const release=JSON.parse(fs.readFileSync('vision/release/0.1-RC1.json','utf8'));
+          if(safety.productionApproved!==false||safety.productionDeployAllowed!==false)throw Error('Unsafe production safety manifest');
+          if(rollback.databaseRollback.automaticDownMigrations!==false)throw Error('Unsafe database rollback policy');
+          if(release.productionApproved!==false||release.productionReady!==false)throw Error('Release must remain unapproved in RC2 preparation');
+          const report={
+            status:'PASS',
+            sourceCommit:process.env.GITHUB_SHA,
+            safetyStage:safety.stage,
+            backupRestoreVerified:true,
+            migrationSafetyVerified:true,
+            rollbackPolicyVerified:true,
+            cloudE2ERequired:true,
+            productionApproved:false,
+            productionChanged:false
+          };
+          fs.writeFileSync('artifacts/rc2/rc2-safety-report.json',JSON.stringify(report,null,2)+'\n');
+          JS
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Vertex-Vision-RC2-Safety-${{ github.sha }}
+          path: artifacts/rc2/
+          retention-days: 30
+          if-no-files-found: error
