@@ -3,7 +3,7 @@
   "release": "0.1-RC1",
   "platformVersion": "1.16-rc1",
   "api": "v1",
-  "databaseMigration": "0010_runtime_readiness.sql",
+  "databaseMigration": "0011_event_inbox.sql",
   "activeModules": [
     "views"
   ],
@@ -65,7 +65,7 @@
     "sessionPolicy": "server-authoritative-context-from-verified-jwt",
     "cloudStagingVerified": false
   },
-  "architectureVersion": "1.5",
+  "architectureVersion": "1.6",
   "technicalStage": "real-supabase-auth-e2e-prepared-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
@@ -117,7 +117,8 @@
       "required-tables",
       "required-rpcs",
       "rls",
-      "views-release-active"
+      "views-release-active",
+      "event-inbox"
     ],
     "serviceRoleRequired": false,
     "cloudVerified": false
@@ -141,5 +142,13 @@
     "directRLSVerification": true,
     "cloudVerified": false,
     "productionChanged": false
+  },
+  "eventReliability": {
+    "status": "implemented-in-branch",
+    "migration": "0011_event_inbox.sql",
+    "deliveryModel": "at-least-once",
+    "deduplication": "tenant-consumer-event-id",
+    "leaseSeconds": 60,
+    "productionConsumerConnected": false
   }
 }
