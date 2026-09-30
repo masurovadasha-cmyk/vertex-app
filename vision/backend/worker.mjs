@@ -1,5 +1,6 @@
 import {readPage} from '../modules/views/read-contract.mjs';
 import {routePlan,projectSessionContext} from './kernel.mjs';
+import {validateViewsCommand} from '../modules/views/command-contract.mjs';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const json=(body,status=200,extra={})=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...extra}});
@@ -62,7 +63,8 @@ export async function handle(request,env,fetcher=fetch){
     if(plan.kind==='command'){
       const mediaType=request.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
       if(mediaType!=='application/json')return json({error:'json_required'},415);
-      const command=await boundedJSON(request,plan.bodyLimit);
+      const rawCommand=await boundedJSON(request,plan.bodyLimit);
+      const command=plan.module==='views'?validateViewsCommand(rawCommand):rawCommand;
       result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({command})});
     }else if(plan.kind==='context'){
       result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({p_tenant:plan.tenant,p_organization:plan.organization})});
