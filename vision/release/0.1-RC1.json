@@ -3,7 +3,7 @@
   "release": "0.1-RC1",
   "platformVersion": "1.16-rc1",
   "api": "v1",
-  "databaseMigration": "0006_views_active_release_state.sql",
+  "databaseMigration": "0007_views_operations.sql",
   "activeModules": [
     "views"
   ],
@@ -35,5 +35,20 @@
     "Views is the only launchable module from the VERTEX Vision Hub.",
     "All other divisions are registered future branches and expose no Hub launch actions.",
     "Production and master deployment require a separate approval after staging verification."
-  ]
+  ],
+  "viewsOperations": {
+    "status": "implemented-in-branch",
+    "apiBase": "/api/v1/views",
+    "commands": [
+      "create_booking",
+      "confirm_booking",
+      "check_in",
+      "check_out",
+      "cancel_booking",
+      "cleaning_start",
+      "cleaning_submit",
+      "cleaning_verify"
+    ],
+    "cloudStagingVerified": false
+  }
 }
