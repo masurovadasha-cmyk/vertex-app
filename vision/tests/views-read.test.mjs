@@ -42,7 +42,7 @@ test('malformed Views upstream is sanitized as unavailability, not a caller erro
 });
 test('health reports source and requirements, never claims authenticated database verification',async()=>{
  const r=await handle(new Request('https://vision.example/health'),{...env,VISION_SOURCE_COMMIT:'a'.repeat(40)});
- const body=await r.json();assert.equal(body.sourceCommit,'a'.repeat(40));assert.equal(body.probe,'liveness-config-only');assert.equal(body.requiredMigration,'0008_views_integrity.sql');
+ const body=await r.json();assert.equal(body.sourceCommit,'a'.repeat(40));assert.equal(body.probe,'liveness-config-only');assert.equal(body.requiredMigration,'0009_application_kernel.sql');
  const bad=await handle(new Request('https://vision.example/health'),{...env,VISION_SOURCE_COMMIT:'secret-shaped-value'});
  assert.equal((await bad.json()).sourceCommit,null);
 });
