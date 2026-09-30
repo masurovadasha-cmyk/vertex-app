@@ -1,0 +1,39 @@
+{
+  "product": "VERTEX Vision",
+  "release": "0.1-RC1",
+  "platformVersion": "1.16-rc1",
+  "api": "v1",
+  "databaseMigration": "0006_views_active_release_state.sql",
+  "activeModules": [
+    "views"
+  ],
+  "comingSoonModules": [
+    "managing",
+    "real-estate",
+    "engineers",
+    "aura-design",
+    "travel",
+    "aviation",
+    "rent-car",
+    "taxi",
+    "concierge",
+    "cleaning",
+    "laundry",
+    "ditalia",
+    "market",
+    "bar",
+    "technologies",
+    "investment",
+    "ventures",
+    "training"
+  ],
+  "cloudStagingVerified": false,
+  "productionApproved": false,
+  "productionReady": false,
+  "jarvisIntegration": "external-api-only",
+  "notes": [
+    "Views is the only launchable module from the VERTEX Vision Hub.",
+    "All other divisions are registered future branches and expose no Hub launch actions.",
+    "Production and master deployment require a separate approval after staging verification."
+  ]
+}
