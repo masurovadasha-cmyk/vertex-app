@@ -3,7 +3,8 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 
-const root=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
+const controllerRoot=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
+const root=process.env.VISION_CANDIDATE_ROOT?path.resolve(process.env.VISION_CANDIDATE_ROOT):controllerRoot;
 const rel=p=>path.join(root,p);
 const hash=p=>createHash('sha256').update(fs.readFileSync(rel(p))).digest('hex');
 const json=p=>JSON.parse(fs.readFileSync(rel(p),'utf8'));
@@ -56,7 +57,7 @@ const tracked=Object.freeze([
   'vertex/dist/vision-shell.js'
 ]);
 if(new Set(tracked).size!==tracked.length)throw new Error('Duplicate assembly component');
-const sourceCommit=(()=>{try{return execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();}catch{return null;}})();
+const sourceCommit=(()=>{if(process.env.VISION_CANDIDATE_SHA)return process.env.VISION_CANDIDATE_SHA;try{return execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();}catch{return null;}})();
 const output={
   product:assembly.product,
   assembly:assembly.assembly,
@@ -71,7 +72,7 @@ const output={
   files:Object.fromEntries(tracked.map(p=>[p,hash(p)])),
   migrations:Object.fromEntries(migrations.map(n=>[n,hash('vision/database/migrations/'+n)]))
 };
-const outDir=rel('artifacts/assembly');
+const outDir=path.join(controllerRoot,'artifacts/assembly');
 fs.mkdirSync(outDir,{recursive:true});
 fs.writeFileSync(path.join(outDir,'integrated-assembly.json'),JSON.stringify(output,null,2)+'\n');
 console.log(JSON.stringify({status:'PASS',output:'artifacts/assembly/integrated-assembly.json',sourceCommit,files:tracked.length,migrations:migrations.length},null,2));
