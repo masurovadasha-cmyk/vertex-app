@@ -40,3 +40,21 @@ Local development success is not proof of a deployed staging environment.
 The RC branch does not authorize a production release. Production deployment requires the
 owner's explicit approval after a verified cloud staging Golden Flow, migration/RLS checks,
 smoke tests and rollback validation.
+
+
+## Views Operations 0.1
+
+The RC branch now includes the first real Views operational vertical slice in migration
+`0007_views_operations.sql`: property/unit inventory, bookings, stays and internal
+cleaning jobs. All writes go through the authenticated, idempotent
+`vision_views_command(jsonb)` transaction. RLS keeps guest booking reads private and
+staff operations scoped to the Views organization.
+
+The tested lifecycle is:
+`PENDING → CONFIRMED → CHECKED_IN → CHECKED_OUT → COMPLETED`, with checkout
+atomically moving the unit to `CLEANING` and creating a cleaning job. Verification
+returns the unit to `READY`. Confirmation serializes per unit and rejects overlapping
+active reservations while allowing adjacent stays.
+
+These APIs remain staging-only until the dedicated Supabase staging project and real Auth
+identities are configured and verified.
