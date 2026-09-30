@@ -53,10 +53,23 @@ jobs:
         run: node vision/tools/verify-operations-ui.mjs
       - name: Cloudflare staging dry-run
         run: npx wrangler deploy --config vision/wrangler.jsonc --dry-run
+      - name: Genuine Supabase/Cloudflare staging E2E when configured
+        run: node vision/tools/verify-cloud-auth.mjs
+        env:
+          VISION_STAGING_URL: ${{ vars.VISION_STAGING_URL }}
+          VISION_TEST_MANAGER_EMAIL: ${{ secrets.VISION_TEST_MANAGER_EMAIL }}
+          VISION_TEST_MANAGER_PASSWORD: ${{ secrets.VISION_TEST_MANAGER_PASSWORD }}
+          VISION_TEST_CLEANER_EMAIL: ${{ secrets.VISION_TEST_CLEANER_EMAIL }}
+          VISION_TEST_CLEANER_PASSWORD: ${{ secrets.VISION_TEST_CLEANER_PASSWORD }}
+          VISION_TEST_QUALITY_EMAIL: ${{ secrets.VISION_TEST_QUALITY_EMAIL }}
+          VISION_TEST_QUALITY_PASSWORD: ${{ secrets.VISION_TEST_QUALITY_PASSWORD }}
+          VISION_TEST_CUSTOMER_ID: ${{ vars.VISION_TEST_CUSTOMER_ID }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: vision-auth-staging-evidence-${{ github.sha }}
-          path: .vision-build/operations-ui-evidence/
+          path: |
+            .vision-build/operations-ui-evidence/
+            .vision-build/auth-staging-evidence/
           if-no-files-found: warn
           retention-days: 14
