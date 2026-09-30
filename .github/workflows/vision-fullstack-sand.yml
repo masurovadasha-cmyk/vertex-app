@@ -1,0 +1,72 @@
+name: VISION Fullstack Sand Integration
+on:
+  push:
+    branches: [vision-fullstack-sand-20260930]
+permissions:
+  contents: read
+concurrency:
+  group: vision-fullstack-sand
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Export pinned reconciliation inputs
+        run: |
+          mkdir -p artifacts/fullstack
+          python - <<'PY'
+          import subprocess, tarfile, io, zipfile, json
+          from pathlib import Path
+          rc='6fdff16a7049e5b3b4ff7ecc272616607234ae03'
+          design='bf79fe502504c1a98dc0df29e8cdc24f60ca07a2'
+          base=subprocess.check_output(['git','merge-base',rc,design],text=True).strip()
+          refs={'current':'HEAD','rc':rc,'design':design,'base':base}
+          excluded={'.ttf','.otf','.woff','.woff2','.ttc','.eot','.pem','.key','.jks','.keystore','.apk','.zip'}
+          for label,ref in refs.items():
+              raw=subprocess.check_output(['git','archive',ref])
+              with tarfile.open(fileobj=io.BytesIO(raw)) as tar, zipfile.ZipFile('artifacts/fullstack/'+label+'.zip','w',zipfile.ZIP_DEFLATED) as z:
+                  for member in tar:
+                      p=Path(member.name)
+                      if member.isfile() and p.suffix.lower() not in excluded and p.name not in {'.env','.dev.vars','local.properties'}:
+                          z.writestr(member.name,tar.extractfile(member).read())
+          Path('artifacts/fullstack/source-refs.json').write_text(json.dumps({k:subprocess.check_output(['git','rev-parse',v],text=True).strip() for k,v in refs.items()},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vision-fullstack-source-${{ github.sha }}
+          path: artifacts/fullstack/
+          retention-days: 14
+      - name: Install pinned project dependencies
+        run: |
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          tar -czf artifacts/fullstack/vision-dependencies.tgz -C vision node_modules
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vision-fullstack-dependencies-${{ github.sha }}
+          path: artifacts/fullstack/vision-dependencies.tgz
+          retention-days: 7
+      - name: Verify assembled application and contracts
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee artifacts/fullstack/tests.txt
+          npm run assemble:vision 2>&1 | tee artifacts/fullstack/assembly.txt
+          node scripts/check-android-sync.cjs
+      - name: Compile staging Worker without deployment
+        run: |
+          set -o pipefail
+          npx wrangler deploy --config vision/wrangler.jsonc --dry-run --outdir artifacts/fullstack/worker 2>&1 | tee artifacts/fullstack/worker-build.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vision-fullstack-result-${{ github.sha }}
+          path: artifacts/fullstack/
+          retention-days: 14
