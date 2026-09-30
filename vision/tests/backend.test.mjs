@@ -83,3 +83,41 @@ test('staging worker serves static assets without requiring backend secrets',asy
   const response=await handle(new Request('https://vision.example/index.html'),{VISION_ENV:'staging',ASSETS:assets});
   assert.equal(response.status,200);assert.equal(await response.text(),'vision-ui');assert.equal(seen,1);
 });
+
+test('session context comes only from server RPC and is projected to an allowlisted contract',async()=>{
+  const calls=[];
+  const response=await handle(request('/api/v1/context?tenant_id='+uid+'&organization_id='+uid),env,async(url,options)=>{
+    calls.push({url,options});
+    if(url.endsWith('/auth/v1/user'))return Response.json({id:uid});
+    return Response.json({
+      actor_id:uid,tenant_id:uid,organization_id:uid,module:'views',module_enabled:true,guest_linked:false,
+      roles:['views-manager'],permissions:['views.operations.read','views.booking.manage'],
+      capabilities:{read_operations:true,create_booking:false,manage_booking:true,execute_cleaning:false,verify_cleaning:false},
+      injected:'must-not-leak'
+    });
+  });
+  assert.equal(response.status,200);assert.equal(calls.length,2);
+  assert.equal(calls[1].url,env.SUPABASE_URL+'/rest/v1/rpc/vision_session_context');
+  assert.deepEqual(JSON.parse(calls[1].options.body),{p_tenant:uid,p_organization:uid});
+  const body=await response.json();
+  assert.deepEqual(body,{
+    actorId:uid,tenantId:uid,organizationId:uid,module:'views',moduleEnabled:true,guestLinked:false,
+    roles:['views-manager'],permissions:['views.operations.read','views.booking.manage'],
+    capabilities:{read_operations:true,create_booking:false,manage_booking:true,execute_cleaning:false,verify_cleaning:false}
+  });
+  assert.equal(Object.hasOwn(body,'injected'),false);
+});
+
+test('invalid session-context query is rejected before context RPC',async()=>{
+  let calls=0;
+  const response=await handle(request('/api/v1/context?tenant_id='+uid),env,async url=>{calls++;return Response.json({id:uid});});
+  assert.equal(response.status,400);assert.equal(calls,1);
+  assert.equal((await response.json()).error,'invalid_context_query');
+});
+
+test('malformed session context from upstream fails closed',async()=>{
+  const response=await handle(request('/api/v1/context?tenant_id='+uid+'&organization_id='+uid),env,async url=>
+    url.endsWith('/user')?Response.json({id:uid}):Response.json({actor_id:uid,tenant_id:uid,organization_id:uid,module:'views',module_enabled:true,roles:[],permissions:['../../admin'],guest_linked:false,capabilities:{}})
+  );
+  assert.equal(response.status,503);assert.equal((await response.json()).error,'backend_unavailable');
+});
