@@ -26,7 +26,8 @@
     'meal-request':()=>request('meal'),'market-request':()=>request('market'),'bar-request':()=>request('bar')
   };
   function close(){dialog.close();activeModule=null;}
-  dialog.addEventListener('close',()=>{lastFocus?.isConnected&&lastFocus.focus({preventScroll:true});});
+  // Escape and native close() must clear state too; a queued close event must not reset a newly opened dialog.
+  dialog.addEventListener('close',()=>{if(dialog.open)return;activeModule=null;if(!document.querySelector('dialog[open]')&&lastFocus?.isConnected)lastFocus.focus({preventScroll:true});});
   function navigate(id,action){
     if(!core.canLaunch(id,action)||!adapters[action])return false;
     if(dialog.open)close();
@@ -35,7 +36,7 @@
   }
   function details(id){
     const module=core.module(id);if(!module)return false;
-    activeModule=id;lastFocus=document.activeElement;
+    activeModule=id;if(!dialog.open)lastFocus=document.activeElement;
     dialog.replaceChildren();
     const top=element('div','vv-dialog-top');const title=element('h2','',module.name);title.id='visionModuleTitle';dialog.setAttribute('aria-labelledby',title.id);
     const dismiss=button('×',close,'vv-close');dismiss.setAttribute('aria-label',tx('Закрыть','Close'));top.append(title,dismiss);dialog.append(top);
@@ -82,7 +83,7 @@
     const oldTitle=document.getElementById('visionViewsBoundary');if(!oldTitle){const boundary=element('div','vv-views-boundary',tx('VERTEX VISION / VIEWS · Проживание и поездки','VERTEX VISION / VIEWS · Stays & journeys'));boundary.id='visionViewsBoundary';home.after(boundary);}else oldTitle.textContent=tx('VERTEX VISION / VIEWS · Проживание и поездки','VERTEX VISION / VIEWS · Stays & journeys');
   }
   root.VertexVision=Object.freeze({core,navigate,details,home:()=>home.scrollIntoView({block:'start',behavior:'auto'}),adapters:Object.freeze(Object.keys(adapters))});
-  render();new MutationObserver(()=>{const opened=activeModule;render();if(opened)details(opened);}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
+  render();new MutationObserver(()=>{const opened=dialog.open?activeModule:null;render();if(opened)details(opened);}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
   document.documentElement.dataset.visionReady='true';
   root.dispatchEvent(new CustomEvent('vertex:vision-ready',{detail:{version:core.version}}));
 })(window);
