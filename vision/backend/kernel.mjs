@@ -1,4 +1,5 @@
 // VERTEX VISION Application Kernel: declared API surface and server-authoritative context contract.
+import {LIMITS} from './http.mjs';
 import {readPlan} from '../modules/views/read-contract.mjs';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -19,8 +20,8 @@ const viewsReads=Object.freeze({
 
 export function routePlan(url,method){
   const key=String(method||'').toUpperCase()+' '+url.pathname;
-  if(key==='POST /api/commands')return Object.freeze({kind:'command',rpc:'vision_command',bodyLimit:8192,module:'core'});
-  if(key==='POST /api/v1/views/commands')return Object.freeze({kind:'command',rpc:'vision_views_command',bodyLimit:8192,module:'views'});
+  if(key==='POST /api/commands')return Object.freeze({kind:'command',rpc:'vision_command',bodyLimit:LIMITS.commandBytes,module:'core'});
+  if(key==='POST /api/v1/views/commands')return Object.freeze({kind:'command',rpc:'vision_views_command',bodyLimit:LIMITS.commandBytes,module:'views'});
   if(key==='GET /api/v1/context'){
     const tenant=url.searchParams.get('tenant_id'),organization=url.searchParams.get('organization_id');
     if(url.searchParams.size!==2||url.searchParams.getAll('tenant_id').length!==1||url.searchParams.getAll('organization_id').length!==1||!uuid.test(tenant||'')||!uuid.test(organization||''))throw new Error('invalid_context_query');

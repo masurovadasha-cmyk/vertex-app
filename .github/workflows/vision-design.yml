@@ -1,0 +1,77 @@
+name: VISION Sand Luxury Design
+on:
+  push:
+    branches: ['vision-sand-luxury-*']
+permissions:
+  contents: read
+concurrency:
+  group: vision-design-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  design:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Export exact source without fonts or credentials
+        run: |
+          mkdir -p artifacts/design
+          python - <<'PY'
+          import subprocess,zipfile
+          from pathlib import Path
+          excluded={'.ttf','.otf','.woff','.woff2','.ttc','.eot','.pem','.key','.jks','.keystore','.apk','.zip'}
+          with zipfile.ZipFile('artifacts/design/source.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in subprocess.check_output(['git','ls-files','-z']).decode().split('\0'):
+                  p=Path(name)
+                  if name and p.is_file() and p.suffix.lower() not in excluded and p.name not in {'.env','.dev.vars','local.properties'}:
+                      z.write(p)
+          Path('artifacts/design/source-sha.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD']).decode())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vision-design-source-${{ github.sha }}
+          path: |
+            artifacts/design/source.zip
+            artifacts/design/source-sha.txt
+      - name: Install verification tools without deployment credentials
+        run: |
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3
+          python -m playwright install --with-deps chromium
+      - name: Preserve application and architecture contracts
+        run: |
+          set -o pipefail
+          npm test 2>&1 | tee artifacts/design/tests.txt
+          npm run assemble:vision 2>&1 | tee artifacts/design/assembly.txt
+          node scripts/check-android-sync.cjs
+      - name: Exercise platform and design interactions
+        run: |
+          python scripts/browser-vision.py
+          if test -f scripts/browser-sand-design.py; then python scripts/browser-sand-design.py; fi
+      - name: Compile both Worker targets without deployment
+        run: |
+          set -o pipefail
+          npx wrangler deploy --dry-run --outdir artifacts/design/public-worker 2>&1 | tee artifacts/design/public-build.txt
+          npx wrangler deploy --config vision/wrangler.jsonc --dry-run --outdir artifacts/design/staging-worker 2>&1 | tee artifacts/design/staging-build.txt
+      - name: Package interactive Canva preview
+        run: |
+          node scripts/package-canva.cjs
+          cp artifacts/Vertex-Canva-Latest.html artifacts/design/Vertex-Vision-Sand-Luxury.html
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vision-design-result-${{ github.sha }}
+          path: |
+            artifacts/design/
+            artifacts/vision/
+          retention-days: 30
+          if-no-files-found: error

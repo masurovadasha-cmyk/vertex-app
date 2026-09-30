@@ -1,126 +1,137 @@
 import {readPage} from '../modules/views/read-contract.mjs';
-import {routePlan,projectSessionContext} from './kernel.mjs';
+import {routePlan, projectSessionContext} from './kernel.mjs';
 import {validateViewsCommand} from '../modules/views/command-contract.mjs';
 import {projectViewsCommandResponse} from '../modules/views/response-contract.mjs';
 import {projectRuntimeReadiness} from './readiness.mjs';
+import {LIMITS, boundedJSON, upstreamJSON, gatewayError, jsonReply, mapFailure, mapUpstreamError} from './http.mjs';
 
-const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const json=(body,status=200,extra={})=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...extra}});
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SAFE_METHODS = new Set(['GET', 'HEAD']);
+const RELEASE = Object.freeze({architectureVersion: '1.6', requiredMigration: '0011_event_inbox.sql'});
 
-async function boundedJSON(source,limit){
-  if(Number(source.headers.get('content-length'))>limit)throw new Error('body_too_large');
-  const reader=source.body?.getReader();if(!reader)throw new Error('invalid_json');
-  let length=0;const chunks=[];
-  for(;;){const {done,value}=await reader.read();if(done)break;length+=value.length;if(length>limit){await reader.cancel();throw new Error('body_too_large');}chunks.push(value);}
-  const data=new Uint8Array(length);let offset=0;for(const chunk of chunks){data.set(chunk,offset);offset+=chunk.length;}
-  try{return JSON.parse(new TextDecoder().decode(data));}catch{throw new Error('invalid_json');}
+function configured(env) {
+  return /^[a-z0-9]{20}$/.test(env.SUPABASE_STAGING_REF || '')
+    && env.SUPABASE_URL === `https://${env.SUPABASE_STAGING_REF}.supabase.co`
+    && /^sb_publishable_[A-Za-z0-9_-]+$/.test(env.SUPABASE_PUBLISHABLE_KEY || '');
 }
 
-async function upstreamJSON(response,limit){
-  try{return await boundedJSON(response,limit);}catch{throw new Error('upstream_invalid_response');}
+function health(request, env, reply) {
+  if (!SAFE_METHODS.has(request.method)) return reply({error: 'method_not_allowed'}, 405);
+  const response = reply({service: 'VERTEX VISION', environment: 'staging', configured: configured(env),
+    probe: 'liveness-config-only', ...RELEASE,
+    sourceCommit: /^[a-f0-9]{40}$/.test(env.VISION_SOURCE_COMMIT || '') ? env.VISION_SOURCE_COMMIT : null});
+  return request.method === 'HEAD' ? new Response(null, response) : response;
 }
 
-function mapUpstreamError(body,status){
-  const conflicts=['23505','40001','23P01'].includes(body?.code);
-  const forbidden=body?.code==='42501'||status===403;
-  const invalid=['22023','22P02','22003','22007','22008','23503','23502','23514'].includes(body?.code);
-  return {error:conflicts?'conflict':forbidden?'forbidden':invalid?'invalid_command':'backend_unavailable',status:conflicts?409:forbidden?403:invalid?400:503};
-}
-
-// All data requests retain the user's verified bearer token. There is no service-role key.
-export async function handle(request,env,fetcher=fetch){
-  const url=new URL(request.url),requestId=crypto.randomUUID();
-  const reply=(body,status=200,extra={})=>json(body,status,{'x-request-id':requestId,...extra});
-  if(env.VISION_ENV!=='staging')return reply({error:'staging_only'},503);
-  if(url.pathname==='/health')return reply({
-    service:'VERTEX VISION',environment:'staging',configured:configured(env),probe:'liveness-config-only',
-    architectureVersion:'1.6',requiredMigration:'0011_event_inbox.sql',
-    sourceCommit:/^[a-f0-9]{40}$/.test(env.VISION_SOURCE_COMMIT||'')?env.VISION_SOURCE_COMMIT:null
-  });
-  if(url.pathname==='/readyz'){
-    if(!['GET','HEAD'].includes(request.method))return reply({error:'method_not_allowed'},405);
-    if(!configured(env))return reply({ready:false,error:'backend_not_configured'},503);
-    try{
-      const response=await fetcher(env.SUPABASE_URL+'/rest/v1/rpc/vision_runtime_readiness',{
-        method:'POST',
-        headers:{apikey:env.SUPABASE_PUBLISHABLE_KEY,'content-type':'application/json'},
-        body:'{}',redirect:'error',signal:AbortSignal.timeout(10000)
+async function readiness(request, env, fetcher, reply) {
+  if (!SAFE_METHODS.has(request.method)) return reply({error: 'method_not_allowed'}, 405);
+  let response;
+  if (!configured(env)) response = reply({ready: false, error: 'backend_not_configured'}, 503);
+  else {
+    try {
+      const result = await fetcher(env.SUPABASE_URL + '/rest/v1/rpc/vision_runtime_readiness', {
+        method: 'POST', headers: {apikey: env.SUPABASE_PUBLISHABLE_KEY, 'content-type': 'application/json'},
+        body: '{}', redirect: 'error', signal: AbortSignal.timeout(LIMITS.upstreamTimeoutMs)
       });
-      const body=await upstreamJSON(response,65536);
-      if(!response.ok)return reply({ready:false,error:'readiness_unavailable'},503);
-      const projected=projectRuntimeReadiness(body),status=projected.ready?200:503;
-      if(request.method==='HEAD')return new Response(null,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff','x-request-id':requestId}});
-      return reply(projected,status);
-    }catch{return reply({ready:false,error:'readiness_unavailable'},503);}
+      const body = await upstreamJSON(result, LIMITS.identityBytes);
+      if (!result.ok) throw new Error('readiness_unavailable');
+      const projected = projectRuntimeReadiness(body);
+      response = reply(projected, projected.ready ? 200 : 503);
+    } catch { response = reply({ready: false, error: 'readiness_unavailable'}, 503); }
   }
-  if(!url.pathname.startsWith('/api/')){
-    if(url.pathname.startsWith('/rest/')||url.pathname.startsWith('/auth/')||(url.pathname==='/vision'||url.pathname.startsWith('/vision/'))||url.pathname.startsWith('/.'))return reply({error:'not_found'},404);
-    if(!['GET','HEAD'].includes(request.method))return reply({error:'method_not_allowed'},405);
-    if(!env.ASSETS||typeof env.ASSETS.fetch!=='function')return reply({error:'assets_not_configured'},503);
-    return env.ASSETS.fetch(request);
-  }
-  if(!configured(env))return reply({error:'backend_not_configured'},503);
-  if(request.headers.has('origin')&&request.headers.get('origin')!==url.origin)return reply({error:'origin_denied'},403);
-  if(!['GET','POST'].includes(request.method))return reply({error:'method_not_allowed'},405);
-  const authorization=request.headers.get('authorization');
-  if(!authorization?.match(/^Bearer [A-Za-z0-9_.-]+$/)||authorization.length>8192)return reply({error:'unauthorized'},401);
-  const headers={apikey:env.SUPABASE_PUBLISHABLE_KEY,authorization,'content-type':'application/json'};
-  const upstream=(path,options={})=>fetcher(env.SUPABASE_URL+path,{...options,headers,redirect:'error',signal:AbortSignal.timeout(10000)});
-  try{
-    const identity=await upstream('/auth/v1/user');
-    if(!identity.ok){
-      const unavailable=identity.status===429||identity.status>=500;
-      return reply({error:unavailable?'auth_unavailable':'unauthorized'},unavailable?503:401);
-    }
-    const user=await upstreamJSON(identity,65536);
-    if(!uuid.test(user.id||''))return reply({error:'unauthorized'},401);
-
-    const plan=routePlan(url,request.method);
-    if(!plan)return reply({error:'not_found'},404);
-    let result,commandType=null;
-
-    if(plan.kind==='command'){
-      const mediaType=request.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
-      if(mediaType!=='application/json')return reply({error:'json_required'},415);
-      const rawCommand=await boundedJSON(request,plan.bodyLimit);
-      const command=plan.module==='views'?validateViewsCommand(rawCommand):rawCommand;
-      commandType=plan.module==='views'?command.type:null;
-      result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({command})});
-    }else if(plan.kind==='context'){
-      result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({p_tenant:plan.tenant,p_organization:plan.organization})});
-    }else if(plan.kind==='views-read'){
-      result=await upstream('/rest/v1/'+plan.table+'?'+plan.read.params);
-    }else{
-      const params=new URLSearchParams({tenant_id:'eq.'+plan.tenant,select:'*',limit:'50',order:'created_at.desc,id.desc'});
-      result=await upstream('/rest/v1/'+plan.table+'?'+params);
-    }
-
-    const body=await upstreamJSON(result,1048576);
-    if(!result.ok){
-      const mapped=mapUpstreamError(body,result.status);
-      return reply({error:mapped.error},mapped.status);
-    }
-    if(plan.kind==='command'&&plan.module==='views'){
-      const projected=projectViewsCommandResponse(commandType,body);
-      return reply(projected,200,{'x-correlation-id':projected.correlation_id});
-    }
-    if(plan.kind==='views-read'){
-      const page=readPage(body,plan.read);
-      return reply(page.items,200,{'x-page-limit':String(plan.read.limit),...(page.nextCursor?{'x-next-cursor':page.nextCursor}:{})});
-    }
-    if(plan.kind==='context')return reply(projectSessionContext(body));
-    return reply(body);
-  }catch(error){
-    if(['invalid_page_query','tenant_id_required','organization_id_required','invalid_context_query','invalid_command'].includes(error.message))return reply({error:error.message},400);
-    if(error.message==='body_too_large')return reply({error:'body_too_large'},413);
-    if(error.message==='invalid_json')return reply({error:'invalid_json'},400);
-    return reply({error:'backend_unavailable'},503);
-  }
+  return request.method === 'HEAD' ? new Response(null, response) : response;
 }
 
-function configured(env){
-  return /^[a-z0-9]{20}$/.test(env.SUPABASE_STAGING_REF||'')
-    && env.SUPABASE_URL===`https://${env.SUPABASE_STAGING_REF}.supabase.co`
-    && /^sb_publishable_[A-Za-z0-9_-]+$/.test(env.SUPABASE_PUBLISHABLE_KEY||'');
+function staticResponse(request, url, env, reply) {
+  const path = url.pathname;
+  if (path.startsWith('/rest/') || path.startsWith('/auth/') || path === '/vision' ||
+      path.startsWith('/vision/') || path.startsWith('/.')) return reply({error: 'not_found'}, 404);
+  if (!SAFE_METHODS.has(request.method)) return reply({error: 'method_not_allowed'}, 405);
+  if (typeof env.ASSETS?.fetch !== 'function') return reply({error: 'assets_not_configured'}, 503);
+  return env.ASSETS.fetch(request);
 }
-export default {fetch(request,env){return handle(request,env);}};
+
+function upstreamClient(request, url, env, fetcher) {
+  if (request.headers.has('origin') && request.headers.get('origin') !== url.origin) throw gatewayError('origin_denied', 403);
+  if (!['GET', 'POST'].includes(request.method)) throw gatewayError('method_not_allowed', 405);
+  const authorization = request.headers.get('authorization');
+  if (!authorization || authorization.length > LIMITS.authorizationBytes || !/^Bearer [A-Za-z0-9_.-]+$/.test(authorization)) {
+    throw gatewayError('unauthorized', 401);
+  }
+  // Forward this request's user token. Never substitute the migration/dispatcher principal.
+  const headers = {apikey: env.SUPABASE_PUBLISHABLE_KEY, authorization, 'content-type': 'application/json'};
+  return (path, options = {}) => fetcher(env.SUPABASE_URL + path, {...options, headers, redirect: 'error',
+    signal: AbortSignal.any([request.signal, AbortSignal.timeout(LIMITS.upstreamTimeoutMs)])});
+}
+
+async function verifiedActor(upstream) {
+  const identity = await upstream('/auth/v1/user');
+  if (!identity.ok) {
+    await identity.body?.cancel().catch(() => {});
+    const unavailable = identity.status === 429 || identity.status >= 500;
+    throw gatewayError(unavailable ? 'auth_unavailable' : 'unauthorized', unavailable ? 503 : 401);
+  }
+  const user = await upstreamJSON(identity, LIMITS.identityBytes);
+  if (!user || typeof user !== 'object' || Array.isArray(user)) throw new Error('upstream_invalid_response');
+  if (typeof user.id !== 'string' || !UUID.test(user.id)) throw gatewayError('unauthorized', 401);
+  return user.id;
+}
+
+async function executePlan(request, plan, upstream) {
+  if (plan.kind === 'command') {
+    const type = request.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase();
+    if (type !== 'application/json') throw gatewayError('json_required', 415);
+    const raw = await boundedJSON(request, plan.bodyLimit);
+    const command = plan.module === 'views' ? validateViewsCommand(raw) : raw;
+    return {response: await upstream('/rest/v1/rpc/' + plan.rpc, {method: 'POST', body: JSON.stringify({command})}),
+      commandType: plan.module === 'views' ? command.type : null};
+  }
+  if (plan.kind === 'context') return {response: await upstream('/rest/v1/rpc/' + plan.rpc, {
+    method: 'POST', body: JSON.stringify({p_tenant: plan.tenant, p_organization: plan.organization})})};
+  const params = plan.kind === 'views-read' ? plan.read.params : new URLSearchParams({
+    tenant_id: 'eq.' + plan.tenant, select: '*', limit: String(LIMITS.legacyPageSize), order: 'created_at.desc,id.desc'});
+  return {response: await upstream('/rest/v1/' + plan.table + '?' + params)};
+}
+
+function projectResult(body, plan, commandType, actorId, reply) {
+  if (commandType) {
+    const dto = projectViewsCommandResponse(commandType, body);
+    return reply(dto, 200, {'x-correlation-id': dto.correlation_id});
+  }
+  if (plan.kind === 'views-read') {
+    const page = readPage(body, plan.read);
+    return reply(page.items, 200, {'x-page-limit': String(plan.read.limit), ...(page.nextCursor ? {'x-next-cursor': page.nextCursor} : {})});
+  }
+  if (plan.kind === 'context') {
+    const context = projectSessionContext(body);
+    if (context.actorId !== actorId || context.tenantId !== plan.tenant || context.organizationId !== plan.organization) {
+      throw new Error('upstream_invalid_response');
+    }
+    return reply(context);
+  }
+  return reply(body);
+}
+
+export async function handle(request, env = {}, fetcher = fetch) {
+  const url = new URL(request.url), requestId = crypto.randomUUID();
+  const reply = (body, status = 200, extra = {}) => jsonReply(requestId, body, status, extra);
+  if (env.VISION_ENV !== 'staging') return reply({error: 'staging_only'}, 503);
+  if (url.pathname === '/health') return health(request, env, reply);
+  if (url.pathname === '/readyz') return readiness(request, env, fetcher, reply);
+  if (!url.pathname.startsWith('/api/')) return staticResponse(request, url, env, reply);
+  if (!configured(env)) return reply({error: 'backend_not_configured'}, 503);
+  try {
+    const upstream = upstreamClient(request, url, env, fetcher);
+    const actorId = await verifiedActor(upstream);
+    const plan = routePlan(url, request.method);
+    if (!plan) return reply({error: 'not_found'}, 404);
+    const {response, commandType} = await executePlan(request, plan, upstream);
+    const body = await upstreamJSON(response, LIMITS.responseBytes);
+    if (!response.ok) throw mapUpstreamError(body, response.status);
+    return projectResult(body, plan, commandType, actorId, reply);
+  } catch (error) {
+    const mapped = mapFailure(error);
+    return reply({error: mapped.code}, mapped.status);
+  }
+}
+export default {fetch(request, env) { return handle(request, env); }};

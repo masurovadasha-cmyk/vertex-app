@@ -128,5 +128,22 @@
     "outbox": "transactional-at-least-once",
     "inbox": "durable-deduplication-with-lease",
     "globalExactlyOnce": false
+  },
+  "design": {
+    "id": "sand-luxury",
+    "version": "1.0.0",
+    "hub": "graphite-champagne",
+    "views": "ivory-sand",
+    "moduleVisuals": 19,
+    "motion": "respects-reduced-motion",
+    "changesBusinessCapabilities": false
+  },
+  "fullstack": {
+    "stage": "sand-integration-1",
+    "client": "vision/platform/views-client.cjs",
+    "pendingCommandPolicy": "verified-identity-scoped-session-storage-no-tokens",
+    "pagination": "cursor-with-visible-completeness",
+    "browserSQLFixture": "synthetic-auth-real-pglite-rls",
+    "genuineCloudAuthVerified": false
   }
 }

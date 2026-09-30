@@ -5,7 +5,7 @@ const root=path.resolve(__dirname,'../..'),site=path.join(root,'vertex/dist');
 const read=name=>fs.readFileSync(path.join(site,name),'utf8');
 const put=(name,text)=>fs.writeFileSync(path.join(site,name),text);
 core.validate(core.modules);
-for(const [source,target] of [['registry.cjs','vision-core.js'],['views-ops.js','vision-views.js'],['views-ops.css','vision-views.css'],['shell.js','vision-shell.js'],['shell.css','vision-shell.css'],['compact.css','vision-compact.css']])put(target,fs.readFileSync(path.join(__dirname,source),'utf8'));
+for(const [source,target] of [['fullstack.css','vision-fullstack.css'],['views-client.cjs','vision-views-client.js'],['mark.svg','vision-mark.svg'],['design-system.js','vision-design.js'],['sand-luxury.css','vision-sand.css'],['registry.cjs','vision-core.js'],['views-ops.js','vision-views.js'],['views-ops.css','vision-views.css'],['shell.js','vision-shell.js'],['shell.css','vision-shell.css'],['compact.css','vision-compact.css']])put(target,fs.readFileSync(path.join(__dirname,source),'utf8'));
 let html=read('index.html');
 html=html.replace(/<title>[^<]*<\/title>/,`<title>VERTEX VISION ${core.version} — Vertex Group · Views</title>`);
 if(!html.includes('href="vision-shell.css"'))html=html.replace('</head>','<link rel="stylesheet" href="vision-shell.css"></head>');
@@ -14,15 +14,22 @@ if(!html.includes('href="vision-views.css"'))html=html.replace('</head>','<link 
 if(!html.includes('src="vision-core.js"'))html=html.replace('</body>','<script src="vision-core.js"></script></body>');
 if(!html.includes('src="vision-views.js"'))html=html.replace('</body>','<script src="vision-views.js"></script></body>');
 if(!html.includes('src="vision-shell.js"'))html=html.replace('</body>','<script src="vision-shell.js"></script></body>');
+html=html.replace(/<link rel="icon" href="[^"]+">/,'<link rel="icon" href="vision-mark.svg">');
+// The approved VISION palette is scoped; legacy red demo workspaces remain independent.
+if(!html.includes('href="vision-sand.css"'))html=html.replace('</head>','<link rel="stylesheet" href="vision-sand.css"></head>');
+if(!html.includes('src="vision-design.js"'))html=html.replace('<script src="vision-views.js">','<script src="vision-design.js"></script><script src="vision-views.js">');
+html=html.replace(/(<meta name="theme-color" content=")[^"]+/, '$1#20241f');
+if(!html.includes('src="vision-views-client.js"'))html=html.replace('<script src="vision-views.js">','<script src="vision-views-client.js"></script><script src="vision-views.js">');
+if(!html.includes('href="vision-fullstack.css"'))html=html.replace('</head>','<link rel="stylesheet" href="vision-fullstack.css"></head>');
 put('index.html',html);
 const release=JSON.parse(read('release.json'));
-Object.assign(release,{version:core.version,revision:core.revision,date:'2026-09-30',platform:core.id,core_version:core.coreVersion,modules:core.modules.map(m=>m.id),active_modules:core.modules.filter(m=>m.status==='active').map(m=>m.id),coming_soon_modules:core.modules.filter(m=>m.status==='coming-soon').map(m=>m.id),mode:'release-candidate',cloud_database_connected:false,unified_apk_hosted:false});
+Object.assign(release,{version:core.version,revision:core.revision,date:'2026-09-30',platform:core.id,core_version:core.coreVersion,modules:core.modules.map(m=>m.id),active_modules:core.modules.filter(m=>m.status==='active').map(m=>m.id),coming_soon_modules:core.modules.filter(m=>m.status==='coming-soon').map(m=>m.id),mode:'release-candidate',cloud_database_connected:false,unified_apk_hosted:false,design:{id:'sand-luxury',version:'1.0.0',hub:'graphite-champagne',views:'ivory-sand',motion:'respects-reduced-motion'}});
 for(const feature of ['VERTEX VISION primary platform','19 registered child modules','Versioned platform registry and API','Explicit adapters preserving existing module data'])if(!release.features.includes(feature))release.features.push(feature);
 for(const boundary of ['Shared cloud database and real authentication are not connected','Views is the only active Hub module in RC1; every other division is Coming Soon','Registration does not enable a tenant module or imply completed workflows','JARVIS is a separate project','The existing hosted APK link remains the previous published Vertex build until this RC is separately released'])if(!release.boundaries.includes(boundary))release.boundaries.push(boundary);
 put('release.json',JSON.stringify(release,null,2)+'\n');
-const manifest=JSON.parse(read('manifest.webmanifest'));Object.assign(manifest,{name:'VERTEX VISION — Vertex Group',short_name:'VISION',description:'Views и направления Vertex Group в одной платформе. Демонстрационная версия.'});put('manifest.webmanifest',JSON.stringify(manifest,null,2)+'\n');
-let sw=read('sw.js').replace(/const CACHE='[^']+'/ ,`const CACHE='vertex-vision-${core.version.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-${core.revision}'`);
-for(const file of ['vision-core.js','vision-views.js','vision-views.css','vision-shell.js','vision-shell.css','vision-compact.css'])if(!sw.includes("'./"+file+"'"))sw=sw.replace('const ASSETS=[',"const ASSETS=['./"+file+"',");put('sw.js',sw);
+const manifest=JSON.parse(read('manifest.webmanifest'));Object.assign(manifest,{name:'VERTEX VISION — Vertex Group',short_name:'VISION',theme_color:'#20241f',background_color:'#f5f1e8',description:'Views и направления Vertex Group в одной платформе. Демонстрационная версия.'});put('manifest.webmanifest',JSON.stringify(manifest,null,2)+'\n');
+let sw=read('sw.js').replace(/const CACHE='[^']+'/ ,`const CACHE='vertex-vision-${core.version.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-${core.revision}-sand-fullstack1'`);
+for(const file of ['vision-fullstack.css','vision-views-client.js','vision-mark.svg','vision-design.js','vision-sand.css','vision-core.js','vision-views.js','vision-views.css','vision-shell.js','vision-shell.css','vision-compact.css'])if(!sw.includes("'./"+file+"'"))sw=sw.replace('const ASSETS=[',"const ASSETS=['./"+file+"',");put('sw.js',sw);
 put('design-shell.js',read('design-shell.js').replaceAll('1.14-demo',core.version));
 // Building web assets does not upload a new APK. Keep the hosted binary's identity explicit.
 let mobile=read('mobile.js').replaceAll('Android APK · 1.15-demo ↓','Android APK · 1.14-demo ↓');

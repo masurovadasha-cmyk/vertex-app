@@ -26,6 +26,7 @@ function main() {
   function dataUrl(value, from) {
     const file = localResource(value, from, ROOT);
     if (!file) return value;
+    if (/\.(woff2?|ttf|otf|eot|ttc)$/i.test(file)) throw new Error('Font binaries are excluded from preview exports.');
     const type = mime[path.extname(file).toLowerCase()];
     if (!type) throw new Error(`Unsupported inline asset: ${path.relative(ROOT,file)}`);
     if (!encoded.has(file)) encoded.set(file, `data:${type};base64,${fs.readFileSync(file).toString('base64')}`);
@@ -63,7 +64,7 @@ function main() {
     // surrounding guard/catch while preventing an artifact from installing SWs.
     text = text.replace(/navigator\s*\.\s*serviceWorker\s*\.\s*register\s*\(\s*(['"])[^'"]*\1\s*\)/g, 'Promise.resolve(null)');
     if (/serviceWorker\s*\.\s*register\s*\(/.test(text)) throw new Error(`Unrecognized service worker registration in ${path.relative(ROOT,file)}.`);
-    text = text.replace(/\b(?:window\.)?localStorage\b/g, 'window.__vertexCanvaStore');
+    text = text.replace(/\b(?:(?:window|root|globalThis)\.)?(?:localStorage|sessionStorage)\b/g, 'window.__vertexCanvaStore');
     new vm.Script(text, { filename:path.relative(ROOT,file) });
     scripts.push(text);
     return text.replace(/<\/script/gi,'<\\/script');
@@ -99,7 +100,7 @@ function main() {
   html = html.replace(/<\/body\s*>/i, '<p id="vertexArtifactNotice">Интерактивный прототип · изменения сбрасываются после обновления. Оплаты и заявки демонстрационные.<br>Interactive prototype · changes reset on reload. Payments and requests are demonstrations.</p></body>');
   // Compile the combined classic scripts to catch cross-file declaration clashes.
   new vm.Script([memory,...scripts].join('\n;\n'), { filename:'Vertex-Canva-Latest.html' });
-  if (/\blocalStorage\b|serviceWorker\s*\.\s*register\s*\(/.test(html)) throw new Error('Persistent storage or service worker registration remained in the artifact.');
+  if (/\b(?:localStorage|sessionStorage)\b|serviceWorker\s*\.\s*register\s*\(/.test(html)) throw new Error('Persistent storage or service worker registration remained in the artifact.');
   fs.mkdirSync(path.dirname(OUTPUT), { recursive:true });
   fs.writeFileSync(OUTPUT, html, 'utf8');
   const hash = crypto.createHash('sha256').update(html).digest('hex');

@@ -28,13 +28,14 @@ const validDate=value=>{
   return dt.getUTCFullYear()===y&&dt.getUTCMonth()===m-1&&dt.getUTCDate()===d;
 };
 const validMoney=value=>{
-  if(typeof value==='number')return Number.isFinite(value)&&value>=0&&value<=999999999999.99&&Math.round(value*100)===value*100;
+  // A valid two-decimal JSON number such as 0.29 need not multiply to an exact integer in IEEE-754.
+  if(typeof value==='number')return Number.isFinite(value)&&value>=0&&decimal.test(String(value))&&value<=999999999999.99;
   return typeof value==='string'&&decimal.test(value)&&Number(value)<=999999999999.99;
 };
 
 export function validateViewsCommand(input){
   if(!input||typeof input!=='object'||Array.isArray(input)||Object.getPrototypeOf(input)!==Object.prototype)invalid();
-  const type=input.type,definition=definitions[type];if(!definition)invalid();
+  const type=input.type;if(typeof type!=='string'||!Object.hasOwn(definitions,type))invalid();const definition=definitions[type];
   const allowed=new Set([...definition.required,...definition.optional]);
   const keys=Object.keys(input);
   if(keys.some(key=>!allowed.has(key))||definition.required.some(key=>!Object.hasOwn(input,key)))invalid();

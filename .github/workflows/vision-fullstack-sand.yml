@@ -10,63 +10,96 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: vision_test_fullstack
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Export pinned reconciliation inputs
-        run: |
-          mkdir -p artifacts/fullstack
-          python - <<'PY'
-          import subprocess, tarfile, io, zipfile, json
-          from pathlib import Path
-          rc='6fdff16a7049e5b3b4ff7ecc272616607234ae03'
-          design='bf79fe502504c1a98dc0df29e8cdc24f60ca07a2'
-          base=subprocess.check_output(['git','merge-base',rc,design],text=True).strip()
-          refs={'current':'HEAD','rc':rc,'design':design,'base':base}
-          excluded={'.ttf','.otf','.woff','.woff2','.ttc','.eot','.pem','.key','.jks','.keystore','.apk','.zip'}
-          for label,ref in refs.items():
-              raw=subprocess.check_output(['git','archive',ref])
-              with tarfile.open(fileobj=io.BytesIO(raw)) as tar, zipfile.ZipFile('artifacts/fullstack/'+label+'.zip','w',zipfile.ZIP_DEFLATED) as z:
-                  for member in tar:
-                      p=Path(member.name)
-                      if member.isfile() and p.suffix.lower() not in excluded and p.name not in {'.env','.dev.vars','local.properties'}:
-                          z.writestr(member.name,tar.extractfile(member).read())
-          Path('artifacts/fullstack/source-refs.json').write_text(json.dumps({k:subprocess.check_output(['git','rev-parse',v],text=True).strip() for k,v in refs.items()},indent=2))
-          PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/setup-python@v5
         with:
-          name: vision-fullstack-source-${{ github.sha }}
-          path: artifacts/fullstack/
-          retention-days: 14
-      - name: Install pinned project dependencies
+          python-version: '3.12'
+      - name: Install without cloud credentials
         run: |
           npm install
           npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
-          tar -czf artifacts/fullstack/vision-dependencies.tgz -C vision node_modules
-      - uses: actions/upload-artifact@v4
-        with:
-          name: vision-fullstack-dependencies-${{ github.sha }}
-          path: artifacts/fullstack/vision-dependencies.tgz
-          retention-days: 7
-      - name: Verify assembled application and contracts
+          python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3
+          python -m playwright install --with-deps chromium
+      - name: Verify application contracts and assembly
         run: |
           set -o pipefail
+          mkdir -p artifacts/fullstack
           npm test 2>&1 | tee artifacts/fullstack/tests.txt
           npm run assemble:vision 2>&1 | tee artifacts/fullstack/assembly.txt
           node scripts/check-android-sync.cjs
-      - name: Compile staging Worker without deployment
+      - name: Native PostgreSQL concurrency and data invariants
         run: |
           set -o pipefail
-          npx wrangler deploy --config vision/wrangler.jsonc --dry-run --outdir artifacts/fullstack/worker 2>&1 | tee artifacts/fullstack/worker-build.txt
+          node --test vision/tests/database.test.mjs 2>&1 | tee artifacts/fullstack/postgresql.txt
+          node --test vision/tests/next-stage.test.mjs 2>&1 | tee artifacts/fullstack/postgresql-next.txt
+        env:
+          VISION_TEST_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_test_fullstack
+      - name: Preserved browsers and approved Sand design
+        run: |
+          python scripts/browser-quality.py
+          python scripts/browser-studio.py
+          python scripts/browser-taxi.py
+          python scripts/browser-web-red.py
+          python scripts/browser-vision.py
+          python scripts/browser-sand-design.py
+      - name: New design through staging handler and actual SQL with synthetic Auth
+        run: python scripts/browser-fullstack-sand.py
+      - name: Compile both Worker configurations without publishing
+        run: |
+          set -o pipefail
+          npm run check:deploy 2>&1 | tee artifacts/fullstack/public-dry-run.txt
+          npx wrangler deploy --config vision/wrangler.jsonc --dry-run --outdir artifacts/fullstack/worker 2>&1 | tee artifacts/fullstack/staging-dry-run.txt
+      - name: Create exact interactive preview
+        run: node scripts/package-canva.cjs
+      - name: Export source and evidence with no secrets or font binaries
+        if: always()
+        run: |
+          mkdir -p artifacts/fullstack
+          python - <<'PY'
+          import subprocess, zipfile, hashlib, json
+          from pathlib import Path
+          excluded={'.ttf','.otf','.woff','.woff2','.ttc','.eot','.pem','.key','.jks','.keystore','.apk','.zip'}
+          with zipfile.ZipFile('artifacts/fullstack/source.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in subprocess.check_output(['git','ls-files','-z']).decode().split('\0'):
+                  p=Path(name)
+                  if name and p.suffix.lower() not in excluded and p.name not in {'.env','.dev.vars','local.properties'}:
+                      z.writestr(name,subprocess.check_output(['git','show','HEAD:'+name]))
+          info={'sourceCommit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),'cloudAuthVerified':False,'productionChanged':False}
+          info['files']={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in Path('artifacts').rglob('*') if p.is_file() and p.suffix.lower() not in excluded}
+          Path('artifacts/fullstack/evidence.json').write_text(json.dumps(info,indent=2))
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: vision-fullstack-result-${{ github.sha }}
-          path: artifacts/fullstack/
+          name: vision-fullstack-sand-${{ github.sha }}
+          path: |
+            artifacts/fullstack/
+            artifacts/fullstack-browser/
+            artifacts/design/
+            artifacts/vision/
+            artifacts/quality/
+            artifacts/studio/
+            artifacts/assembly/
+            artifacts/Vertex-Canva-Latest.html
           retention-days: 14
+          if-no-files-found: error

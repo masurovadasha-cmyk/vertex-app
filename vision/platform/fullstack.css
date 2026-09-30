@@ -1,0 +1,12 @@
+/* Full-stack Views forms and reliable-command states; scoped to the approved theme. */
+#visionViewsOperations .vvo-create-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;background:var(--vs-paper,#fffcf6);padding:22px;border:1px solid #d8ceba;border-radius:18px;margin:18px 0}
+#visionViewsOperations .vvo-create-form h3,#visionViewsOperations .vvo-create-form p{grid-column:1/-1;margin:0;line-height:1.6}
+#visionViewsOperations .vvo-create-form label{display:grid;gap:7px;min-width:0;font-size:13px;color:#514a3c}
+#visionViewsOperations .vvo-create-form input,#visionViewsOperations .vvo-create-form select{width:100%;min-width:0;min-height:46px;border:1px solid #a99c82;border-radius:10px;background:#fffdf8;padding:10px;color:#302c23;font:inherit}
+#visionViewsOperations .vvo-pagination{display:grid;gap:10px;margin-top:22px;font-size:13px;color:#655f52}
+#visionViewsOperations .vvo-pagination section{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+#visionViewsOperations .vvo-pending{padding:18px;background:#fff4d4;border:1px solid #af8734;border-radius:14px;color:#4c3910;line-height:1.6;margin:12px 0}
+#visionViewsOperations .vvo-pending button,#visionViewsOperations .vvo-new-booking{min-height:44px;padding:11px 17px;border-radius:10px;background:#716038;color:#fffbea;border:1px solid #716038;cursor:pointer}
+#visionViewsOperations .vvo-success{padding:13px;border-radius:10px;background:#e5eedf;color:#244622;line-height:1.6}
+#visionViewsOperations button:disabled{opacity:.55;cursor:wait}
+@media(max-width:540px){#visionViewsOperations .vvo-create-form{grid-template-columns:1fr;padding:16px}#visionViewsOperations .vvo-create-form input{font-size:16px}}

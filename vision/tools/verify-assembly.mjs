@@ -1,10 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
-const root=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
+const root=fileURLToPath(new URL('../../',import.meta.url));
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const json=p=>JSON.parse(read(p));
 const exists=p=>fs.existsSync(path.join(root,p));
@@ -49,7 +50,7 @@ assert.match(gradle,new RegExp("applicationId\\s+'"+assembly.runtimes.android.pa
 assert.match(gradle,new RegExp("versionName\\s+'"+assembly.runtimes.android.versionName.replaceAll('.','\\.')+"'"));
 assert.match(gradle,new RegExp('versionCode\\s+'+assembly.runtimes.android.versionCode+'\\b'));
 
-for(const asset of ['vision-core.js','vision-views.js','vision-shell.js']){
+for(const asset of ['vision-core.js','vision-views-client.js','vision-views.js','vision-shell.js']){
   assert.ok(index.includes('src="'+asset+'"'),'missing generated runtime '+asset);
 }
 for(const asset of ['vision-views.css','vision-shell.css']){
@@ -58,6 +59,8 @@ for(const asset of ['vision-views.css','vision-shell.css']){
 for(const required of [
   'vision/platform/registry.cjs',
   'vision/platform/views-ops.js',
+  'vision/platform/views-client.cjs',
+  'vision/backend/http.mjs',
   'vision/backend/worker.mjs',
   'vision/backend/kernel.mjs',
   'vision/backend/readiness.mjs',
@@ -108,14 +111,19 @@ assert.equal(release.runtimeReadiness.rpc,'public.vision_runtime_readiness()');
 assert.equal(release.eventReliability.deliveryModel,'at-least-once');
 assert.equal(release.eventReliability.deduplication,'tenant-consumer-event-id');
 assert.equal(assembly.reliability.globalExactlyOnce,false);
-assert.equal(release.eventReliability.deliveryModel,'at-least-once');
-assert.equal(release.eventReliability.deduplication,'tenant-consumer-event-id');
-assert.equal(assembly.reliability.globalExactlyOnce,false);
 
+assert.equal(assembly.design.id,'sand-luxury');
+assert.equal(assembly.design.id,release.design.id);
+for(const asset of ['vision-design.js','vision-sand.css','vision-mark.svg'])assert.ok(exists('vertex/dist/'+asset),'missing design asset '+asset);
 const rootPkg=json('package.json');
 assert.ok(rootPkg.scripts?.['check:vision-assembly']);
 assert.ok(rootPkg.scripts?.['build:vision']);
 assert.ok(rootPkg.scripts?.['test:vision']);
+
+
+assert.ok(index.indexOf('src="vision-views-client.js"')<index.indexOf('src="vision-views.js"'),'client must initialize before Views UI');
+assert.equal(read('vision/platform/views-client.cjs'),read('vertex/dist/vision-views-client.js'));
+assert.equal(assembly.fullstack.stage,release.fullstack.stage);
 
 console.log(JSON.stringify({
   status:'PASS',
