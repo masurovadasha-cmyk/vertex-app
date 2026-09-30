@@ -1,0 +1,54 @@
+{
+  "version": "0.1",
+  "mode": "evidence-only-no-deploy",
+  "productionMutationAllowed": false,
+  "sourceMustMatchAcrossEvidence": true,
+  "requiredReleaseFlags": {
+    "cloudStagingVerified": true,
+    "productionReady": true,
+    "productionApproved": true
+  },
+  "requiredEvidence": [
+    {
+      "id": "integrated-assembly",
+      "file": "assembly/integrated-assembly.json"
+    },
+    {
+      "id": "rc2-safety",
+      "file": "rc2/rc2-safety-report.json"
+    },
+    {
+      "id": "real-staging-auth-e2e",
+      "file": "cloud/cloud-e2e.json"
+    },
+    {
+      "id": "production-backup-restore",
+      "file": "backup/production-backup-restore.json"
+    }
+  ],
+  "rules": {
+    "integratedAssembly": {
+      "productionChanged": false
+    },
+    "rc2Safety": {
+      "status": "PASS",
+      "backupRestoreVerified": true,
+      "migrationSafetyVerified": true,
+      "nMinusOneCompatibilityVerified": true,
+      "rollbackPolicyVerified": true,
+      "productionApproved": false,
+      "productionChanged": false
+    },
+    "cloudE2E": {
+      "status": "passed",
+      "productionChanged": false
+    },
+    "productionBackupRestore": {
+      "status": "PASS",
+      "target": "production",
+      "backupCreated": true,
+      "restoreVerified": true,
+      "productionChanged": false
+    }
+  }
+}
