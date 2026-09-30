@@ -81,7 +81,7 @@ const managerContext=await context(credentials.views);
 const cleanerContext=await context(credentials.staff);
 const qualityContext=await context(credentials.quality);
 const guestContext=await context(credentials.guest);
-if(!managerContext.permissions.includes('views.booking.manage')||!managerContext.permissions.includes('views.booking.create'))throw new Error('manager_context_incomplete');
+if(!managerContext.permissions.includes('views.booking.manage')||!managerContext.permissions.includes('views.booking.create')||managerContext.permissions.includes('views.cleaning.execute')||managerContext.permissions.includes('views.cleaning.verify'))throw new Error('manager_context_invalid');
 if(!cleanerContext.permissions.includes('views.cleaning.execute')||cleanerContext.permissions.includes('views.cleaning.verify'))throw new Error('cleaner_context_invalid');
 if(!qualityContext.permissions.includes('views.cleaning.verify')||qualityContext.permissions.includes('views.cleaning.execute'))throw new Error('quality_context_invalid');
 if(guestContext.guestLinked!==true||guestContext.permissions.length!==0)throw new Error('guest_context_invalid');

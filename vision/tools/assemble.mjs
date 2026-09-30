@@ -1,10 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 
-const root=fileURLToPath(new URL('../../',import.meta.url));
+const root=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
 const rel=p=>path.join(root,p);
 const hash=p=>createHash('sha256').update(fs.readFileSync(rel(p))).digest('hex');
 const json=p=>JSON.parse(fs.readFileSync(rel(p),'utf8'));
@@ -16,17 +15,7 @@ const tracked=[
   'vision/assembly/manifest.json',
   assembly.releaseManifest,
   'vision/platform/registry.cjs',
-  'vision/platform/design-system.js',
-  'vision/platform/sand-luxury.css',
-  'vertex/dist/vision-design.js',
-  'vertex/dist/vision-sand.css',
-  'vertex/dist/vision-mark.svg',
   'vision/platform/views-ops.js',
-  'vision/platform/views-client.cjs',
-  'vision/platform/fullstack.css',
-  'vertex/dist/vision-fullstack.css',
-  'vertex/dist/vision-views-client.js',
-  'vision/backend/http.mjs',
   'vision/backend/worker.mjs',
   'vision/backend/kernel.mjs',
   'vision/backend/readiness.mjs',
@@ -36,6 +25,13 @@ const tracked=[
   'vision/staging/provision.mjs',
   'vision/staging/cloud-e2e.mjs',
   '.github/workflows/vision-cloud-e2e.yml',
+  '.github/workflows/vision-rc2-safety.yml',
+  'vision/production/safety-manifest.json',
+  'vision/production/rollback-plan.json',
+  'vision/production/check-migration-safety.mjs',
+  'vision/production/preflight.mjs',
+  'vision/production/seed-restore-fixture.mjs',
+  'vision/production/verify-restore.mjs',
   'vision/modules/views/manifest.json',
   'wrangler.jsonc',
   'vision/wrangler.jsonc',

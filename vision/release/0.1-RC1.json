@@ -4,29 +4,8 @@
   "platformVersion": "1.16-rc1",
   "api": "v1",
   "databaseMigration": "0011_event_inbox.sql",
-  "activeModules": [
-    "views"
-  ],
-  "comingSoonModules": [
-    "managing",
-    "real-estate",
-    "engineers",
-    "aura-design",
-    "travel",
-    "aviation",
-    "rent-car",
-    "taxi",
-    "concierge",
-    "cleaning",
-    "laundry",
-    "ditalia",
-    "market",
-    "bar",
-    "technologies",
-    "investment",
-    "ventures",
-    "training"
-  ],
+  "activeModules": ["views"],
+  "comingSoonModules": ["managing", "real-estate", "engineers", "aura-design", "travel", "aviation", "rent-car", "taxi", "concierge", "cleaning", "laundry", "ditalia", "market", "bar", "technologies", "investment", "ventures", "training"],
   "cloudStagingVerified": false,
   "productionApproved": false,
   "productionReady": false,
@@ -39,133 +18,75 @@
   "viewsOperations": {
     "status": "implemented-in-branch",
     "apiBase": "/api/v1/views",
-    "commands": [
-      "create_booking",
-      "confirm_booking",
-      "check_in",
-      "check_out",
-      "cancel_booking",
-      "cleaning_start",
-      "cleaning_submit",
-      "cleaning_verify"
-    ],
+    "commands": ["create_booking", "confirm_booking", "check_in", "check_out", "cancel_booking", "cleaning_start", "cleaning_submit", "cleaning_verify"],
     "cloudStagingVerified": false
   },
   "viewsUI": {
     "status": "implemented-in-branch",
     "primaryAction": "operations",
-    "tabs": [
-      "dashboard",
-      "calendar",
-      "bookings",
-      "units",
-      "cleaning"
-    ],
+    "tabs": ["dashboard", "calendar", "bookings", "units", "cleaning"],
     "dataPolicy": "real-staging-only-no-demo-fallback",
     "sessionPolicy": "server-authoritative-context-from-verified-jwt",
     "cloudStagingVerified": false
   },
   "architectureVersion": "1.6",
-  "technicalStage": "real-supabase-auth-e2e-prepared-0.1",
+  "technicalStage": "rc2-production-safety-prepared-0.1",
   "viewsIntegrity": {
-    "status": "implemented-in-branch",
-    "inventory": "unique-tenant-unit-night",
-    "quality": "independent-executor-reviewer",
-    "moduleGate": "SQL-and-RLS",
-    "cloudMigrationApplied": false
+    "status": "implemented-in-branch", "inventory": "unique-tenant-unit-night",
+    "quality": "independent-executor-reviewer", "moduleGate": "SQL-and-RLS", "cloudMigrationApplied": false
   },
   "viewsReadAPI": {
-    "format": "array",
-    "defaultLimit": 50,
-    "maxLimit": 100,
-    "cursorHeader": "X-Next-Cursor",
-    "projection": "allowlisted-fields",
-    "organizationScope": "required"
+    "format": "array", "defaultLimit": 50, "maxLimit": 100, "cursorHeader": "X-Next-Cursor",
+    "projection": "allowlisted-fields", "organizationScope": "required"
   },
   "integratedAssembly": {
-    "status": "implemented-in-branch",
-    "manifest": "vision/assembly/manifest.json",
-    "verifier": "vision/tools/verify-assembly.mjs",
-    "workflow": ".github/workflows/vision-assembly.yml",
+    "status": "implemented-in-branch", "manifest": "vision/assembly/manifest.json",
+    "verifier": "vision/tools/verify-assembly.mjs", "workflow": ".github/workflows/vision-assembly.yml",
     "productionApproved": false
   },
   "applicationKernel": {
-    "status": "implemented-in-branch",
-    "routePolicy": "vision/backend/kernel.mjs",
-    "sessionContext": "public.vision_session_context(uuid,uuid)",
-    "contextEndpoint": "/api/v1/context",
-    "permissionSource": "postgresql-rbac-only",
-    "clientPermissionClaimsTrusted": false,
-    "organizationScopeRequired": true,
-    "commandContract": "vision/modules/views/command-contract.mjs",
-    "commandValidation": "api-and-postgresql",
-    "commandSchemaVersion": "v1",
-    "responseContract": "vision/modules/views/response-contract.mjs",
-    "responseProjection": "allowlisted-command-dto",
-    "traceHeaders": [
-      "X-Request-ID",
-      "X-Correlation-ID"
-    ]
+    "status": "implemented-in-branch", "routePolicy": "vision/backend/kernel.mjs",
+    "sessionContext": "public.vision_session_context(uuid,uuid)", "contextEndpoint": "/api/v1/context",
+    "permissionSource": "postgresql-rbac-only", "clientPermissionClaimsTrusted": false,
+    "organizationScopeRequired": true, "commandContract": "vision/modules/views/command-contract.mjs",
+    "commandValidation": "api-and-postgresql", "commandSchemaVersion": "v1",
+    "responseContract": "vision/modules/views/response-contract.mjs", "responseProjection": "allowlisted-command-dto",
+    "traceHeaders": ["X-Request-ID", "X-Correlation-ID"]
   },
   "runtimeReadiness": {
-    "status": "implemented-in-branch",
-    "endpoint": "/readyz",
-    "rpc": "public.vision_runtime_readiness()",
+    "status": "implemented-in-branch", "endpoint": "/readyz", "rpc": "public.vision_runtime_readiness()",
     "authRole": "anon-via-publishable-key",
-    "checks": [
-      "migration-level",
-      "required-tables",
-      "required-rpcs",
-      "rls",
-      "views-release-active",
-      "event-inbox"
-    ],
-    "serviceRoleRequired": false,
-    "cloudVerified": false
+    "checks": ["migration-level", "required-tables", "required-rpcs", "rls", "views-release-active", "event-inbox"],
+    "serviceRoleRequired": false, "cloudVerified": false
   },
   "realStagingE2E": {
     "status": "prepared-blocked-on-external-staging-configuration",
-    "workflow": ".github/workflows/vision-cloud-e2e.yml",
-    "provisioning": "vision/staging/provision.mjs",
-    "authHelper": "vision/staging/auth.mjs",
-    "e2eRunner": "vision/staging/cloud-e2e.mjs",
-    "identities": [
-      "guest",
-      "views",
-      "dispatcher",
-      "staff",
-      "quality",
-      "audit"
-    ],
-    "appliesChecksumTrackedMigrations": true,
-    "genuineSupabaseAuthRequired": true,
-    "directRLSVerification": true,
-    "cloudVerified": false,
-    "productionChanged": false
+    "workflow": ".github/workflows/vision-cloud-e2e.yml", "provisioning": "vision/staging/provision.mjs",
+    "authHelper": "vision/staging/auth.mjs", "e2eRunner": "vision/staging/cloud-e2e.mjs",
+    "identities": ["guest", "views", "dispatcher", "staff", "quality", "audit"],
+    "appliesChecksumTrackedMigrations": true, "genuineSupabaseAuthRequired": true,
+    "directRLSVerification": true, "cloudVerified": false, "productionChanged": false
   },
   "eventReliability": {
-    "status": "implemented-in-branch",
-    "migration": "0011_event_inbox.sql",
-    "deliveryModel": "at-least-once",
-    "deduplication": "tenant-consumer-event-id",
-    "leaseSeconds": 60,
-    "productionConsumerConnected": false
+    "status": "implemented-in-branch", "migration": "0011_event_inbox.sql",
+    "deliveryModel": "at-least-once", "deduplication": "tenant-consumer-event-id",
+    "leaseSeconds": 60, "productionConsumerConnected": false
+  },
+  "productionSafety": {
+    "status": "implemented-in-branch", "workflow": ".github/workflows/vision-rc2-safety.yml",
+    "safetyManifest": "vision/production/safety-manifest.json", "rollbackPlan": "vision/production/rollback-plan.json",
+    "migrationPolicy": "expand-only-after-foundation", "readOnlyPreflight": "vision/production/preflight.mjs",
+    "backupRestoreDrill": "postgresql-native-dump-restore-synthetic-ci",
+    "backupRestoreVerified": false, "productionApproved": false, "productionChanged": false
   },
   "design": {
-    "id": "sand-luxury",
-    "version": "1.0.0",
-    "hub": "graphite-champagne",
-    "views": "ivory-sand",
-    "moduleVisuals": 19,
-    "motion": "respects-reduced-motion",
-    "changesBusinessCapabilities": false
+    "id": "sand-luxury", "version": "1.0.0", "hub": "graphite-champagne", "views": "ivory-sand",
+    "moduleVisuals": 19, "motion": "respects-reduced-motion", "changesBusinessCapabilities": false
   },
   "fullstack": {
-    "stage": "sand-integration-1",
-    "client": "vision/platform/views-client.cjs",
+    "stage": "sand-integration-1", "client": "vision/platform/views-client.cjs",
     "pendingCommandPolicy": "verified-identity-scoped-session-storage-no-tokens",
-    "pagination": "cursor-with-visible-completeness",
-    "browserSQLFixture": "synthetic-auth-real-pglite-rls",
+    "pagination": "cursor-with-visible-completeness", "browserSQLFixture": "synthetic-auth-real-pglite-rls",
     "genuineCloudAuthVerified": false
   }
 }

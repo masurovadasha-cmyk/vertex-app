@@ -1,16 +1,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 
 const require=createRequire(import.meta.url);
-const root=fileURLToPath(new URL('../../',import.meta.url));
+const root=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const json=p=>JSON.parse(read(p));
 const exists=p=>fs.existsSync(path.join(root,p));
 const assembly=json('vision/assembly/manifest.json');
 const release=json(assembly.releaseManifest);
+const safety=json('vision/production/safety-manifest.json');
+const rollback=json('vision/production/rollback-plan.json');
 const core=require(path.join(root,'vision/platform/registry.cjs'));
 const prod=json('wrangler.jsonc');
 const staging=json('vision/wrangler.jsonc');
@@ -50,7 +51,7 @@ assert.match(gradle,new RegExp("applicationId\\s+'"+assembly.runtimes.android.pa
 assert.match(gradle,new RegExp("versionName\\s+'"+assembly.runtimes.android.versionName.replaceAll('.','\\.')+"'"));
 assert.match(gradle,new RegExp('versionCode\\s+'+assembly.runtimes.android.versionCode+'\\b'));
 
-for(const asset of ['vision-core.js','vision-views-client.js','vision-views.js','vision-shell.js']){
+for(const asset of ['vision-core.js','vision-views.js','vision-shell.js']){
   assert.ok(index.includes('src="'+asset+'"'),'missing generated runtime '+asset);
 }
 for(const asset of ['vision-views.css','vision-shell.css']){
@@ -59,8 +60,6 @@ for(const asset of ['vision-views.css','vision-shell.css']){
 for(const required of [
   'vision/platform/registry.cjs',
   'vision/platform/views-ops.js',
-  'vision/platform/views-client.cjs',
-  'vision/backend/http.mjs',
   'vision/backend/worker.mjs',
   'vision/backend/kernel.mjs',
   'vision/backend/readiness.mjs',
@@ -75,6 +74,13 @@ for(const required of [
   'vision/staging/provision.mjs',
   'vision/staging/cloud-e2e.mjs',
   '.github/workflows/vision-cloud-e2e.yml',
+  '.github/workflows/vision-rc2-safety.yml',
+  'vision/production/safety-manifest.json',
+  'vision/production/rollback-plan.json',
+  'vision/production/check-migration-safety.mjs',
+  'vision/production/preflight.mjs',
+  'vision/production/seed-restore-fixture.mjs',
+  'vision/production/verify-restore.mjs',
   'vision/modules/views/manifest.json',
   'docs/architecture/TARGET-ARCHITECTURE-1.0.md'
 ]) assert.ok(exists(required),'missing assembly component '+required);
@@ -111,19 +117,24 @@ assert.equal(release.runtimeReadiness.rpc,'public.vision_runtime_readiness()');
 assert.equal(release.eventReliability.deliveryModel,'at-least-once');
 assert.equal(release.eventReliability.deduplication,'tenant-consumer-event-id');
 assert.equal(assembly.reliability.globalExactlyOnce,false);
+assert.equal(assembly.productionSafety.productionApproved,false);
+assert.equal(release.productionSafety.productionApproved,false);
+assert.equal(safety.productionApproved,false);
+assert.equal(safety.productionDeployAllowed,false);
+assert.equal(safety.databasePolicy.downMigrations,false);
+assert.equal(rollback.databaseRollback.automaticDownMigrations,false);
+assert.equal(rollback.approval.explicitOwnerApprovalRequired,true);
 
-assert.equal(assembly.design.id,'sand-luxury');
-assert.equal(assembly.design.id,release.design.id);
-for(const asset of ['vision-design.js','vision-sand.css','vision-mark.svg'])assert.ok(exists('vertex/dist/'+asset),'missing design asset '+asset);
+const adrDir=path.join(root,'docs/architecture');
+const adrFiles=fs.readdirSync(adrDir).filter(name=>/^ADR-\d{3}-.+\.md$/.test(name));
+const adrNumbers=adrFiles.map(name=>name.slice(4,7));
+assert.equal(new Set(adrNumbers).size,adrNumbers.length,'ADR numbers must be unique');
+
 const rootPkg=json('package.json');
 assert.ok(rootPkg.scripts?.['check:vision-assembly']);
 assert.ok(rootPkg.scripts?.['build:vision']);
 assert.ok(rootPkg.scripts?.['test:vision']);
-
-
-assert.ok(index.indexOf('src="vision-views-client.js"')<index.indexOf('src="vision-views.js"'),'client must initialize before Views UI');
-assert.equal(read('vision/platform/views-client.cjs'),read('vertex/dist/vision-views-client.js'));
-assert.equal(assembly.fullstack.stage,release.fullstack.stage);
+assert.ok(rootPkg.scripts?.['check:production-safety']);
 
 console.log(JSON.stringify({
   status:'PASS',

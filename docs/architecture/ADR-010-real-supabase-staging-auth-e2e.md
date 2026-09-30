@@ -1,4 +1,4 @@
-# ADR-009: Real Supabase staging Auth and cloud E2E gate
+# ADR-010: Real Supabase staging Auth and cloud E2E gate
 
 Status: Accepted for VERTEX Vision RC branch
 

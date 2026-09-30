@@ -11,54 +11,19 @@
     "sourceOfTruth": "PostgreSQL/Supabase",
     "productionApplied": false
   },
-  "modules": {
-    "active": [
-      "views"
-    ],
-    "comingSoonCount": 18,
-    "registryCount": 19
-  },
+  "modules": {"active": ["views"], "comingSoonCount": 18, "registryCount": 19},
   "views": {
-    "ui": [
-      "dashboard",
-      "calendar",
-      "bookings",
-      "units",
-      "cleaning"
-    ],
+    "ui": ["dashboard", "calendar", "bookings", "units", "cleaning"],
     "backend": "/api/v1/views",
-    "commands": [
-      "create_booking",
-      "confirm_booking",
-      "check_in",
-      "check_out",
-      "cancel_booking",
-      "cleaning_start",
-      "cleaning_submit",
-      "cleaning_verify"
-    ],
+    "commands": ["create_booking", "confirm_booking", "check_in", "check_out", "cancel_booking", "cleaning_start", "cleaning_submit", "cleaning_verify"],
     "authoritativeWrites": "database-rpc",
     "demoFallbackInOperations": false
   },
   "runtimes": {
-    "web": {
-      "source": "vision/platform",
-      "buildOutput": "vertex/dist"
-    },
-    "android": {
-      "packageId": "com.vertex.vision.demo",
-      "versionName": "1.16-rc1",
-      "versionCode": 20
-    },
-    "stagingWorker": {
-      "name": "vertex-vision-staging",
-      "config": "vision/wrangler.jsonc"
-    },
-    "productionWorker": {
-      "name": "vertex-app",
-      "config": "wrangler.jsonc",
-      "approved": false
-    }
+    "web": {"source": "vision/platform", "buildOutput": "vertex/dist"},
+    "android": {"packageId": "com.vertex.vision.demo", "versionName": "1.16-rc1", "versionCode": 20},
+    "stagingWorker": {"name": "vertex-vision-staging", "config": "vision/wrangler.jsonc"},
+    "productionWorker": {"name": "vertex-app", "config": "wrangler.jsonc", "approved": false}
   },
   "boundaries": {
     "jarvis": "separate-project-external-api-only",
@@ -67,21 +32,12 @@
     "cloudDatabaseMigration": false
   },
   "gates": [
-    "assembly-contract",
-    "server-authoritative-session-context",
-    "typed-command-contract",
-    "typed-response-contract",
-    "request-correlation-trace",
-    "runtime-readiness",
-    "event-inbox-idempotency",
-    "unit-regression",
-    "postgresql-rls",
-    "views-vertical-flow",
-    "browser-desktop-mobile",
-    "android-build-signature-assets",
-    "cloudflare-production-dry-run",
-    "cloudflare-staging-dry-run",
-    "real-supabase-auth-e2e"
+    "assembly-contract", "server-authoritative-session-context", "typed-command-contract",
+    "typed-response-contract", "request-correlation-trace", "runtime-readiness",
+    "event-inbox-idempotency", "unit-regression", "postgresql-rls", "views-vertical-flow",
+    "browser-desktop-mobile", "android-build-signature-assets", "cloudflare-production-dry-run",
+    "cloudflare-staging-dry-run", "real-supabase-auth-e2e", "expand-only-migration-policy",
+    "read-only-release-preflight", "backup-restore-drill", "rollback-policy"
   ],
   "kernel": {
     "routePolicy": "vision/backend/kernel.mjs",
@@ -91,28 +47,15 @@
     "organizationScopeRequired": true,
     "commandContract": "vision/modules/views/command-contract.mjs",
     "commandSchemaVersion": "v1",
-    "commandValidationLayers": [
-      "api-contract",
-      "postgresql-domain"
-    ],
+    "commandValidationLayers": ["api-contract", "postgresql-domain"],
     "responseContract": "vision/modules/views/response-contract.mjs",
     "responseProjection": "allowlisted-command-dto",
-    "traceHeaders": [
-      "X-Request-ID",
-      "X-Correlation-ID"
-    ]
+    "traceHeaders": ["X-Request-ID", "X-Correlation-ID"]
   },
   "readiness": {
     "endpoint": "/readyz",
     "rpc": "public.vision_runtime_readiness()",
-    "checks": [
-      "migration-level",
-      "required-tables",
-      "required-rpcs",
-      "rls",
-      "views-release-active",
-      "event-inbox"
-    ],
+    "checks": ["migration-level", "required-tables", "required-rpcs", "rls", "views-release-active", "event-inbox"],
     "serviceRoleRequired": false
   },
   "externalGates": {
@@ -129,14 +72,17 @@
     "inbox": "durable-deduplication-with-lease",
     "globalExactlyOnce": false
   },
+  "productionSafety": {
+    "manifest": "vision/production/safety-manifest.json",
+    "rollbackPlan": "vision/production/rollback-plan.json",
+    "workflow": ".github/workflows/vision-rc2-safety.yml",
+    "backupRestoreRequired": true,
+    "readOnlyPreflightRequired": true,
+    "productionApproved": false
+  },
   "design": {
-    "id": "sand-luxury",
-    "version": "1.0.0",
-    "hub": "graphite-champagne",
-    "views": "ivory-sand",
-    "moduleVisuals": 19,
-    "motion": "respects-reduced-motion",
-    "changesBusinessCapabilities": false
+    "id": "sand-luxury", "version": "1.0.0", "hub": "graphite-champagne", "views": "ivory-sand",
+    "moduleVisuals": 19, "motion": "respects-reduced-motion", "changesBusinessCapabilities": false
   },
   "fullstack": {
     "stage": "sand-integration-1",
