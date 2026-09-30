@@ -1,0 +1,25 @@
+{
+  "id": "cleaning",
+  "name": "Vertex Cleaning",
+  "version": "0.1.0",
+  "core": ">=0.1",
+  "permissions": [
+    "cleaning.order.read",
+    "cleaning.order.assign",
+    "cleaning.task.read_assigned",
+    "cleaning.task.update_assigned",
+    "cleaning.quality.review"
+  ],
+  "services": [
+    "cleaning.guest",
+    "cleaning.checkout"
+  ],
+  "events": [
+    "order.assigned",
+    "task.completed",
+    "quality.passed"
+  ],
+  "workflows": [
+    "cleaning-service-v1"
+  ]
+}

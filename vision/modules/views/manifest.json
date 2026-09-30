@@ -1,0 +1,20 @@
+{
+  "id": "views",
+  "name": "Views Hotel & Apartments",
+  "version": "0.1.0",
+  "core": ">=0.1",
+  "permissions": [
+    "views.order.read",
+    "views.order.create",
+    "views.order.monitor"
+  ],
+  "services": [
+    "views.accommodation"
+  ],
+  "events": [
+    "order.created"
+  ],
+  "workflows": [
+    "views-service-request-v1"
+  ]
+}

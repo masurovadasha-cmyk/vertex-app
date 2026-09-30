@@ -1,0 +1,20 @@
+/* Compact VISION layout. Reflow content rather than hide horizontal overflow. */
+#visionHome .vv-hero > *,
+#visionHome .vv-foundation,
+#visionHome .vv-services,
+#visionHome .vv-services > *,
+#visionHome .vv-filters > * { min-width: 0; }
+#visionHome .vv-services { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#visionHome .vv-services span,
+#visionHome .vv-foundation-note,
+#visionHome .vv-map span { overflow-wrap: anywhere; }
+@media (max-width: 370px) {
+  body > header { padding-inline: 12px; gap: 6px; }
+  body > header .brand { min-width: 0; gap: 4px; }
+  header .brand .vv-wordmark { white-space: normal; max-width: 58px; line-height: 1.15; }
+  #visionHome .vv-title { font-size: 34px; }
+  #visionHome .vv-services { grid-template-columns: minmax(0, 1fr); }
+  #visionHome .vv-filters { grid-template-columns: minmax(0, 1fr); }
+  #visionHome .vv-filters input,
+  #visionHome .vv-filters select { width: 100%; }
+}

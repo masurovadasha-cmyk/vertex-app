@@ -1,0 +1,123 @@
+name: VERTEX VISION Full Development Build
+on:
+  push:
+    branches: ['vision-foundation-*']
+    paths:
+      - 'vision/portable/**'
+      - '.github/workflows/vision-full-build.yml'
+permissions:
+  contents: read
+concurrency:
+  group: vision-full-build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  full-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: vision_test_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned build and verification dependencies
+        run: |
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          npm install --no-save --package-lock=false esbuild@0.25.10 playwright@1.55.0
+          npx playwright install --with-deps chromium
+          mkdir -p .vision-build/evidence
+      - name: Existing Vertex and VISION regression tests
+        run: npm test 2>&1 | tee .vision-build/evidence/unit-tests.txt
+      - name: PostgreSQL 17 isolation and transaction checks
+        run: node --test vision/tests/database.test.mjs 2>&1 | tee .vision-build/evidence/postgresql-tests.txt
+        env:
+          VISION_TEST_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_test_ci
+      - name: Generate self-contained web runtime and separate Android project
+        run: node vision/portable/build.mjs 2>&1 | tee .vision-build/evidence/portable-build.txt
+      - name: Verify exact packaged browser assets on desktop and mobile
+        run: node vision/portable/verify.mjs 2>&1 | tee .vision-build/evidence/browser-tests.txt
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android build tools
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Compile isolated VISION APK
+        run: gradle -p .vision-build/android --no-daemon assembleDebug 2>&1 | tee .vision-build/evidence/android-build.txt
+      - name: Verify APK identity, signature, offline permissions and every web asset
+        run: |
+          APK=.vision-build/android/app/build/outputs/apk/debug/app-debug.apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee .vision-build/evidence/apk-signature.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" > .vision-build/evidence/apk-badging.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump permissions "$APK" > .vision-build/evidence/apk-permissions.txt
+          grep -q "package: name='com.vertex.vision.dev'" .vision-build/evidence/apk-badging.txt
+          grep -q "versionName='0.2.0-dev'" .vision-build/evidence/apk-badging.txt
+          if grep -q 'android.permission.INTERNET' .vision-build/evidence/apk-permissions.txt; then exit 1; fi
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          with zipfile.ZipFile('.vision-build/android/app/build/outputs/apk/debug/app-debug.apk') as apk:
+              for file in Path('.vision-build/portable/web').iterdir():
+                  assert apk.read('assets/'+file.name)==file.read_bytes(), file.name
+          Path('.vision-build/evidence/apk-assets.txt').write_text('PASS: every APK web asset matches the browser-tested bundle byte for byte.\n')
+          PY
+      - name: Compile server bundles without any deployment
+        run: |
+          npm run check:deploy 2>&1 | tee .vision-build/evidence/vertex-dry-run.txt
+          npx wrangler deploy --config vision/wrangler.jsonc --dry-run --outdir .vision-build/staging-worker 2>&1 | tee .vision-build/evidence/vision-dry-run.txt
+      - name: Bundle checksum-verified Windows x64 Node runtime
+        run: |
+          VERSION=$(node --version)
+          mkdir -p .vision-build/portable/runtime
+          curl --fail --location --retry 3 "https://nodejs.org/dist/$VERSION/win-x64/node.exe" -o .vision-build/portable/runtime/node.exe
+          curl --fail --location --retry 3 "https://nodejs.org/dist/$VERSION/SHASUMS256.txt" -o .vision-build/evidence/node-official-shasums.txt
+          cp "$(dirname "$(dirname "$(command -v node)")")/LICENSE" .vision-build/portable/runtime/NODE-LICENSE.txt
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          sums={line.split()[1].lstrip('*'):line.split()[0] for line in Path('.vision-build/evidence/node-official-shasums.txt').read_text().splitlines() if line.strip()}
+          with Path('.vision-build/portable/runtime/node.exe').open('rb') as stream:
+              actual=hashlib.file_digest(stream,'sha256').hexdigest()
+          assert actual==sums['win-x64/node.exe']
+          Path('.vision-build/evidence/windows-runtime.txt').write_text('PASS: Windows x64 node.exe matches the official release SHA256: '+actual+'\n')
+          PY
+      - name: Package full source, runtime, backend, Android and evidence
+        run: python vision/portable/package.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Vertex-Vision-0.2.0-dev-FULL-${{ github.sha }}
+          path: .vision-build/deliverables/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve verification evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vertex-Vision-build-evidence-${{ github.sha }}
+          path: .vision-build/evidence/
+          if-no-files-found: warn
+          retention-days: 30

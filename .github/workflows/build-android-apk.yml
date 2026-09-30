@@ -2,83 +2,94 @@ name: Build Vertex Android APK
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'android/**'
+      - 'vision/platform/**'
+      - 'scripts/check-android-sync.cjs'
+      - '.github/workflows/build-android-apk.yml'
   push:
     branches: [master]
     paths:
-      - "android/**"
-      - "vertex/dist/**"
-      - "vertex/tools/**"
-      - "scripts/sync-android.cjs"
-      - "package.json"
-      - ".github/workflows/build-android-apk.yml"
+      - 'android/**'
+      - 'vertex/dist/**'
+      - 'vertex/tools/**'
+      - 'vision/platform/**'
+      - 'scripts/sync-android.cjs'
+      - 'scripts/check-android-sync.cjs'
+      - 'package.json'
+      - '.github/workflows/build-android-apk.yml'
 
 permissions:
   contents: read
+concurrency:
+  group: vertex-apk-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-
+          node-version: '22'
       - name: Install web test dependencies
-        run: npm install
-
-      - name: Verify Vertex release
-        run: npm test
-
-      - name: Synchronize Android assets
         run: |
-          npm run sync:android
-          git diff --exit-code -- android/app/src/main/assets/site
-
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+      - name: Verify unified release and synchronize generated Android assets
+        run: |
+          npm test
+          node scripts/check-android-sync.cjs
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
-
+          java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.11.1"
-
+          gradle-version: '8.11.1'
       - uses: android-actions/setup-android@v3
         with:
-          packages: "platform-tools"
-
+          packages: 'platform-tools'
       - name: Install Android SDK 35
         shell: bash
         run: |
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
-
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
       - name: Build debug APK
         run: gradle -p android --no-daemon assembleDebug
-
-      - name: Verify APK package and signature
+      - name: Verify package, signature and exact embedded files
         shell: bash
         run: |
           set -euo pipefail
-          APK="android/app/build/outputs/apk/debug/app-debug.apk"
-          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
-          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
-          test -f "$APK"
-          "$APKSIGNER" verify --verbose --print-certs "$APK" | tee apk-signature.txt
-          "$AAPT" dump badging "$APK" | head -n 1 | tee apk-badging.txt
-          grep -q "package: name='com.vertex.demo'" apk-badging.txt
-          grep -q "versionCode='18'" apk-badging.txt
-          grep -q "versionName='1.14-demo'" apk-badging.txt
-          sha256sum "$APK" | tee apk-sha256.txt
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
           mkdir -p release-apk
-          cp "$APK" "release-apk/Vertex-App-1.14-demo-code18.apk"
-          cp apk-signature.txt apk-badging.txt apk-sha256.txt release-apk/
-
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee release-apk/apk-signature.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" > release-apk/apk-badging.txt
+          grep -q "package: name='com.vertex.vision.demo'" release-apk/apk-badging.txt
+          grep -q "versionCode='19'" release-apk/apk-badging.txt
+          grep -q "versionName='1.15-demo'" release-apk/apk-badging.txt
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          with zipfile.ZipFile('android/app/build/outputs/apk/debug/app-debug.apk') as apk:
+              root = Path('android/app/src/main/assets/site')
+              for file in root.rglob('*'):
+                  if file.is_file():
+                      assert apk.read('assets/site/'+file.relative_to(root).as_posix()) == file.read_bytes(), str(file)
+          Path('release-apk/apk-assets.txt').write_text('PASS: every embedded web asset matches the generated, synchronization-checked source.\nNative Android runtime is not tested by this job.\n')
+          PY
+          cp "$APK" release-apk/Vertex-Vision-1.15-demo-code19.apk
+          (cd release-apk && sha256sum Vertex-Vision-1.15-demo-code19.apk > SHA256SUMS.txt)
+          git rev-parse HEAD > release-apk/source-commit.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: Vertex-App-1.14-demo-code18
+          name: Vertex-Vision-1.15-demo-code19-${{ github.sha }}
           path: release-apk/
           if-no-files-found: error
           retention-days: 30

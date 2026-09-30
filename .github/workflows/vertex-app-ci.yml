@@ -7,11 +7,14 @@ on:
 
 permissions:
   contents: read
+concurrency:
+  group: vertex-app-ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4
         with:
@@ -25,6 +28,7 @@ jobs:
       - name: Install verification dependencies
         run: |
           npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
           python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3
           python -m playwright install --with-deps chromium
       - name: Unit, server and release checks
@@ -32,16 +36,15 @@ jobs:
           mkdir -p artifacts/quality
           set -o pipefail
           npm test 2>&1 | tee artifacts/quality/node-tests.log
-      - name: Verify Android asset synchronization
-        run: |
-          npm run sync:android
-          git diff --exit-code -- android/app/src/main/assets/site
+      - name: Verify every generated Android asset
+        run: node scripts/check-android-sync.cjs
       - name: Browser regressions including current Host Studio and taxi
         run: |
           python scripts/browser-quality.py
           python scripts/browser-studio.py
           python scripts/browser-taxi.py
           python scripts/browser-web-red.py
+          python scripts/browser-vision.py
       - name: Cloudflare dry run without deployment
         run: |
           set -o pipefail
@@ -49,11 +52,10 @@ jobs:
       - name: Package current Canva preview
         run: |
           node scripts/package-canva.cjs
-          git archive --format=zip HEAD -o artifacts/Vertex-Quality-Source.zip
           git rev-parse HEAD > artifacts/quality/source-commit.txt
-      - name: Verify live website after native Cloudflare deployment
+      - name: Verify unified live website and every public asset after native Cloudflare deployment
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: python scripts/browser-web-red.py --live
+        run: python scripts/browser-vision.py --live
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -61,7 +63,7 @@ jobs:
           path: |
             artifacts/quality/
             artifacts/studio/
+            artifacts/vision/
             artifacts/Vertex-Canva-Latest.html
-            artifacts/Vertex-Quality-Source.zip
           retention-days: 14
           if-no-files-found: ignore
