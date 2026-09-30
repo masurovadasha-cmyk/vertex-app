@@ -21,13 +21,49 @@ try{
   for(const key of ['rolsuper','rolcreatedb','rolcreaterole','rolreplication','rolbypassrls','database_create','public_schema_create'])
     if(role[key]===true)throw new Error('production_backup_role_too_privileged:'+key);
 
-  const writesSql="select count(*)::int n from information_schema.role_table_grants where grantee=current_user and privilege_type in ('INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER')";
+  const writesSql=`
+    select count(*)::int n
+    from pg_class c join pg_namespace n on n.oid=c.relnamespace
+    where n.nspname in ('public','vision_private') and c.relkind in ('r','p','S')
+      and (
+        has_table_privilege(current_user,c.oid,'INSERT')
+        or has_table_privilege(current_user,c.oid,'UPDATE')
+        or has_table_privilege(current_user,c.oid,'DELETE')
+        or has_table_privilege(current_user,c.oid,'TRUNCATE')
+        or has_table_privilege(current_user,c.oid,'REFERENCES')
+        or has_table_privilege(current_user,c.oid,'TRIGGER')
+      )`;
   const writes=(await client.query(writesSql)).rows[0].n;
-  if(writes!==0)throw new Error('production_backup_role_has_write_grants');
+  if(writes!==0)throw new Error('production_backup_role_has_effective_write_privileges');
+
+  const mutatingFunctionsSql=`
+    select count(*)::int n
+    from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+    where n.nspname in ('public','vision_private')
+      and p.provolatile='v'
+      and p.prosecdef=true
+      and has_function_privilege(current_user,p.oid,'EXECUTE')`;
+  const mutatingFunctions=(await client.query(mutatingFunctionsSql)).rows[0].n;
+  if(mutatingFunctions!==0)throw new Error('production_backup_role_can_execute_mutating_definer_functions');
+
+  const membershipsSql=`
+    select count(*)::int n
+    from pg_auth_members m
+    join pg_roles member_role on member_role.oid=m.roleid
+    join pg_roles current_role on current_role.oid=m.member
+    where current_role.rolname=current_user
+      and (member_role.rolsuper or member_role.rolcreatedb or member_role.rolcreaterole or member_role.rolreplication or member_role.rolbypassrls)`;
+  const privilegedMemberships=(await client.query(membershipsSql)).rows[0].n;
+  if(privilegedMemberships!==0)throw new Error('production_backup_role_inherits_privileged_membership');
+
+  const readOnly=(await client.query("show transaction_read_only")).rows[0].transaction_read_only;
+  if(readOnly!=='on')throw new Error('production_backup_session_not_read_only');
 
   const report={
     status:'PASS',target:'production',readOnlyPrincipal:true,elevatedRoleFlags:false,
-    databaseCreate:false,publicSchemaCreate:false,tableWriteGrants:0,tlsRequired:true,productionChanged:false
+    databaseCreate:false,publicSchemaCreate:false,effectiveTableWritePrivileges:0,
+    mutatingDefinerFunctionExecutePrivileges:0,privilegedRoleMemberships:0,
+    transactionReadOnly:true,tlsRequired:true,productionChanged:false
   };
   const output=process.argv[2]||'artifacts/production-backup/principal.json';
   fs.mkdirSync(path.dirname(output),{recursive:true});
