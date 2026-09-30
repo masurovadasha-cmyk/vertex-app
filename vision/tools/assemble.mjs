@@ -21,7 +21,6 @@ const tracked=[
   'vision/backend/readiness.mjs',
   'vision/modules/views/command-contract.mjs',
   'vision/modules/views/response-contract.mjs',
-  'vision/backend/readiness.mjs',
   'vision/staging/auth.mjs',
   'vision/staging/provision.mjs',
   'vision/staging/cloud-e2e.mjs',
