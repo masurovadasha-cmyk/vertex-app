@@ -25,6 +25,7 @@ jobs:
       - name: Install verification dependencies
         run: |
           npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
           python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3
           python -m playwright install --with-deps chromium
       - name: Unit, server and release checks

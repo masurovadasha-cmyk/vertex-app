@@ -1,7 +1,7 @@
 -- VERTEX VISION FOUNDATION 0.1
 -- PostgreSQL/Supabase-compatible schema. Apply to development/staging first.
 begin;
-create extension if not exists pgcrypto;
+-- gen_random_uuid() is built into supported PostgreSQL 13+; no extension needed.
 
 create table if not exists vision_tenants(
  id uuid primary key default gen_random_uuid(), code text not null unique, name text not null,
@@ -104,3 +104,4 @@ alter table vision_tasks enable row level security;
 alter table vision_audit_events enable row level security;
 alter table vision_outbox_events enable row level security;
 commit;
+

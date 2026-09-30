@@ -1,0 +1,1 @@
+{"name":"vertex-vision","version":"0.2.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.cjs tests/*.test.mjs"},"devDependencies":{"@electric-sql/pglite":"0.3.14","pg":"8.16.3"}}

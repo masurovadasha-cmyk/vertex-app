@@ -15,15 +15,35 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: vision_test_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Install
-        run: npm install
+        run: |
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
       - name: Existing Vertex plus VISION foundation tests
         run: npm test
+      - name: PostgreSQL RLS isolation and concurrent transactions
+        run: node --test vision/tests/database.test.mjs
+        env:
+          VISION_TEST_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_test_ci
       - name: Cloudflare compatibility dry-run
         run: npm run check:deploy
       - name: Foundation safety assertions

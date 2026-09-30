@@ -43,6 +43,27 @@
         "correlation_id",
         "occurred_at"
       ]
+    },
+    "task.started": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "order_id",
+        "task_id",
+        "correlation_id",
+        "occurred_at"
+      ]
+    },
+    "quality.rejected": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "order_id",
+        "correlation_id",
+        "occurred_at"
+      ]
     }
   }
 }
