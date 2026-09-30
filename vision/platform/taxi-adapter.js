@@ -8,8 +8,11 @@
   const CONTRACT='/integration/v1';
 
   function open(){
+    // Preserve the existing VISION Taxi demo when it is loaded; the standalone
+    // Vertex Taxi application is the external product boundary.
+    if(root.VertexTaxi?.open)return root.VertexTaxi.open();
     const win=root.open(APP_URL,'_blank','noopener,noreferrer');
-    if(!win) root.location.href=APP_URL;
+    if(!win)root.location.href=APP_URL;
     return true;
   }
 
