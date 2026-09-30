@@ -21,3 +21,11 @@ test('public deployment fails closed for Views operations APIs',async()=>{
     assert.equal(body.activeModule,'views');
   }
 });
+
+test('public production worker reserves readyz and fails closed',async()=>{
+  const r=await handle(req('/readyz'));
+  assert.equal(r.status,503);
+  const body=await r.json();
+  assert.equal(body.error,'cloud_backend_not_connected');
+  assert.equal(body.activeModule,'views');
+});
