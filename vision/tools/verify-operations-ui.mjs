@@ -30,15 +30,32 @@ for(const [uid,code,permissions] of [
 }
 await insert('views_properties',{id:property,tenant_id:tenant,organization_id:org,code:'synthetic',name:'Synthetic property'});
 await insert('views_units',{id:unit,tenant_id:tenant,organization_id:org,property_id:property,unit_number:'TEST-235'});
-const identities=new Map([['Bearer synthetic.manager',manager],['Bearer synthetic.cleaner',cleaner],['Bearer synthetic.quality',quality]]);
+const accounts=new Map([
+ ['manager@synthetic.invalid',{actor:manager,token:'synthetic.manager',refresh:'refresh_manager'}],
+ ['cleaner@synthetic.invalid',{actor:cleaner,token:'synthetic.cleaner',refresh:'refresh_cleaner'}],
+ ['quality@synthetic.invalid',{actor:quality,token:'synthetic.quality',refresh:'refresh_quality'}]
+]);
+const identities=new Map([...accounts.values()].map(a=>['Bearer '+a.token,a.actor]));
 let queue=Promise.resolve(),commandCalls=0;
 function as(actor,work){const next=queue.then(async()=>{await db.exec('begin;set local role authenticated;');try{await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:actor})]);const result=await work();await db.exec('commit');return result;}catch(e){await db.exec('rollback');throw e;}});queue=next.catch(()=>{});return next;}
 const fetcher=async(url,options)=>{
+ if(url.includes('/auth/v1/token?grant_type=password')){
+  const payload=JSON.parse(options.body),account=accounts.get(payload.email);
+  if(!account||payload.password!=='x')return Response.json({error:'invalid_login'},{status:400});
+  return Response.json({access_token:account.token,refresh_token:account.refresh,expires_in:3600,token_type:'bearer',user:{id:account.actor}});
+ }
+ if(url.includes('/auth/v1/token?grant_type=refresh_token')){
+  const payload=JSON.parse(options.body),account=[...accounts.values()].find(a=>a.refresh===payload.refresh_token);
+  if(!account)return Response.json({error:'invalid_refresh'},{status:400});
+  return Response.json({access_token:account.token,refresh_token:account.refresh,expires_in:3600,token_type:'bearer',user:{id:account.actor}});
+ }
  const actor=identities.get(options.headers.authorization);
  if(url.endsWith('/auth/v1/user'))return Response.json(actor?{id:actor}:{error:'unauthorized'},{status:actor?200:401});
+ if(url.endsWith('/auth/v1/logout'))return new Response(null,{status:actor?204:401});
  if(!actor)return Response.json({code:'42501'},{status:403});
  try{
-  const payload=JSON.parse(options.body);
+  const payload=options.body?JSON.parse(options.body):{};
+  if(url.endsWith('/rpc/vision_auth_context'))return Response.json(await as(actor,async()=>(await db.query('select public.vision_auth_context() data')).rows[0].data));
   if(url.endsWith('/rpc/vision_views_operations_snapshot'))return Response.json(await as(actor,async()=>(await db.query('select public.vision_views_operations_snapshot($1,$2,$3,$4) data',[payload.p_tenant_id,payload.p_organization_id,payload.p_from,payload.p_to])).rows[0].data));
   if(url.endsWith('/rpc/vision_views_command')){commandCalls++;return Response.json(await as(actor,async()=>(await db.query('select public.vision_views_command($1::jsonb) data',[JSON.stringify(payload.command)])).rows[0].data));}
   return Response.json({error:'unknown_test_route'},{status:404});
@@ -67,14 +84,14 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
  await page.goto(origin+'/operations/');
  async function login(profile){
-  await page.locator('#connectForm [name=tenant]').fill(tenant);await page.locator('#connectForm [name=organization]').fill(org);await page.locator('#connectForm [name=token]').fill('synthetic.'+profile);
+  await page.locator('#connectForm [name=email]').fill(profile+'@synthetic.invalid');await page.locator('#connectForm [name=password]').fill('x');
   await page.locator('#connectForm button').click();await page.locator('#workspace').waitFor({state:'visible'});
  }
  async function logout(){await page.locator('#logout').click();await page.locator('#connect').waitFor({state:'visible'});}
  async function action(type){await page.locator(`[data-command="${type}"]`).click();await page.waitForFunction(()=>!document.querySelector('#message').textContent.includes('подтверждение')&&!document.querySelector('#message').textContent.includes('Загрузка'));}
  await login('manager');
  assert.equal(await page.locator('#modules .card').count(),19);assert.equal(await page.locator('#modules button:not([disabled])').count(),1);
- assert.equal(await page.locator('#connectForm [name=token]').inputValue(),'');mark('Hub: exactly one active Views workspace; 18 future modules');
+ assert.equal(await page.locator('#connectForm [name=password]').inputValue(),'');mark('Auth bootstrap resolves scope; Hub keeps one active Views workspace and 18 future modules');
  await page.locator('#from').fill('2026-10-01');await page.locator('#to').fill('2026-10-31');await page.locator('#rangeForm button').click();await page.waitForFunction(()=>document.querySelector('#message').textContent.startsWith('Данные получены'));
  await page.locator('[data-tab=bookings]').click();await page.locator('#newBooking summary').click();
  await page.locator('#bookingForm [name=unit_id]').selectOption(unit);await page.locator('#bookingForm [name=customer_id]').fill(customer);await page.locator('#bookingForm [name=check_in]').fill('2026-10-10');await page.locator('#bookingForm [name=check_out]').fill('2026-10-12');await page.locator('#bookingForm [name=total]').fill('250.00');
@@ -95,6 +112,6 @@ try{
  await page.screenshot({path:new URL('mobile.png',out).pathname.replace(/^\/(?:([A-Z]:))/,'$1'),fullPage:true});mark('Desktop/mobile rendering and mobile navigation overflow/touch targets verified');
  await logout();await login('manager');await page.locator('[data-tab=bookings]').click();const before=commandCalls;await context.setOffline(true);await page.waitForFunction(()=>!document.querySelector('#network').hidden);assert.equal(await page.locator('#bookingForm button').isDisabled(),true);assert.equal(commandCalls,before);await context.setOffline(false);mark('Offline disables mutation controls and does not enqueue commands');
  await logout();assert.equal(await page.locator('#modules .card').count(),0);assert.equal(await page.locator('#bookings [data-record]').count(),0);assert.deepEqual(errors,[]);mark('Logout clears prior-session data; no uncaught browser errors');
- await writeFile(new URL('report.json',out),JSON.stringify({status:'passed',checks,auth:'synthetic test adapter, NOT genuine Supabase Auth',database:'PGlite with actual migrations, RLS and command RPC',cloudDeploymentVerified:false},null,2));
+ await writeFile(new URL('report.json',out),JSON.stringify({status:'passed',checks,auth:'synthetic Supabase-compatible auth adapter, NOT genuine cloud Auth',database:'PGlite with actual migrations, RLS and command RPC',cloudDeploymentVerified:false},null,2));
  console.log(JSON.stringify({passed:checks.length,failed:0,cloudDeploymentVerified:false}));
 }finally{await browser?.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));await db.close();}
