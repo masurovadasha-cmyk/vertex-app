@@ -47,7 +47,7 @@ const fetcher=async(url,options)=>{
 const env={VISION_ENV:'staging',SUPABASE_STAGING_REF:'a'.repeat(20),SUPABASE_URL:'https://'+'a'.repeat(20)+'.supabase.co',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_synthetic',OPERATIONS_UI:{fetch:async request=>{
  const pathname=new URL(request.url).pathname;const file=new URL('../ui'+pathname+(pathname.endsWith('/')?'index.html':''),import.meta.url);
  const content=await readFile(file);const type=pathname.endsWith('.mjs')?'text/javascript':pathname.endsWith('.css')?'text/css':'text/html';return new Response(content,{headers:{'content-type':type}});
-}};
+}}};
 let origin;
 const server=createServer(async(req,res)=>{
  try{
