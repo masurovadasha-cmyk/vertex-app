@@ -23,6 +23,9 @@ test('verified user token is forwarded to SQL RPC without privileged substitutio
   assert.equal(calls[0].url,env.SUPABASE_URL+'/auth/v1/user');
   assert.equal(calls[1].options.headers.authorization,'Bearer test.jwt.token');
   assert.deepEqual(JSON.parse(calls[1].options.body),{command});
+  assert.equal((await write.clone().json()).private_note,undefined);
+  assert.match(write.headers.get('x-request-id')||'',/^[0-9a-f-]{36}$/i);
+  assert.equal(write.headers.get('x-correlation-id'),uid);
   assert.equal(response.headers.get('cache-control'),'no-store');
 });
 test('bad JWT is rejected by Auth, no RPC runs',async()=>{
@@ -54,7 +57,7 @@ test('versioned Views API routes commands to the dedicated RPC and fixes read fi
   const command={type:'create_booking',tenant_id:uid,idempotency_key:'views-retry',organization_id:uid,unit_id:uid,customer_id:uid,check_in:'2026-10-10',check_out:'2026-10-12'};
   const write=await handle(request('/api/v1/views/commands',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(command)}),env,async(url,options)=>{
     calls.push({url,options});
-    return Response.json(calls.length===1?{id:uid}:{booking_id:uid,booking_status:'PENDING',booking_version:1});
+    return Response.json(calls.length===1?{id:uid}:{booking_id:uid,booking_status:'PENDING',booking_version:1,unit_id:uid,correlation_id:uid,private_note:'must-not-leak'});
   });
   assert.equal(write.status,200);
   assert.equal(calls[1].url,env.SUPABASE_URL+'/rest/v1/rpc/vision_views_command');
@@ -145,4 +148,12 @@ test('typed Views command contract rejects malformed payload before SQL RPC',asy
     });
     assert.equal(response.status,400);assert.equal((await response.json()).error,'invalid_command');assert.equal(calls,1);
   }
+});
+
+test('every API response has a request ID and separate requests do not reuse it',async()=>{
+  const f=async url=>url.endsWith('/user')?Response.json({id:uid}):Response.json([]);
+  const a=await handle(request('/api/orders?tenant_id='+uid),env,f);
+  const b=await handle(request('/api/orders?tenant_id='+uid),env,f);
+  const first=a.headers.get('x-request-id'),second=b.headers.get('x-request-id');
+  assert.match(first||'',/^[0-9a-f-]{36}$/i);assert.match(second||'',/^[0-9a-f-]{36}$/i);assert.notEqual(first,second);
 });
