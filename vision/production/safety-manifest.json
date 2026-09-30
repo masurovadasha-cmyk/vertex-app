@@ -1,5 +1,5 @@
 {
-  "stage": "rc2-production-safety-0.1",
+  "stage": "rc2-compatibility-recovery-0.2",
   "productionApproved": false,
   "productionDeployAllowed": false,
   "databasePolicy": {
@@ -13,16 +13,20 @@
     "requiredBeforeProductionMigration": true,
     "restoreVerificationRequired": true,
     "backupArtifactRetention": "provider-controlled",
-    "ciDrillUsesSyntheticDataOnly": true
+    "ciDrillUsesSyntheticDataOnly": true,
+    "ciRestoreDrillRequired": true,
+    "productionBackupRestoreVerified": false
   },
   "rollbackPolicy": {
     "application": "previous-known-good-deployment",
     "database": "no-automatic-down-migration",
-    "schemaCompatibility": "n-minus-one-application-must-remain-compatible-with-expanded-schema"
+    "schemaCompatibility": "n-minus-one-application-must-remain-compatible-with-expanded-schema",
+    "nMinusOneSchemaCompatibilityCheck": "vision/production/check-n-minus-one-compatibility.mjs"
   },
   "gates": [
     "migration-safety-scan",
     "read-only-database-preflight",
+    "n-minus-one-schema-compatibility",
     "backup-created",
     "restore-verified",
     "restored-readiness",
