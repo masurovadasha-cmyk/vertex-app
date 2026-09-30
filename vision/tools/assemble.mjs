@@ -11,7 +11,10 @@ const assembly=json('vision/assembly/manifest.json');
 const release=json(assembly.releaseManifest);
 const migrationDir=rel('vision/database/migrations');
 const migrations=fs.readdirSync(migrationDir).filter(n=>/^\d{4}_.+\.sql$/.test(n)).sort();
-const tracked=[
+const tracked=Object.freeze([
+  'package.json',
+  'vision/package.json',
+  'vision/pnpm-lock.yaml',
   'vision/assembly/manifest.json',
   assembly.releaseManifest,
   'vision/platform/registry.cjs',
@@ -21,31 +24,29 @@ const tracked=[
   'vision/backend/readiness.mjs',
   'vision/modules/views/command-contract.mjs',
   'vision/modules/views/response-contract.mjs',
+  'vision/modules/views/manifest.json',
   'vision/staging/auth.mjs',
   'vision/staging/provision.mjs',
   'vision/staging/cloud-e2e.mjs',
-  '.github/workflows/vision-cloud-e2e.yml',
-  '.github/workflows/vision-rc2-safety.yml',
   'vision/production/check-migration-safety.mjs',
-  'vision/production/check-n-minus-one-compatibility.mjs',
   'vision/production/build-n-minus-one-baseline.mjs',
+  'vision/production/check-n-minus-one-compatibility.mjs',
   'vision/production/preflight.mjs',
-  'vision/production/rollback-plan.json',
-  'vision/production/safety-manifest.json',
   'vision/production/check-backup-principal.mjs',
-  'vision/production/verify-production-restore.mjs',
-  'vision/production/promotion-policy.json',
-  'vision/production/evaluate-promotion.mjs',
-  '.github/workflows/vision-production-backup-restore.yml',
-  '.github/workflows/vision-promotion-gate.yml',
-  '.github/workflows/vision-rc2-safety.yml',
-  'vision/production/safety-manifest.json',
-  'vision/production/rollback-plan.json',
-  'vision/production/check-migration-safety.mjs',
-  'vision/production/preflight.mjs',
   'vision/production/seed-restore-fixture.mjs',
   'vision/production/verify-restore.mjs',
-  'vision/modules/views/manifest.json',
+  'vision/production/verify-production-restore.mjs',
+  'vision/production/safety-manifest.json',
+  'vision/production/rollback-plan.json',
+  'vision/production/promotion-policy.json',
+  'vision/production/evaluate-promotion.mjs',
+  '.github/workflows/vision-assembly.yml',
+  '.github/workflows/vision-cloud-e2e.yml',
+  '.github/workflows/vision-staging-deploy.yml',
+  '.github/workflows/vision-rc2-safety.yml',
+  '.github/workflows/vision-production-backup-restore.yml',
+  '.github/workflows/vision-promotion-gate.yml',
+  '.github/workflows/build-android-apk.yml',
   'wrangler.jsonc',
   'vision/wrangler.jsonc',
   'android/app/build.gradle',
@@ -53,7 +54,8 @@ const tracked=[
   'vertex/dist/vision-core.js',
   'vertex/dist/vision-views.js',
   'vertex/dist/vision-shell.js'
-];
+]);
+if(new Set(tracked).size!==tracked.length)throw new Error('Duplicate assembly component');
 const sourceCommit=(()=>{try{return execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();}catch{return null;}})();
 const output={
   product:assembly.product,
