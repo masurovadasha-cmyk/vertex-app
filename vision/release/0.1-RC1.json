@@ -52,8 +52,8 @@
     "cloudStagingVerified": false
   },
   "viewsUI": {
-    "status": "implemented-in-parent-branch",
-    "surface": "/operations/",
+    "status": "assembled",
+    "surface": "/views -> /operations/",
     "dataPolicy": "real-staging-only-no-demo-fallback"
   },
   "authStaging": {
@@ -67,6 +67,18 @@
       "/api/v1/auth/context",
       "/api/v1/auth/sign-out"
     ],
+    "cloudStagingVerified": false
+  },
+  "applicationAssembly": {
+    "status": "implemented-in-branch",
+    "root": "/",
+    "viewsRoute": "/views",
+    "operationsRoute": "/operations/",
+    "moduleRegistry": "/api/vision/v1/modules",
+    "activeModules": [
+      "views"
+    ],
+    "architecture": "Vision Core -> Auth/RLS -> Views Operations -> Audit/Events",
     "cloudStagingVerified": false
   }
 }
