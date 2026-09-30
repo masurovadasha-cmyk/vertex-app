@@ -65,8 +65,8 @@
     "sessionPolicy": "server-authoritative-context-from-verified-jwt",
     "cloudStagingVerified": false
   },
-  "architectureVersion": "1.2",
-  "technicalStage": "application-kernel-0.1",
+  "architectureVersion": "1.3",
+  "technicalStage": "typed-command-contract-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -96,6 +96,9 @@
     "contextEndpoint": "/api/v1/context",
     "permissionSource": "postgresql-rbac-only",
     "clientPermissionClaimsTrusted": false,
-    "organizationScopeRequired": true
+    "organizationScopeRequired": true,
+    "commandContract": "vision/modules/views/command-contract.mjs",
+    "commandValidation": "api-and-postgresql",
+    "commandSchemaVersion": "v1"
   }
 }
