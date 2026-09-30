@@ -47,3 +47,26 @@ test('order reads require tenant and cannot inject PostgREST filters',async()=>{
   assert.equal((await handle(request('/api/orders?tenant_id='+uid+'&select=secret&limit=10000'),env,f)).status,200);
   const u=new URL(urls.at(-1));assert.equal(u.searchParams.get('limit'),'50');assert.equal(u.searchParams.get('tenant_id'),'eq.'+uid);
 });
+
+test('versioned Views API routes commands to the dedicated RPC and fixes read filters',async()=>{
+  const calls=[];
+  const command={type:'create_booking',tenant_id:uid,idempotency_key:'views-retry',organization_id:uid,unit_id:uid,customer_id:uid,check_in:'2026-10-10',check_out:'2026-10-12'};
+  const write=await handle(request('/api/v1/views/commands',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(command)}),env,async(url,options)=>{
+    calls.push({url,options});
+    return Response.json(calls.length===1?{id:uid}:{booking_id:uid,booking_status:'PENDING',booking_version:1});
+  });
+  assert.equal(write.status,200);
+  assert.equal(calls[1].url,env.SUPABASE_URL+'/rest/v1/rpc/vision_views_command');
+  assert.deepEqual(JSON.parse(calls[1].options.body),{command});
+
+  const urls=[];
+  const read=await handle(request('/api/v1/views/bookings?tenant_id='+uid+'&select=private&limit=9999'),env,async url=>{
+    urls.push(url);return Response.json(url.endsWith('/user')?{id:uid}:[]);
+  });
+  assert.equal(read.status,200);
+  const upstream=new URL(urls.at(-1));
+  assert.match(upstream.pathname,/vision_views_bookings$/);
+  assert.equal(upstream.searchParams.get('tenant_id'),'eq.'+uid);
+  assert.equal(upstream.searchParams.get('select'),'*');
+  assert.equal(upstream.searchParams.get('limit'),'50');
+});
