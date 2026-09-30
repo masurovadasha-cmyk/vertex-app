@@ -128,3 +128,21 @@ test('Views reads require organization scope and never broaden to all authorized
   const missing=await handle(request('/api/v1/views/bookings?tenant_id='+uid),env,async url=>{calls++;return Response.json({id:uid});});
   assert.equal(missing.status,400);assert.equal(calls,1);assert.equal((await missing.json()).error,'organization_id_required');
 });
+
+test('typed Views command contract rejects malformed payload before SQL RPC',async()=>{
+  const bad=[
+    {type:'check_in',tenant_id:uid,idempotency_key:'bad-1',booking_id:uid,expected_version:'1'},
+    {type:'check_out',tenant_id:uid,idempotency_key:'bad-2',booking_id:uid,expected_version:1,admin:true},
+    {type:'create_booking',tenant_id:uid,idempotency_key:'bad-3',organization_id:uid,unit_id:uid,customer_id:uid,check_in:'2026-02-30',check_out:'2026-03-02'},
+    {type:'refund_everything',tenant_id:uid,idempotency_key:'bad-4'}
+  ];
+  for(const command of bad){
+    let calls=0;
+    const response=await handle(request('/api/v1/views/commands',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(command)}),env,async url=>{
+      calls++;
+      assert.ok(url.endsWith('/auth/v1/user'),'invalid command must not reach SQL RPC');
+      return Response.json({id:uid});
+    });
+    assert.equal(response.status,400);assert.equal((await response.json()).error,'invalid_command');assert.equal(calls,1);
+  }
+});
