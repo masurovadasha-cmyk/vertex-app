@@ -1,0 +1,35 @@
+{
+  "version": "0.1",
+  "productionApproved": false,
+  "triggerConditions": [
+    "post-deploy health or readiness failure",
+    "critical Views command regression",
+    "authentication or RLS regression",
+    "sustained critical API error rate"
+  ],
+  "applicationRollback": {
+    "strategy": "previous-known-good-cloudflare-deployment",
+    "productionWorker": "vertex-app",
+    "databaseChange": false,
+    "verifyAfterRollback": [
+      "/health or production liveness",
+      "core smoke pack",
+      "critical booking read path"
+    ]
+  },
+  "databaseRollback": {
+    "strategy": "forward-fix-only",
+    "automaticDownMigrations": false,
+    "restoreOnlyForDisasterRecovery": true,
+    "backupRequiredBeforeMigration": true,
+    "restoreVerificationRequired": true
+  },
+  "compatibility": {
+    "migrationPolicy": "expand-only-after-0004",
+    "nMinusOneApplicationCompatibilityRequired": true
+  },
+  "approval": {
+    "explicitOwnerApprovalRequired": true,
+    "productionEnvironmentApprovalRequired": true
+  }
+}
