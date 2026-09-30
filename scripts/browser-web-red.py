@@ -29,14 +29,17 @@ def run(live=False):
             # Workers Builds runs independently of GitHub CI. Observe; never deploy here.
             for attempt in range(18):
                 try:
-                    req = urllib.request.Request(URL + 'release.json?check=' + str(time.time_ns()), headers={'Cache-Control': 'no-cache'})
+                    # Identify this release monitor. The generic Python-urllib
+                    # agent is rejected by the public edge with HTTP 403.
+                    req = urllib.request.Request(URL + 'release.json?check=' + str(time.time_ns()), headers={'Cache-Control': 'no-cache', 'User-Agent': 'VertexReleaseVerifier/1.0'})
                     with urllib.request.urlopen(req, timeout=15) as r:
                         release = json.load(r)
                     if release.get('revision') == REVISION:
                         report['release'] = release
                         break
-                except (OSError, ValueError):
-                    pass
+                except (OSError, ValueError) as exc:
+                    if attempt in (0, 17):
+                        print(f'Live release probe {attempt + 1}: {type(exc).__name__}: {exc}')
                 if attempt < 17:
                     time.sleep(10)
             check('live release revision matches the requested red update', report.get('release', {}).get('revision') == REVISION)
