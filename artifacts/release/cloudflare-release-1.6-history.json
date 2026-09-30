@@ -1,0 +1,38 @@
+{
+  "version": "1.6-demo",
+  "releaseDate": "2026-09-29",
+  "success": true,
+  "phase": "published-and-verified",
+  "url": "https://vertex-app.masurovadasha.workers.dev",
+  "deploymentId": "3d447c3c-cd75-48e9-b1c0-2ede4f301e24",
+  "cloudflareVersion": "76bdc47b-78a0-4ab5-a3d1-985e3501fb2c",
+  "sourcePayloadSha256": "d5c8f2c9c460d12d06fdcf6f8ce71acc12a3ddacf4b38d90e662321a6d19093a",
+  "verifiedFiles": 45,
+  "verifiedAt": "2026-09-28T23:09:51.75Z",
+  "apk": {
+    "versionCode": 8,
+    "path": "artifacts/Vertex-MVP-1.6.apk",
+    "physicalDeviceTested": false,
+    "sha256": "3d6ebfdd9fb9450d739c840dce288d9ea84795f0caf0242f14008a0847363eaf",
+    "url": "https://vertex-app.masurovadasha.workers.dev/Vertex-Latest.apk"
+  },
+  "canva": {
+    "viewUrl": "https://www.canva.com/d/iXfs_df88-8WIuZ",
+    "designId": "DAHWh6y_QuE"
+  },
+  "ownerPhotos": 16,
+  "confirmedCatalogCards": 6,
+  "olxUsed": false,
+  "limitations": [
+    "Airbnb quote totals apply only to 12–15 October 2026 for 2 adults and may change.",
+    "Boulevard, Gardens Residence, Samarkand, Bukhara and Khiva still require confirmed property data.",
+    "In-app booking requests are local demonstrations; real booking uses source links.",
+    "Physical Android device not tested."
+  ],
+  "git": {
+    "repository": "https://github.com/masurovadasha-cmyk/vertex-app",
+    "status": "published-with-explicit-owner-photo-approval",
+    "commit": "8ff9523143fb5fc56efad26ce92791020890ae55",
+    "pushed": true
+  }
+}

@@ -1,19 +1,20 @@
 {
   "name": "vertex-cloudflare",
-  "version": "1.12.0",
+  "version": "1.14.0",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",
     "test:unit": "node vertex/tools/group.test.cjs && node vertex/tools/concierge-demo.test.cjs && node vertex/tools/mobility.test.cjs && node vertex/tools/guest-guide.test.cjs && node vertex/tools/app-release.test.cjs && node --test vertex/tools/rental-domain.test.cjs && node --test vertex/tools/host-domain.test.cjs && node --test vertex/tools/taxi.test.cjs && npm run test:vision",
     "check:release": "node scripts/check-release.cjs",
     "sync:android": "node scripts/sync-android.cjs",
-    "test": "npm run test:unit && npm run test:server && npm run check:release",
+    "test": "npm run test:unit && npm run test:journey && npm run test:server && npm run check:release",
     "check:deploy": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
     "cf:whoami": "wrangler whoami",
     "build": "npm run check:release",
     "test:server": "node --test concierge-server/atomic-store.test.mjs concierge-server/test.mjs",
-    "test:vision": "node --test vision/tests/*.test.cjs vision/tests/*.test.mjs"
+    "test:vision": "node --test vision/tests/*.test.cjs vision/tests/*.test.mjs",
+    "test:journey": "node journey.test.cjs && node journey-budget.test.cjs && node journey-care.test.cjs && node vertex/tools/journey-integration.test.cjs"
   },
   "devDependencies": {
     "wrangler": "4.143.0"

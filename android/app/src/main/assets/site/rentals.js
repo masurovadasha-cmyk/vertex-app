@@ -17,6 +17,7 @@
   const statusLabel = value => lang === 'en' ? (statuses[value] || value) : value;
   const base = stays.map(s=>({type:'Квартира',wifi:null,host:s.ownerConfirmed?null:'Vertex · демо',hostEn:s.ownerConfirmed?null:'Vertex · demo',...s}));
   const catalog = () => [...base,...data.listings];
+  const bookingCopy = booking => domain.snapshot({bookings:[booking]},[]).bookings[0];
   const find = id => catalog().find(s => s.id === id);
   const titleOf = s => (lang === 'en' ? s.en : s.ru) || s.ru || s.en;
   const bookingTitle = b => {
@@ -232,7 +233,7 @@
       if (problem || !guest || !f.elements.agree.checked) { error(problem || (!guest ? tr('Введите имя гостя.','Enter the guest name.') : tr('Подтвердите условия демо-запроса.','Accept the demo request terms.'))); return; }
       const booking = {id:crypto.randomUUID(),listingId:s.id,title:s.ru,city:s.city,guest,arrival:a,departure:b,guests:g,...breakdown(s,a,b),referenceQuote:referenceQuote(s),status:'Запрос отправлен',created:new Date().toISOString()};
       data.bookings.push(booking); if (!persist()) { data.bookings.pop(); return; }
-      window.dispatchEvent(new CustomEvent('vertex-booking',{detail:booking})); render();
+      window.dispatchEvent(new CustomEvent('vertex-booking',{detail:bookingCopy(booking)})); render();
       show(tr('Демо-запрос сохранён','Demo request saved'),`<div class="booking-success">✓</div><h3>${escape(titleOf(s))}</h3><p>${a} → ${b} · ${tr('гостей','guests')}: ${g}</p><p>№ ${booking.id.slice(0,8).toUpperCase()} · ${money(booking.total,booking.currency)}</p><p class="notice">${tr('Запрос сохранён внутри Vertex. В демо он остаётся на этом устройстве; реальная отправка оператору будет подключена через сервер.','The request is saved inside Vertex. In this demo it stays on this device; real operator delivery will be connected through the server.')}</p><div class="biz-actions"><button id="openMyTrips" class="dark">${tr('Открыть поездки','Open trips')}</button><button id="continueDiscussion" class="outline">${tr('Обсуждение','Discussion')}</button></div>`);
       $('openMyTrips').onclick = trips;
       $('continueDiscussion').onclick = () => discussion(s.id);
@@ -273,6 +274,7 @@
       const apply = () => {
         const old = b.status; b.status = next;
         if (!persist()) { b.status = old; return; }
+        window.dispatchEvent(new CustomEvent('vertex-booking-update',{detail:bookingCopy(b)}));
         render(); hostMode ? host() : trips();
       };
       if (next === 'Отменено') {
@@ -295,6 +297,7 @@
     };
   }
   window.VertexRentals = Object.freeze({showTrips:trips,showFavorites:favorites,showHost:host,showCalendar:(id)=>calendar(id),showDiscussion:discussion,showOwnerReport:ownerReport,createListing:()=>newListing(),editListing:id=>newListing(id),getSnapshot:()=>domain.snapshot(data,catalog())});
+  window.dispatchEvent(new CustomEvent('vertex-rentals-ready'));
   $('cartButton').onclick = trips; $('viewTrip').onclick = trips;
 
   function hostMetrics() { return domain.metrics(data.bookings); }

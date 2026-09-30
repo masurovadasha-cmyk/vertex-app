@@ -10,6 +10,10 @@
   const stages = ['Новый', 'В работе', 'Предложение', 'Завершён'];
   const stageLabels = ['New', 'In progress', 'Proposal', 'Completed'];
   const stageLabel = stage => tx(stage, stageLabels[stages.indexOf(stage)] || stage);
+  const bookingLabels = {'Запрос отправлен':'Request saved','Подтверждено':'Confirmed','Отклонено':'Declined','Отменено':'Cancelled'};
+  const bookingLabel = status => tx(status === 'Запрос отправлен' ? 'Запрос сохранён' : status, bookingLabels[status] || status);
+  const inactiveBooking = c => ['Отклонено','Отменено'].includes(c.bookingStatus);
+  const bookingCaption = c => bookingLabels[c.bookingStatus] ? `${tx('Демо-заявка','Demo request')}: ${bookingLabel(c.bookingStatus)}` : '';
   const demoReply = 'Спасибо! Пришлите, пожалуйста, детали предложения. [Демонстрационный ответ]';
   const demoReplyEnglish = 'Thank you! Please send the proposal details. [Demonstration reply]';
   const callLabels = {
@@ -95,7 +99,7 @@
   }
   function crm(state = {}) {
     view = 'crm';
-    const openDeals = clients.filter(c => c.stage !== 'Завершён');
+    const openDeals = clients.filter(c => c.stage !== 'Завершён' && !inactiveBooking(c));
     const totals = new Map();
     openDeals.forEach(c => {if(c.budget != null && c.budget !== '' && Number.isFinite(Number(c.budget))) totals.set(currencyOf(c),(totals.get(currencyOf(c)) || 0) + Number(c.budget));});
     const totalLabel = [...totals].map(([currency,total]) => amount(total,currency)).join(' / ') || (openDeals.length ? tx('Уточнить','Enquire') : amount(0));
@@ -106,7 +110,7 @@
       const q = body.querySelector('#clientSearch').value.toLocaleLowerCase(locale());
       const stage = body.querySelector('#stageFilter').value;
       const rows = clients.filter(c => `${c.name} ${c.city} ${field(c,'name')} ${field(c,'city')}`.toLocaleLowerCase(locale()).includes(q) && (!stage || stage === c.stage));
-      body.querySelector('#clientList').innerHTML = rows.map(c => `<button class="client-row" data-client="${esc(c.id)}"><span class="avatar">${esc(field(c,'name').slice(0,1))}</span><span class="client-copy"><strong>${esc(field(c,'name'))}</strong><small>${esc(field(c,'city'))} · ${amount(c.budget,currencyOf(c))}</small></span><span class="status-pill">${esc(stageLabel(c.stage))}</span></button>`).join('') || `<p class="notice">${tx('Клиентов пока нет. Добавьте карточку или измените поиск.','No clients found. Add a client or change your search.')}</p>`;
+      body.querySelector('#clientList').innerHTML = rows.map(c => `<button class="client-row" data-client="${esc(c.id)}"><span class="avatar">${esc(field(c,'name').slice(0,1))}</span><span class="client-copy"><strong>${esc(field(c,'name'))}</strong><small>${esc(field(c,'city'))} · ${amount(c.budget,currencyOf(c))}</small>${bookingCaption(c) ? `<small>${esc(bookingCaption(c))}</small>` : ''}</span><span class="status-pill">${esc(inactiveBooking(c) ? bookingLabel(c.bookingStatus) : stageLabel(c.stage))}</span></button>`).join('') || `<p class="notice">${tx('Клиентов пока нет. Добавьте карточку или измените поиск.','No clients found. Add a client or change your search.')}</p>`;
       body.querySelectorAll('[data-client]').forEach(b => b.onclick = () => { current = b.dataset.client; detail(); });
     };
     body.querySelector('#clientSearch').oninput = list;
@@ -117,6 +121,10 @@
   function detail() {
     const c = client(); if (!c) return crm(); view = 'detail';
     body.innerHTML = `<button class="biz-back" id="backClients">${tx('← Все клиенты','← All clients')}</button><div class="client-heading"><span class="avatar large">${esc(field(c,'name')[0])}</span><div><h3>${esc(field(c,'name'))}</h3><p>${esc(field(c,'city'))} · ${esc(stageLabel(c.stage))}</p></div></div><div class="biz-actions"><button class="dark" id="clientChat">${tx('Написать','Message')}</button><button class="outline" id="clientCall">${tx('Позвонить','Call')}</button><button class="outline" id="clientEdit">${tx('Изменить','Edit')}</button></div><div class="place"><span class="biz-caption">${tx('СУММА СДЕЛКИ','DEAL VALUE')}</span><h2>${amount(c.budget,currencyOf(c))}</h2><p>${esc(c.phone || tx('Телефон не указан','No phone number'))}</p></div><h3>${tx('Заметки','Notes')}</h3><p class="notice prewrap">${esc(field(c,'note') || tx('Нет заметок','No notes'))}</p><h3>${tx('Активность','Activity')}</h3><p>${tx('Сообщений:','Messages:')} ${c.messages.length} · ${tx('Записей звонков:','Call records:')} ${c.calls.length}</p>`;
+    if (bookingCaption(c)) {
+      const status = document.createElement('p'); status.className = 'notice'; status.textContent = bookingCaption(c);
+      body.querySelector('.client-heading').after(status);
+    }
     body.querySelector('#backClients').onclick = () => crm();
     body.querySelector('#clientEdit').onclick = () => edit(c);
     body.querySelector('#clientChat').onclick = () => { open('chat'); conversation(); };
@@ -191,10 +199,25 @@
     stop(); callState = {seconds:0,muteDemo:false,speakerDemo:false}; drawCall();
     timer = setInterval(() => { callState.seconds++; const clock = body.querySelector('#callClock'); if (clock) clock.textContent = callClock(); },1000);
   }
-  window.addEventListener('vertex-booking', event => {
-    const b = event.detail; if (clients.some(c => c.bookingId === b.id)) return;
-    clients.unshift({id:crypto.randomUUID(),bookingId:b.id,name:b.guest,city:b.city,phone:'',stage:'Новый',budget:b.total,currency:b.currency || 'UZS',note:tx('Демо-заявка ','Demo request ') + b.id.slice(0,8) + ' · ' + b.title + ' · ' + b.arrival + ' → ' + b.departure,messages:[],calls:[]}); save();
-  });
+  function syncBooking(b,create = false) {
+    if (!b || typeof b.id !== 'string' || !Object.hasOwn(bookingLabels,b.status)) return;
+    let c = clients.find(c => c.bookingId === b.id);
+    if (!c) {
+      if (!create || typeof b.guest !== 'string') return;
+      c = {id:crypto.randomUUID(),bookingId:b.id,name:b.guest,city:b.city,phone:'',stage:'Новый',budget:b.total,currency:b.currency || 'UZS',note:tx('Демо-заявка ','Demo request ') + b.id.slice(0,8) + ' · ' + b.title + ' · ' + b.arrival + ' → ' + b.departure,messages:[],calls:[]};
+      clients.unshift(c);
+    } else if (c.bookingStatus === b.status) return;
+    // Booking outcomes are separate from sales stages: cancelled is never a completed sale.
+    c.bookingStatus = b.status;
+    if (b.status === 'Подтверждено' && c.stage === 'Новый') c.stage = 'В работе';
+    save();
+    if (dialog.open && view === 'crm') crm({query:body.querySelector('#clientSearch').value,stage:body.querySelector('#stageFilter').value});
+    else if (dialog.open && view === 'detail' && current === c.id) detail();
+  }
+  window.addEventListener('vertex-booking', event => syncBooking(event.detail,true));
+  window.addEventListener('vertex-booking-update', event => syncBooking(event.detail));
+  // Reconcile requests saved before lifecycle events were supported.
+  window.addEventListener('vertex-rentals-ready', () => window.VertexRentals?.getSnapshot().bookings.forEach(b => syncBooking(b)));
   const places = [
     {id:'Tashkent',ru:'Ташкент',en:'Tashkent',placeRu:'Tashkent City',placeEn:'Tashkent City',query:'Tashkent City, Tashkent, Uzbekistan'},
     {id:'Samarkand',ru:'Самарканд',en:'Samarkand',placeRu:'Регистан',placeEn:'Registan',query:'Registan, Samarkand, Uzbekistan'},
@@ -205,13 +228,11 @@
     view = 'map';
     const selectedCity = selected || document.getElementById('destination')?.value;
     const currentPlace = places.find(place => place.id === selectedCity) || places[0];
-    body.innerHTML = '<p class="biz-caption">' + tx('Узбекистан · места для вашей поездки','Uzbekistan · places for your trip') + '</p><select id="mapPlace" aria-label="' + tx('Город на карте','City on the map') + '">' + places.map(place => '<option value="' + place.id + '">' + tx(place.ru,place.en) + '</option>').join('') + '</select><div id="mapContent"></div><p class="biz-caption">' + tx('Поиск по названию места, без неподтверждённых GPS-меток. Карта откроется в новой вкладке; нужен интернет.','Search by place name, without unverified GPS pins. The map opens in a new tab and requires internet.') + '</p><button class="outline" id="reloadMap">' + tx('Обновить ссылки','Refresh links') + '</button>';
+    body.innerHTML = '<p class="biz-caption">' + tx('Узбекистан · места для вашей поездки','Uzbekistan · places for your trip') + '</p><select id="mapPlace" aria-label="' + tx('Город на карте','City on the map') + '">' + places.map(place => '<option value="' + place.id + '">' + tx(place.ru,place.en) + '</option>').join('') + '</select><div id="mapContent"></div><p class="biz-caption">' + tx('Выберите город для обзора мест внутри Vertex. Точные адреса объектов уточняются.','Choose a city to explore places inside Vertex. Exact property addresses need confirmation.') + '</p><button class="outline" id="reloadMap">' + tx('Обновить обзор','Refresh overview') + '</button>';
     body.querySelector('#mapPlace').value = currentPlace.id;
     const draw = () => {
       const place = places.find(place => place.id === body.querySelector('#mapPlace').value) || places[0];
-      const query = encodeURIComponent(place.query);
-      const cityQuery = encodeURIComponent(place.en + ', Uzbekistan');
-      body.querySelector('#mapContent').innerHTML = '<div class="place"><h3>' + tx(place.placeRu,place.placeEn) + '</h3><p>' + tx(place.ru,place.en) + '</p><a href="https://www.google.com/maps/search/?api=1&query=' + query + '" target="_blank" rel="noopener">' + tx('Найти место на карте ↗','Find this place on the map ↗') + '</a><p><a href="https://www.openstreetmap.org/search?query=' + cityQuery + '" target="_blank" rel="noopener">' + tx('Открыть карту города ↗','Open the city map ↗') + '</a></p></div>';
+      body.querySelector('#mapContent').innerHTML = '<div class="place"><h3>' + tx(place.placeRu,place.placeEn) + '</h3><p>' + tx(place.ru,place.en) + '</p><p>' + tx('Обзор места в Vertex. Интерактивная карта пока недоступна.','Place overview in Vertex. Interactive map is not available yet.') + '</p></div>';
     };
     body.querySelector('#mapPlace').onchange = draw;
     body.querySelector('#reloadMap').onclick = draw;

@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / 'vertex/dist'
 OUT = ROOT / 'artifacts/quality'
 URL = 'https://vertex-app.masurovadasha.workers.dev/'
-REVISION = 'studio-red-taxi1'
+REVISION = 'unified-journey1'
 
 
 def run(live=False):

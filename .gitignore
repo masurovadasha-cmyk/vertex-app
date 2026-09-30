@@ -25,3 +25,4 @@ vision/.data/
 
 # Built phone installer served alongside the web release
 vertex/dist/*.apk
+!vertex/dist/Vertex-Latest.apk

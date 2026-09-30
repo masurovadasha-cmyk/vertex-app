@@ -1,34 +1,28 @@
 {
-  "version": "1.12-demo",
-  "revision": "studio-red-taxi1",
-  "source_commit": "aba4e9638bd1638df1d950c59ee89b2ef4641a0c",
-  "base_commit": "205621415a796738f35ab7e4f354eb7c01351c50",
-  "verification_run": 36591875512,
-  "verification_status": "success",
-  "canva_html_sha256": "20927d58773d74eb7e8daf4f5bf552649162862f03e70dc3f2d681c5cf500bdb",
+  "version": "1.14-demo",
+  "revision": "unified-journey1",
+  "date": "2026-09-30",
+  "base_commit": "e4764517a80d46788a87b917c91be7844f121ffc",
+  "canva_html_sha256": "82470fabaab8c60c9e93bcddfe42637166e1afd94b1f04c4a4805492d5f51405",
   "interactive": {
-    "design_id": "DAHWl5eg1OQ",
-    "view_url": "https://www.canva.com/d/B7vVjiY9f_kcTwV",
-    "import_status": "success",
-    "data_mode": "in-memory demo reset on reload"
+    "import_status": "success-confirmed-by-design-lookup",
+    "design_id": "DAHWq7gBEj8",
+    "data_mode": "in-memory demo reset on reload",
+    "view_url": "https://www.canva.com/d/QSLYbk11KQQ2Khj",
+    "edit_url": "https://www.canva.com/d/8ptWhlJ6gZWCEZi"
   },
-  "tests": {
-    "baseline_browser": 52,
-    "studio_browser": 61,
-    "taxi_browser_real_local_storage": 72,
-    "red_web_browser": 76,
-    "rental_domain": 35,
-    "host_domain": 26,
-    "taxi_domain_and_store": 40,
-    "server": 6,
-    "release_gate": "46 JS, 32 CSS, 2 HTML, 2 workers, 2 manifests, 196 local references passed"
+  "android": {
+    "version": "1.14-demo",
+    "signatureVerified": true,
+    "apkSha256": "6922325b8ae3a21d57e5a9b36417aef74c0eab4b6f2e3307e1c567fe4065704c",
+    "assetsChecked": 69,
+    "versionCode": 18,
+    "physicalDeviceTested": false
   },
   "cloudflare": {
-    "validation": "dry-run passed",
-    "publication_status": "awaiting merge and live verification",
-    "live_verification": "scripts/browser-web-red.py --live; master CI artifacts are authoritative"
+    "publication_status": "published-and-hash-verified",
+    "worker": "vertex-app",
+    "url": "https://vertex-app.masurovadasha.workers.dev"
   },
-  "android": {"assets_synced": true, "apk_rebuilt_in_this_revision": false},
-  "taxi": {"live_dispatch": false, "gps": false, "payments": false, "storage": "browser-local"},
-  "previous_record": "artifacts/release/canva-quality1.json"
+  "previous_record": "artifacts/release/canva-studio-red-taxi1.json"
 }

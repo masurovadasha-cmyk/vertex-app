@@ -1,0 +1,35 @@
+{
+  "version": "1.14-demo",
+  "revision": "unified-journey1",
+  "releaseDate": "2026-09-30",
+  "success": true,
+  "phase": "published-and-hash-verified",
+  "url": "https://vertex-app.masurovadasha.workers.dev",
+  "sourceCommit": "429adee99ed3cc1b7595ce9ffd09ee149b79fde9",
+  "pr": "https://github.com/masurovadasha-cmyk/vertex-app/pull/30",
+  "buildId": "6a8a9c28-e27e-49f7-83d3-a219a96aedc1",
+  "deploymentId": "baf9c2fc-7184-496e-b0f5-59f0ebfae5a9",
+  "cloudflareVersion": "9b6cbcda-f6a3-4748-b212-eef3e9c654f0",
+  "verifiedFiles": 69,
+  "verifiedAt": "2026-09-30T11:23:17.044Z",
+  "hashManifest": "artifacts/release/source-manifest.json",
+  "apk": {
+    "sha256": "6922325b8ae3a21d57e5a9b36417aef74c0eab4b6f2e3307e1c567fe4065704c",
+    "path": "artifacts/Vertex-MVP-1.14.apk",
+    "versionCode": 18,
+    "physicalDeviceTested": false,
+    "url": "https://vertex-app.masurovadasha.workers.dev/Vertex-Latest.apk"
+  },
+  "canva": {
+    "viewUrl": "https://www.canva.com/d/QSLYbk11KQQ2Khj",
+    "designId": "DAHWq7gBEj8"
+  },
+  "olxUsed": false,
+  "limitations": [
+    "Requests, payments, taxi dispatch and staff actions are local demonstrations.",
+    "No production OpenAI backend or automatic model retraining. Browser voice depends on device support.",
+    "No physical Android installation test.",
+    "Observed Views quotes apply only to the dates and guests displayed."
+  ],
+  "previousRecord": "artifacts/release/cloudflare-release-1.6-history.json"
+}
