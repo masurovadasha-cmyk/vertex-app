@@ -77,7 +77,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           VISION_STAGING_URL: ${{ vars.VISION_STAGING_URL }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           node --input-type=module - <<'JS'
           import fs from 'node:fs';
           const path='artifacts/staging/deployment.json',m=JSON.parse(fs.readFileSync(path));
@@ -93,6 +93,7 @@ jobs:
             exit 0
           fi
           if [ "$preflight_status" -ne 0 ]; then exit "$preflight_status"; fi
+          set -e
           npx wrangler deploy --config vision/wrangler.jsonc --keep-vars --var "VISION_SOURCE_COMMIT:$GITHUB_SHA" 2>&1 | tee artifacts/staging/deploy.txt
           node -e "const fs=require('fs'),p='artifacts/staging/deployment.json',m=JSON.parse(fs.readFileSync(p));m.uploaded=true;fs.writeFileSync(p,JSON.stringify(m,null,2))"
           echo "deployed=true" >> "$GITHUB_OUTPUT"
