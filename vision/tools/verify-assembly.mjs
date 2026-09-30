@@ -82,6 +82,12 @@ for(const required of [
   'vision/production/seed-restore-fixture.mjs',
   'vision/production/verify-restore.mjs',
   'vision/modules/views/manifest.json',
+  'vision/production/check-migration-safety.mjs',
+  'vision/production/check-n-minus-one-compatibility.mjs',
+  'vision/production/preflight.mjs',
+  'vision/production/rollback-plan.json',
+  'vision/production/safety-manifest.json',
+  '.github/workflows/vision-rc2-safety.yml',
   'docs/architecture/TARGET-ARCHITECTURE-1.0.md'
 ]) assert.ok(exists(required),'missing assembly component '+required);
 
@@ -114,6 +120,12 @@ assert.equal(release.realStagingE2E.directRLSVerification,true);
 assert.equal(assembly.readiness.endpoint,'/readyz');
 assert.equal(assembly.readiness.serviceRoleRequired,false);
 assert.equal(release.runtimeReadiness.rpc,'public.vision_runtime_readiness()');
+assert.equal(assembly.productionSafety.nMinusOneCompatibility,'vision/production/check-n-minus-one-compatibility.mjs');
+assert.equal(assembly.productionSafety.ciBackupRestoreDrillRequired,true);
+assert.equal(assembly.productionSafety.productionBackupRestoreVerified,false);
+assert.equal(assembly.productionSafety.stagingDeployMode,'manual-only');
+assert.equal(release.productionSafety.productionBackupRestoreVerified,false);
+assert.equal(release.productionSafety.stagingDeployMode,'manual-only');
 assert.equal(release.eventReliability.deliveryModel,'at-least-once');
 assert.equal(release.eventReliability.deduplication,'tenant-consumer-event-id');
 assert.equal(assembly.reliability.globalExactlyOnce,false);
