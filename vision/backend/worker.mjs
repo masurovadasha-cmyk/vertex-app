@@ -37,17 +37,24 @@ export async function handle(request,env,fetcher=fetch) {
     const user=await upstreamJSON(identity,65536);
     if(!uuid.test(user.id||''))return json({error:'unauthorized'},401);
     let result;
-    if(url.pathname==='/api/commands' && request.method==='POST') {
+    if((url.pathname==='/api/commands'||url.pathname==='/api/v1/views/commands') && request.method==='POST') {
       const mediaType=request.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
       if(mediaType!=='application/json')return json({error:'json_required'},415);
       const command=await boundedJSON(request,8192);
       // Unknown keys, tenant, identity, roles, state and versions are validated again in SQL.
-      result=await upstream('/rest/v1/rpc/vision_command',{method:'POST',body:JSON.stringify({command})});
-    } else if(request.method==='GET' && ['/api/orders','/api/tasks','/api/audit','/api/history'].includes(url.pathname)) {
+      const rpc=url.pathname==='/api/v1/views/commands'?'vision_views_command':'vision_command';
+      result=await upstream('/rest/v1/rpc/'+rpc,{method:'POST',body:JSON.stringify({command})});
+    } else if(request.method==='GET' && [
+      '/api/orders','/api/tasks','/api/audit','/api/history',
+      '/api/v1/views/bookings','/api/v1/views/units','/api/v1/views/cleaning'
+    ].includes(url.pathname)) {
       const tenant=url.searchParams.get('tenant_id');
       if(!uuid.test(tenant||''))return json({error:'tenant_id_required'},400);
-      const tables={orders:'vision_orders',tasks:'vision_tasks',audit:'vision_audit_events',history:'vision_order_status_history'};
-      const table=tables[url.pathname.split('/')[2]];
+      const tables={
+        '/api/orders':'vision_orders','/api/tasks':'vision_tasks','/api/audit':'vision_audit_events','/api/history':'vision_order_status_history',
+        '/api/v1/views/bookings':'vision_views_bookings','/api/v1/views/units':'vision_views_units','/api/v1/views/cleaning':'vision_views_cleaning_jobs'
+      };
+      const table=tables[url.pathname];
       const params=new URLSearchParams({tenant_id:'eq.'+tenant,select:'*',limit:'50',order:'created_at.desc,id.desc'});
       result=await upstream('/rest/v1/'+table+'?'+params);
     } else return json({error:'not_found'},404);
