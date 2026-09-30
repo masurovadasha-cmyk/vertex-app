@@ -15,9 +15,9 @@ test("UI keeps approved VERTEX Engineers palette",()=>{
  for(const color of ["#15181c","#d5b98c","#f4f0e8"])assert.ok(css.toLowerCase().includes(color));
 });
 test("preview does not pretend staging persistence is live",()=>{
- assert.match(js,/staging database/);
- assert.match(js,/persistence\/API/);
- assert.match(js,/preview/);
+ assert.match(js,/verified staging identity/);
+ assert.match(js,/mode:"preview"/);
+ assert.match(js,/staging scope/);
 });
 test("shell is self-contained and uses no private VISION runtime imports",()=>{
  assert.match(html,/engineers\.js/);
