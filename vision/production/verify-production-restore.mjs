@@ -69,7 +69,7 @@ try{
   const report={
     status:'PASS',
     target:'production',
-    sourceCommit:process.env.GITHUB_SHA||null,
+    sourceCommit:process.env.VISION_CANDIDATE_SHA||process.env.GITHUB_SHA||null,
     targetMigration:release.databaseMigration,
     targetArchitectureVersion:release.architectureVersion,
     restoredLatestMigration:applied.at(-1)?.name||null,
