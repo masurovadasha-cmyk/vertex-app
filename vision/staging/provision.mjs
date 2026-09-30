@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import pg from 'pg';
+import {randomUUID} from 'node:crypto';
 import {migrate} from '../backend/migrate.mjs';
 import {provisionDemo,profiles,demo} from '../backend/demo.mjs';
 import {validateSupabaseStaging,validateStagingDatabaseURL,signInSynthetic} from './auth.mjs';
@@ -32,6 +33,12 @@ try{
   await client.query("set statement_timeout='60s'");
   await migrate(db);
   await provisionDemo(db,identities);
+  const e2eUnitId=randomUUID();
+  const runLabel=(process.env.GITHUB_RUN_ID||Date.now().toString()).replace(/[^0-9A-Za-z_-]/g,'').slice(-32);
+  await client.query(
+    'insert into public.vision_views_units(id,tenant_id,organization_id,property_id,unit_number,unit_type,status) values($1,$2,$3,$4,$5,$6,$7)',
+    [e2eUnitId,demo.tenant_id,demo.views_id,demo.property_id,'E2E-'+runLabel,'synthetic-e2e','READY']
+  );
   const readiness=(await client.query('select public.vision_runtime_readiness() result')).rows[0]?.result;
   if(!readiness||readiness.ready!==true||readiness.latest_migration!=='0010_runtime_readiness.sql')throw new Error('staging_database_not_ready');
   const userCount=(await client.query('select count(*)::int n from public.vision_users where tenant_id=$1 and id=any($2::uuid[])',[demo.tenant_id,Object.values(identities)])).rows[0].n;
@@ -43,7 +50,7 @@ try{
     projectRef:config.projectRef,
     tenantId:demo.tenant_id,
     organizationId:demo.views_id,
-    unitId:demo.unit_id,
+    unitId:e2eUnitId,
     customerId:demo.customer_id,
     profiles:requiredProfiles,
     identitiesDistinct:true,
