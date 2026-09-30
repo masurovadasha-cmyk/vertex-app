@@ -1,0 +1,47 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
+const root=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
+const dir=path.join(root,'vision/database/migrations');
+const files=fs.readdirSync(dir).filter(name=>/^\d{4}_.+\.sql$/.test(name)).sort();
+const strip=sql=>sql
+  .replace(/\/\*[\s\S]*?\*\//g,' ')
+  .replace(/--.*$/gm,' ')
+  .replace(/'(?:''|[^'])*'/g,"''")
+  .replace(/\s+/g,' ')
+  .trim();
+
+const forbidden=[
+  [/\bdrop\s+(?:table|column|schema|type|function|index|policy)\b/i,'destructive DROP'],
+  [/\btruncate\b/i,'TRUNCATE'],
+  [/\balter\s+table\b[^;]*\bdrop\b/i,'ALTER TABLE DROP'],
+  [/\balter\s+table\b[^;]*\brename\s+(?:column|to)\b/i,'table/column rename'],
+  [/\balter\s+table\b[^;]*\balter\s+column\b[^;]*\btype\b/i,'column type rewrite'],
+  [/\bcascade\b/i,'CASCADE']
+];
+
+const errors=[];
+for(const [index,name] of files.entries()){
+  const sql=fs.readFileSync(path.join(dir,name),'utf8').replaceAll('\r\n','\n');
+  const normalized=strip(sql);
+  if(name.slice(0,4)!==String(index+1).padStart(4,'0'))errors.push(name+': migration sequence is not contiguous');
+  if(!/^begin\s*;/i.test(normalized))errors.push(name+': migration must begin explicitly');
+  if(!/commit\s*;\s*$/i.test(normalized))errors.push(name+': migration must commit explicitly');
+
+  // 0001-0004 are the reviewed foundation baseline. RC-era migrations are expand-only.
+  if(Number(name.slice(0,4))>=5){
+    for(const [pattern,label] of forbidden){
+      if(pattern.test(normalized))errors.push(name+': '+label+' is forbidden after the foundation baseline');
+    }
+  }
+
+  const definer=[...normalized.matchAll(/create(?:\s+or\s+replace)?\s+function\b[\s\S]*?security\s+definer[\s\S]*?\$\$/ig)];
+  for(const match of definer){
+    if(!/set\s+search_path\s*=\s*''/i.test(match[0]))errors.push(name+': SECURITY DEFINER function missing empty search_path');
+  }
+}
+if(errors.length){
+  console.error(errors.join('\n'));
+  process.exit(1);
+}
+console.log(JSON.stringify({status:'PASS',policy:'expand-only-after-0004',migrations:files.length,latest:files.at(-1)},null,2));
