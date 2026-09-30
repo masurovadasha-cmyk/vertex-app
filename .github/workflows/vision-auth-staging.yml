@@ -1,0 +1,62 @@
+name: VERTEX VISION Auth Staging
+on:
+  push:
+    branches: ['vision-auth-staging-*']
+  pull_request:
+    branches: ['vision-foundation-rc-ui-*']
+    paths:
+      - 'vision/**'
+      - 'docs/architecture/AUTH-STAGING-INTEGRATION-0.1.md'
+      - '.github/workflows/vision-auth-staging.yml'
+permissions:
+  contents: read
+concurrency:
+  group: vision-auth-staging-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: vision_test_auth
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: |
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Full source regression suite
+        run: npm test
+      - name: PostgreSQL 17 migration and RLS regression
+        run: node --test vision/tests/database.test.mjs
+        env:
+          VISION_TEST_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_test_auth
+      - name: Auth contract tests
+        run: node --test vision/tests/auth-context.test.mjs vision/tests/auth-worker.test.mjs vision/tests/auth-client.test.mjs
+      - name: Authenticated Operations browser flow
+        run: node vision/tools/verify-operations-ui.mjs
+      - name: Cloudflare staging dry-run
+        run: npx wrangler deploy --config vision/wrangler.jsonc --dry-run
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vision-auth-staging-evidence-${{ github.sha }}
+          path: .vision-build/operations-ui-evidence/
+          if-no-files-found: warn
+          retention-days: 14
