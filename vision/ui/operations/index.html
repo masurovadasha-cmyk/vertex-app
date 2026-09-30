@@ -6,13 +6,14 @@
 <div class="intro"><p class="eyebrow">VERTEX GROUP / OPERATIONS</p><h1>Одна система.<br>Первый рабочий модуль — Views.</h1><p>Операционная панель тестовой среды. Остальные направления — будущие ветки.</p></div>
 <p id="network" class="notice" hidden>Нет сети. Изменения временно недоступны.</p>
 <p id="message" role="status" aria-live="polite"></p>
-<section id="connect" class="panel"><h2>Подключить тестовый сеанс</h2><p>Нужен действующий access token отдельного пользователя Supabase staging. Это проверочный вход, а не production-авторизация. Используйте только синтетические данные.</p>
+<section id="connect" class="panel"><h2>Войти в Supabase staging</h2><p>Используйте отдельного синтетического пользователя тестовой среды. Пароль и токены не записываются в браузерное хранилище.</p>
 <form id="connectForm" autocomplete="off">
-<label>Tenant UUID<input name="tenant" required autocomplete="off" spellcheck="false"></label>
-<label>Organization UUID<input name="organization" required autocomplete="off" spellcheck="false"></label>
-<label class="wide">Supabase access token<input name="token" type="password" required autocomplete="off" spellcheck="false" maxlength="8185"></label>
-<button type="submit">Подключиться</button><small>Токен не записывается в браузерное хранилище и стирается после завершения сеанса или перезагрузки.</small>
+<label>Email<input name="email" type="email" required autocomplete="username" maxlength="254" spellcheck="false"></label>
+<label>Пароль<input name="password" type="password" required autocomplete="current-password" maxlength="1024"></label>
+<button type="submit">Войти</button><small>После входа VISION сам получает tenant, разрешённые организации и permissions из проверенного JWT.</small>
 </form></section>
+<section id="scope" class="panel" hidden><h2>Выберите организацию</h2><p>Показываются только активные организации, доступные текущему пользователю.</p>
+<form id="scopeForm"><label class="wide">Организация<select name="organization" required></select></label><button type="submit">Открыть Views</button></form></section>
 <section id="workspace" hidden>
 <nav aria-label="Разделы"><button data-tab="hub">Vision Hub</button><button data-tab="dashboard">Обзор</button><button data-tab="calendar">Календарь</button><button data-tab="bookings">Бронирования</button><button data-tab="cleaning">Уборка</button></nav>
 <div class="toolbar"><form id="rangeForm"><label>С<input id="from" type="date" required></label><label>До (не включая)<input id="to" type="date" required></label><button type="submit">Обновить</button></form><small>До 31 дня. Состояния подтверждает сервер.</small></div>
