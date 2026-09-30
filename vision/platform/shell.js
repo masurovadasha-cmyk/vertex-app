@@ -60,7 +60,7 @@
     for(const m of items){
       const card=button('',()=>details(m.id),'vv-card');card.dataset.vvOpen=m.id;
       const active=m.status==='active';
-      const head=element('div','vv-card-top');head.append(element('span','vv-card-domain',tx(...groups[m.domain])),element('span','vv-tag '+(active?'':'vv-tag-planned'),active?tx('Активно','Active'):tx('Скоро','Coming Soon')));
+      const head=element('div','vv-card-top');const identity=element('div','vv-card-identity');identity.append(element('span','vv-card-icon',m.icon),element('span','vv-card-domain',tx(...groups[m.domain])));head.append(identity,element('span','vv-tag '+(active?'':'vv-tag-planned'),active?tx('Активно','Active'):tx('Скоро','Coming Soon')));
       card.append(head,element('h3','',m.name),element('p','',tx(m.description.ru,m.description.en)),element('span','vv-card-link',active?tx('Открыть Views →','Open Views →'):tx('Будущая ветка →','Future branch →')));box.append(card);
     }
     document.getElementById('visionCount').textContent=tx('В реестре: '+core.modules.length+' · показано: '+items.length,'Registered: '+core.modules.length+' · shown: '+items.length);
