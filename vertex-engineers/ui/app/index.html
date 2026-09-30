@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#15181c">
+<title>VERTEX Engineers</title>
+<link rel="stylesheet" href="./engineers.css">
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+<a class="brand" href="#dashboard"><span class="brand-mark">V</span><span><strong>VERTEX</strong><small>ENGINEERS</small></span></a>
+<nav id="nav"></nav>
+<div class="sidebar-note"><span class="status-dot"></span><div><strong>Operational Core 0.2</strong><small>Standalone • staging-ready</small></div></div>
+</aside>
+<main class="main">
+<header class="topbar">
+<button id="menuButton" class="icon-button menu-button" aria-label="Открыть меню">☰</button>
+<div><p class="eyebrow">VERTEX GROUP / ENGINEERING</p><h1 id="pageTitle">Dashboard</h1></div>
+<div class="top-actions"><span class="environment">STAGING</span><button class="primary" data-action="new">+ Создать</button></div>
+</header>
+<section id="content" class="content" aria-live="polite"></section>
+</main>
+</div>
+<dialog id="actionDialog"><form method="dialog" class="dialog-card"><div class="dialog-head"><div><p class="eyebrow">VERTEX ENGINEERS</p><h2 id="dialogTitle">Создать</h2></div><button class="icon-button" value="cancel">×</button></div><p id="dialogText" class="muted"></p><div class="dialog-actions"><button value="cancel" class="secondary">Закрыть</button></div></form></dialog>
+<script type="module" src="./engineers.js"></script>
+</body>
+</html>
