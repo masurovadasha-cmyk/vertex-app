@@ -73,6 +73,24 @@ jobs:
           VISION_TEST_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_rc2_source
         run: node vision/production/seed-restore-fixture.mjs artifacts/rc2/fixture.json
 
+      - name: Verify synthetic effective read-only backup principal
+        shell: bash
+        run: |
+          set -euo pipefail
+          PG_CONTAINER="$(docker ps --filter ancestor=postgres:17 --format '{{.ID}}' | head -n1)"
+          test -n "$PG_CONTAINER"
+          docker exec -i -e PGPASSWORD=disposable-ci-only "$PG_CONTAINER" psql -v ON_ERROR_STOP=1 -U postgres -d vision_rc2_source <<'SQL'
+          create role vision_backup_ci login password 'backup-ci-only';
+          grant connect on database vision_rc2_source to vision_backup_ci;
+          grant usage on schema public,vision_private to vision_backup_ci;
+          grant select on all tables in schema public,vision_private to vision_backup_ci;
+          grant select on all sequences in schema public,vision_private to vision_backup_ci;
+          SQL
+          VISION_BACKUP_PRINCIPAL_TARGET=ci \
+          VISION_PRODUCTION_READONLY_DATABASE_URL='postgres://vision_backup_ci:backup-ci-only@localhost:5432/vision_rc2_source?sslmode=disable' \
+          VISION_EXPECTED_PRODUCTION_DATABASE_HOST=localhost \
+            node vision/production/check-backup-principal.mjs artifacts/rc2/backup-principal.json
+
       - name: Read-only source database preflight
         env:
           VISION_RELEASE_TARGET: ci
@@ -145,6 +163,7 @@ jobs:
             sourceCommit:process.env.GITHUB_SHA,
             safetyStage:safety.stage,
             backupRestoreVerified:true,
+            backupPrincipalPolicyVerified:true,
             migrationSafetyVerified:true,
             nMinusOneCompatibilityVerified:true,
             rollbackPolicyVerified:true,
