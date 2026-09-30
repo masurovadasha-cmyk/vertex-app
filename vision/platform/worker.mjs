@@ -11,6 +11,7 @@ export async function handle(request,env={}){
     if(request.method!=='GET'&&request.method!=='HEAD')return json({error:'method_not_allowed'},405);
     return request.method==='HEAD'?new Response(null,{status:200,headers:{'cache-control':'no-store'}}):json(metadata());
   }
+  if(path==='/readyz')return json({error:'cloud_backend_not_connected',mode:'release-candidate',activeModule:'views',authenticated:false},503);
   if(path.startsWith('/api/')){
     const origin=request.headers.get('origin');
     if(origin&&origin!==url.origin)return json({error:'origin_denied'},403);
