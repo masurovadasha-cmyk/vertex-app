@@ -10,6 +10,12 @@ async function boundedJSON(source,limit) {
   try{return JSON.parse(new TextDecoder().decode(data));}catch{throw new Error('invalid_json');}
 }
 
+// Dependency parsing failures are not errors in the caller's request body.
+async function upstreamJSON(response,limit) {
+  try{return await boundedJSON(response,limit);}
+  catch{throw new Error('upstream_invalid_response');}
+}
+
 // All data requests retain the user's verified bearer token. There is no service-role key.
 export async function handle(request,env,fetcher=fetch) {
   const url=new URL(request.url);
@@ -24,12 +30,16 @@ export async function handle(request,env,fetcher=fetch) {
   const upstream=(path,options={})=>fetcher(env.SUPABASE_URL+path,{...options,headers,redirect:'error',signal:AbortSignal.timeout(10000)});
   try{
     const identity=await upstream('/auth/v1/user');
-    if(!identity.ok)return json({error:identity.status>=500?'auth_unavailable':'unauthorized'},identity.status>=500?503:401);
-    const user=await boundedJSON(identity,65536);
+    if(!identity.ok){
+      const unavailable=identity.status===429||identity.status>=500;
+      return json({error:unavailable?'auth_unavailable':'unauthorized'},unavailable?503:401);
+    }
+    const user=await upstreamJSON(identity,65536);
     if(!uuid.test(user.id||''))return json({error:'unauthorized'},401);
     let result;
     if(url.pathname==='/api/commands' && request.method==='POST') {
-      if(!request.headers.get('content-type')?.startsWith('application/json'))return json({error:'json_required'},415);
+      const mediaType=request.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
+      if(mediaType!=='application/json')return json({error:'json_required'},415);
       const command=await boundedJSON(request,8192);
       // Unknown keys, tenant, identity, roles, state and versions are validated again in SQL.
       result=await upstream('/rest/v1/rpc/vision_command',{method:'POST',body:JSON.stringify({command})});
@@ -41,7 +51,7 @@ export async function handle(request,env,fetcher=fetch) {
       const params=new URLSearchParams({tenant_id:'eq.'+tenant,select:'*',limit:'50',order:'created_at.desc,id.desc'});
       result=await upstream('/rest/v1/'+table+'?'+params);
     } else return json({error:'not_found'},404);
-    const body=await boundedJSON(result,1048576);
+    const body=await upstreamJSON(result,1048576);
     if(!result.ok){
       const conflicts=['23505','40001'].includes(body.code);
       const forbidden=body.code==='42501'||result.status===403;
