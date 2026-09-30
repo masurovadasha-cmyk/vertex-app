@@ -37,7 +37,8 @@
       "nMinusOneCompatibilityVerified": true,
       "rollbackPolicyVerified": true,
       "productionApproved": false,
-      "productionChanged": false
+      "productionChanged": false,
+      "backupPrincipalPolicyVerified": true
     },
     "cloudE2E": {
       "status": "passed",
