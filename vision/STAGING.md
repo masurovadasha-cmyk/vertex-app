@@ -29,7 +29,7 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
 1. Create a dedicated free Supabase project `vertex-vision-staging`. Enable Data
    API and automatic RLS, disable automatic table grants. Keep the database
    password in the owner's password manager.
-2. Apply migrations `0001` through `0007` in order with the trusted database
+2. Apply migrations `0001` through `0009` in order with the trusted database
    owner (Supabase SQL editor or a secure migration job). Do not rerun applied
    files manually. `backend/migrate.mjs` provides checksum-tracked application
    for PostgreSQL adapters exposing `query` and `exec`.
@@ -91,6 +91,7 @@ properties/units, bookings/stays, internal cleaning jobs, RLS and
 
 Versioned staging routes:
 
+- `GET /api/v1/context?tenant_id=UUID&organization_id=UUID`: server-authoritative roles, permissions and Views capabilities.
 - `POST /api/v1/views/commands`
 - `GET /api/v1/views/bookings?tenant_id=UUID`
 - `GET /api/v1/views/units?tenant_id=UUID`
@@ -110,13 +111,28 @@ legacy/demo metrics when an operational session is missing.
 
 The browser session is configured in memory only:
 
-`VertexVisionViews.configure({ tenantId, token, permissions })`
+`await VertexVisionViews.configure({ tenantId, organizationId, token })`
 
-The access token is not written to localStorage by this module. A future Auth layer must
-provide the verified Supabase session and exact permission list. Without that session the
+The access token is not written to localStorage by this module. The verified Supabase session supplies only the token; roles, permissions and capabilities are resolved by `GET /api/v1/context` from PostgreSQL RBAC. Without that session the
 workspace shows an explicit NOT CONNECTED state and keeps the legacy Host Studio separate
 as a demo-only surface.
 
 The dedicated `vertex-vision-staging` Worker now serves the built VISION assets and runs
 first for `/api/*` and `/health`, so staging UI and staging API can remain same-origin.
 The public production Worker continues to fail closed for `/api/v1/views/*`.
+
+
+## Application Kernel 0.1
+
+Migration `0009_application_kernel.sql` adds
+`vision_session_context(tenant, organization)`. It derives the authenticated actor from
+the verified JWT transaction context and returns only database-authorized roles,
+permissions and capability booleans. The browser is never a source of authorization data.
+
+The UI connection contract is now:
+
+`await VertexVisionViews.configure({ tenantId, organizationId, token })`
+
+No `permissions` parameter is accepted or trusted. The staging Worker verifies the token,
+then calls the context RPC. A disabled Views installation, inactive actor, unrelated
+organization or identity with neither membership nor guest link fails closed.
