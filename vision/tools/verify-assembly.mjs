@@ -90,6 +90,7 @@ for(const required of [
   'vision/modules/views/manifest.json',
   'vision/production/check-migration-safety.mjs',
   'vision/production/check-n-minus-one-compatibility.mjs',
+  'vision/production/build-n-minus-one-baseline.mjs',
   'vision/production/preflight.mjs',
   'vision/production/rollback-plan.json',
   'vision/production/safety-manifest.json',
