@@ -66,7 +66,7 @@
     "cloudStagingVerified": false
   },
   "architectureVersion": "1.6",
-  "technicalStage": "real-supabase-auth-e2e-prepared-0.1",
+  "technicalStage": "rc2-production-safety-prepared-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -150,5 +150,17 @@
     "deduplication": "tenant-consumer-event-id",
     "leaseSeconds": 60,
     "productionConsumerConnected": false
+  },
+  "productionSafety": {
+    "status": "implemented-in-branch",
+    "workflow": ".github/workflows/vision-rc2-safety.yml",
+    "safetyManifest": "vision/production/safety-manifest.json",
+    "rollbackPlan": "vision/production/rollback-plan.json",
+    "migrationPolicy": "expand-only-after-foundation",
+    "readOnlyPreflight": "vision/production/preflight.mjs",
+    "backupRestoreDrill": "postgresql-native-dump-restore-synthetic-ci",
+    "backupRestoreVerified": false,
+    "productionApproved": false,
+    "productionChanged": false
   }
 }
