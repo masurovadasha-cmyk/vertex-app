@@ -1,0 +1,27 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {PGlite} from '@electric-sql/pglite';
+import {migrate} from '../backend/migrate.mjs';
+import core from '../platform/registry.cjs';
+test('module registry and organization installations preserve tenant boundaries',async t=>{
+ const db=new PGlite();t.after(()=>db.close());
+ await db.exec('create role anon; create role authenticated;');await migrate(db);
+ const a=randomUUID(),b=randomUUID(),orgA=randomUUID(),orgB=randomUUID(),user=randomUUID(),membership=randomUUID(),role=randomUUID();
+ for(const [id,code] of [[a,'module-test-a'],[b,'module-test-b']])await db.query('insert into public.vision_tenants(id,code,name) values($1,$2,$2)',[id,code]);
+ for(const [id,tenant,code] of [[orgA,a,'a'],[orgB,b,'b']])await db.query("insert into public.vision_organizations(id,tenant_id,code,name,kind) values($1,$2,$3,$3,'COMPANY')",[id,tenant,code]);
+ await db.query("insert into public.vision_users(id,tenant_id,display_name) values($1,$2,'Synthetic test operator')",[user,a]);
+ await db.query('insert into public.vision_memberships(id,tenant_id,user_id,organization_id) values($1,$2,$3,$4)',[membership,a,user,orgA]);
+ for(const [tenant,org] of [[a,orgA],[b,orgB]])await db.query("insert into public.vision_module_installations(tenant_id,organization_id,module_id) values($1,$2,'views')",[tenant,org]);
+ const as=async(work)=>{await db.exec('begin;set local role authenticated;');try{await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:user})]);const value=await work();await db.exec('commit');return value;}catch(e){await db.exec('rollback');throw e;}};
+ await t.test('SQL definitions exactly match the canonical product registry',async()=>{const rows=(await db.query('select id from public.vision_module_definitions order by id')).rows;assert.deepEqual(rows.map(r=>r.id),core.modules.map(m=>m.id).sort());});
+ await t.test('registration does not enable modules',async()=>{const rows=(await db.query('select state from public.vision_module_installations')).rows;assert.ok(rows.every(r=>r.state==='REGISTERED'));});
+ await t.test('membership alone does not grant installation visibility',async()=>assert.equal((await as(()=>db.query('select * from public.vision_module_installations'))).rows.length,0));
+ await db.query('insert into public.vision_roles(id,tenant_id,code,name) values($1,$2,$1,$1)',[role,a]);
+ await db.query('insert into public.vision_membership_roles(tenant_id,membership_id,role_id) values($1,$2,$3)',[a,membership,role]);
+ await db.query("insert into public.vision_role_permissions(role_id,permission_id) select $1,id from public.vision_permissions where code='modules.read'",[role]);
+ await t.test('explicit read permission reveals only the authorized organization',async()=>{const rows=(await as(()=>db.query('select * from public.vision_module_installations'))).rows;assert.equal(rows.length,1);assert.equal(rows[0].tenant_id,a);assert.equal(rows[0].organization_id,orgA);});
+ await t.test('client cannot enable or change modules',async()=>assert.rejects(()=>as(()=>db.query("update public.vision_module_installations set state='ENABLED' where tenant_id=$1",[a])),/permission denied/));
+ await t.test('cross-tenant organization references are rejected',async()=>assert.rejects(()=>db.query("insert into public.vision_module_installations(tenant_id,organization_id,module_id) values($1,$2,'travel')",[a,orgB]),/foreign key/));
+ await t.test('unregistered module names are rejected',async()=>assert.rejects(()=>db.query("insert into public.vision_module_installations(tenant_id,organization_id,module_id) values($1,$2,'unknown-module')",[a,orgA]),/foreign key/));
+});
