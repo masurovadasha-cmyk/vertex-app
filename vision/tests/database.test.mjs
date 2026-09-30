@@ -5,6 +5,7 @@ import {readFile, readdir} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import pg from 'pg';
 import {dispatchOutbox} from '../backend/outbox.mjs';
+import {migrate,migrationLock} from '../backend/migrate.mjs';
 
 test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async t => {
   const url=process.env.VISION_TEST_DATABASE_URL;
@@ -16,8 +17,7 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
   const existing=await db.query("select tablename from pg_tables where schemaname='public'");
   assert.equal(existing.rows.length,0,'Never run this suite against an existing database');
   await exec('create role anon; create role authenticated;');
-  for(const file of (await readdir(new URL('../database/migrations/',import.meta.url))).sort())
-    await exec(await readFile(new URL('../database/migrations/'+file,import.meta.url),'utf8'));
+  await migrate(db);
   const id=()=>randomUUID();
   async function insert(table,fields) {
     const keys=Object.keys(fields);
@@ -209,6 +209,10 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
     const a=new pg.Client({connectionString:url}),b=new pg.Client({connectionString:url});
     await Promise.all([a.connect(),b.connect()]);
     try {
+      await a.query('select pg_advisory_lock($1,$2)',migrationLock);
+      try{await assert.rejects(()=>migrate(b),/migration_busy/);}
+      finally{await a.query('select pg_advisory_unlock($1,$2)',migrationLock);}
+      assert.deepEqual((await migrate(b)).applied,[]);
       const c=create();const before=await counts();
       const pair=await Promise.all([command(guest,c,a),command(guest,c,b)]);
       assert.deepEqual(pair[0],pair[1]);assert.equal((await counts()).orders,before.orders+1);

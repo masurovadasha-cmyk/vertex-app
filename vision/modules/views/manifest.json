@@ -4,9 +4,10 @@
   "version": "0.1.0",
   "core": ">=0.1",
   "navigation": {
-    "label": "Views",
+    "label": "Views Apart",
+    "path": "/directions/views",
     "subtitle": "Hotel & Apartments",
-    "description": "Апартаменты, гости и управление объектами — последний Vertex Red в отдельном направлении VISION.",
+    "description": "Отдельное пространство апартаментов: работа с сервисными запросами и доступ к приложению Vertex Red.",
     "order": 1,
     "icon": "/modules/views/icon.svg",
     "features": ["Каталог Views", "Host Studio", "Маршруты", "Taxi"]

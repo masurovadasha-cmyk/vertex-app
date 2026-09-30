@@ -1,0 +1,43 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,writeFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join,resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
+import {PGlite} from '@electric-sql/pglite';
+import {migrate} from '../backend/migrate.mjs';
+
+test('migration history, rollback, retry and concurrent entry fail safely',async t=>{
+  const prefix=join(tmpdir(),'vision-migration-test-'),folder=await mkdtemp(prefix);
+  const directory=pathToFileURL(folder+'/'),db=new PGlite();
+  t.after(async()=>{await db.close();if(resolve(folder).startsWith(resolve(prefix)))await rm(folder,{recursive:true});});
+  const write=(name,sql)=>writeFile(join(folder,name),sql);
+  const first='begin;\ncreate table migration_probe(id integer primary key);\ncommit;\n';
+  await write('0001_probe.sql',first);
+  assert.deepEqual((await migrate(db,{directory})).applied,['0001_probe.sql']);
+  await db.query('insert into migration_probe values(1)');
+  assert.deepEqual(await migrate(db,{directory}),{applied:[],existing:1});
+  // Normalize Windows line endings without changing the migration checksum.
+  await write('0001_probe.sql',first.replaceAll('\n','\r\n'));
+  assert.equal((await migrate(db,{directory})).existing,1);
+  await write('0002_failure.sql','begin;\ncreate table rollback_probe(id integer);\nselect nonexistent_function();\ncommit;');
+  await assert.rejects(()=>migrate(db,{directory}),/nonexistent_function/);
+  assert.equal((await db.query("select to_regclass('rollback_probe') name")).rows[0].name,null);
+  assert.equal((await db.query('select count(*)::int n from vision_private.schema_migrations')).rows[0].n,1);
+  await write('0002_failure.sql','begin;\ncreate table rollback_probe(id integer);\ncommit;');
+  assert.equal((await migrate(db,{directory})).applied.length,1,'failure releases the runner lock');
+  await write('0003_pending.sql','begin;\ncreate table must_not_apply(id integer);\ncommit;');
+  await write('0001_probe.sql',first+'-- edited after application\n');
+  await assert.rejects(()=>migrate(db,{directory}),/explicit BEGIN\/COMMIT|Applied migration changed/);
+  assert.equal((await db.query("select to_regclass('must_not_apply') name")).rows[0].name,null);
+  await write('0001_probe.sql',first.replace('integer primary key','bigint primary key'));
+  await assert.rejects(()=>migrate(db,{directory}),/Applied migration changed/);
+  await write('0001_probe.sql',first);
+  await db.query("insert into vision_private.schema_migrations values('9999_missing.sql','unknown')");
+  await assert.rejects(()=>migrate(db,{directory}),/history diverged/);
+  await db.query("delete from vision_private.schema_migrations where name='9999_missing.sql'");
+  const concurrent=await Promise.allSettled([migrate(db,{directory}),migrate(db,{directory})]);
+  assert.equal(concurrent.filter(r=>r.status==='fulfilled').length,1);
+  assert.match(concurrent.find(r=>r.status==='rejected').reason.message,/migration_busy/);
+  assert.equal((await db.query('select id from migration_probe')).rows[0].id,1);
+});

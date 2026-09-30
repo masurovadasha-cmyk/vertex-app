@@ -6,6 +6,10 @@ test('loopback development profiles run complete Golden Flow and reject cross-or
  const app=await startDev({port:0});t.after(()=>app.close());
  const directions=await (await fetch(app.url+'/api/modules')).json();
  assert.equal(directions[0].id,'views');
+ const workspace=await fetch(app.url+directions[0].path);assert.equal(workspace.status,200);
+ assert.match(workspace.headers.get('content-security-policy'),/style-src 'self'/);
+ assert.equal((await fetch(app.url+'/modules/views/manifest.json')).status,401);
+ assert.equal((await fetch(app.url+'/modules/views/workspace.css')).status,200);
  assert.equal(new URL(directions[0].entrypoint.url).protocol,'https:');
  const icon=await fetch(app.url+directions[0].icon);
  assert.equal(icon.status,200);assert.match(icon.headers.get('content-type'),/image\/svg\+xml/);

@@ -14,6 +14,9 @@ node vision/backend/dev.mjs
 ```
 
 Open `http://127.0.0.1:8790`. Data persists in ignored `vision/.data/development`.
+Views Apart has its own workspace at `/directions/views`; it operates under the
+synthetic Views profile and links to the separate Red app. Pending command retries
+retain their idempotency key within the current browser tab.
 The six synthetic profiles exercise the real PostgreSQL migrations/RLS/commands
 using PGlite. The development server binds only to loopback, checks Host and
 Origin, and requires JSON for commands. **Never expose it with a tunnel, proxy,
@@ -32,7 +35,9 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
 2. Apply migrations `0001` through `0005` in order with the trusted database
    owner (Supabase SQL editor or a secure migration job). Do not rerun applied
    files manually. `backend/migrate.mjs` provides checksum-tracked application
-   for PostgreSQL adapters exposing `query` and `exec`.
+   for a dedicated, idle PostgreSQL connection exposing `query` (and optionally
+   `exec`). Do not use a pool or transaction-pooling endpoint. The runner locks
+   against concurrent migration jobs and rejects edited or divergent history.
 3. Create six distinct test Auth users, then map their verified Auth UUIDs to
    `guest`, `views`, `dispatcher`, `staff`, `quality`, `audit` via
    `provisionDemo(db, identities)`. This function only provisions VISION records;

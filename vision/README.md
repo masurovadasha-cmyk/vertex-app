@@ -30,6 +30,7 @@ Local development success is not proof of a deployed staging environment.
 - [Permission and transaction contract](PERMISSIONS.md)
 - [Development startup and staging setup](STAGING.md)
 - [Ordered delivery, retries and quarantine](../docs/architecture/ADR-002-ordered-outbox.md)
+- [Module workspaces and safe migration execution](../docs/architecture/ADR-003-module-workspaces.md)
 
 The current production UI remains untouched. Production deployment requires the
 owner's explicit approval after a verified cloud staging Golden Flow.

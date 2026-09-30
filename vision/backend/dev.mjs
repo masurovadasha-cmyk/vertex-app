@@ -6,6 +6,14 @@ import {migrate} from './migrate.mjs';
 import {demo,profiles,organizations,provisionDemo} from './demo.mjs';
 import {directions} from '../modules/registry.mjs';
 
+// Explicit static allowlist: module assets never become an arbitrary file server.
+const moduleAssets=new Map([
+  ['/directions/views',['../modules/views/workspace.html','text/html; charset=utf-8']],
+  ['/modules/views/workspace.css',['../modules/views/workspace.css','text/css']],
+  ['/modules/views/workspace.js',['../modules/views/workspace.js','text/javascript']],
+  ['/modules/views/command-client.mjs',['../modules/views/command-client.mjs','text/javascript']]
+]);
+
 export async function startDev({port=8790,dataDir}={}) {
   const db=new PGlite(dataDir);
   await db.exec(`do $$ begin
@@ -18,13 +26,14 @@ export async function startDev({port=8790,dataDir}={}) {
     const result=queue.then(work);queue=result.catch(()=>{});return result;
   };
   const server=http.createServer(async(req,res)=>{
-    const send=(status,data,type='application/json')=>{res.writeHead(status,{'content-type':type,'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; style-src 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'"});res.end(type==='application/json'?JSON.stringify(data):data);};
+    const send=(status,data,type='application/json')=>{res.writeHead(status,{'content-type':type,'cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'none'"});res.end(type==='application/json'?JSON.stringify(data):data);};
     const host=`127.0.0.1:${server.address().port}`;
     if(req.headers.host!==host || (req.headers.origin && req.headers.origin!==`http://${host}`))return send(403,{error:'loopback_only'});
     const path=new URL(req.url,`http://${host}`).pathname;
     try{
       if(req.method==='GET' && (path==='/'||path==='/dev.js'))return send(200,await readFile(new URL(path==='/'?'./dev.html':'./dev-ui.js',import.meta.url),'utf8'),path==='/'?'text/html; charset=utf-8':'text/javascript');
       if(req.method==='GET' && path==='/api/modules')return send(200,directions);
+      if(req.method==='GET' && moduleAssets.has(path)){const [file,type]=moduleAssets.get(path);return send(200,await readFile(new URL(file,import.meta.url),'utf8'),type);}
       if(req.method==='GET' && path==='/modules/views/icon.svg')return send(200,await readFile(new URL('../modules/views/icon.svg',import.meta.url),'utf8'),'image/svg+xml');
       if(req.method==='GET' && path==='/api/profiles')return send(200,{demo,profiles:profiles.map(({key,name})=>({key,name})),organizations});
       const profile=profiles.find(p=>p.key===req.headers['x-vision-profile']);
