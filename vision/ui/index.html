@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VERTEX VISION · Vertex Group</title><meta name="description" content="VERTEX VISION — единая операционная платформа Vertex Group."><link rel="stylesheet" href="/styles.css"><script type="module" src="/app.mjs"></script></head>
+<body>
+<header><a class="brand" href="/">VERTEX <strong>VISION</strong></a><div class="head-right"><span class="badge">RC · STAGING</span><a class="secondary-link" href="/views">Открыть Views</a></div></header>
+<main>
+<section class="hero"><div><p class="eyebrow">VERTEX GROUP / VISION CORE</p><h1>Одна платформа.<br>Все направления.</h1><p>Views — первый активный операционный модуль. Остальные направления уже зарегистрированы в архитектуре и подключаются поэтапно без жёстких зависимостей друг от друга.</p><div class="actions"><a class="primary" href="/views">Открыть Views Operations</a><a href="#architecture">Архитектура</a></div></div><aside class="status-card"><p class="eyebrow">SYSTEM STATUS</p><strong id="healthState">Проверка…</strong><span id="healthCopy">Загрузка состояния staging.</span><dl><dt>Active module</dt><dd>Views</dd><dt>Production</dt><dd>Blocked</dd><dt>JARVIS</dt><dd>Separate project</dd></dl></aside></section>
+<section class="section"><div class="section-head"><div><p class="eyebrow">MODULE REGISTRY</p><h2>Подразделения Vertex Group</h2></div><span id="moduleCount"></span></div><div id="modules" class="modules" aria-live="polite"></div></section>
+<section id="architecture" class="section architecture"><div class="section-head"><div><p class="eyebrow">ARCHITECTURE</p><h2>Как собрана VERTEX Vision</h2></div></div>
+<div class="architecture-grid">
+<article><span>01</span><h3>Vision Core</h3><p>Identity, организации, роли, permissions и единый tenant boundary.</p></article>
+<article><span>02</span><h3>Views Operations</h3><p>Апартаменты, бронирования, stay lifecycle, check-in/out и внутренняя уборка.</p></article>
+<article><span>03</span><h3>PostgreSQL + RLS</h3><p>Данные и права проверяются сервером; UI не является границей безопасности.</p></article>
+<article><span>04</span><h3>Audit + Events</h3><p>Критические операции пишут audit trail и outbox/domain events.</p></article>
+<article><span>05</span><h3>Idempotency</h3><p>Повтор критической команды не создаёт дубликат операции.</p></article>
+<article><span>06</span><h3>Independent Modules</h3><p>Будущие подразделения подключаются через Core/API/events, а не через чужие таблицы.</p></article>
+</div></section>
+<section class="section release"><p class="eyebrow">RELEASE BOUNDARY</p><h2>VERTEX Vision 0.1 RC</h2><p>Production/master не меняются этим staging-релизом. Реальные платежи, внешние уведомления и JARVIS не включены в этот кандидат.</p></section>
+<footer>VERTEX VISION · Views Active · Future modules Coming Soon · JARVIS separate</footer>
+</main></body></html>
