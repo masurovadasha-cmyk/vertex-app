@@ -1,0 +1,122 @@
+name: VISION Sand Luxury APK
+on:
+  push:
+    branches: [vision-sand-apk-20261001]
+    paths: ['.github/workflows/vision-sand-apk.yml']
+permissions:
+  contents: read
+concurrency:
+  group: vision-sand-apk-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SOURCE_SHA: 8026e1a0dd9f2efe36ba17c81bb6e848306e4f86
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 8026e1a0dd9f2efe36ba17c81bb6e848306e4f86
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify exact source and generated Android payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          mkdir -p artifacts/sand-apk
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          npm test 2>&1 | tee artifacts/sand-apk/tests.txt
+          node scripts/check-android-sync.cjs | tee artifacts/sand-apk/android-sync.txt
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Install Android SDK 35
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Prepare isolated preview identity and native Sand chrome
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import shutil, os
+          target=Path(os.environ['RUNNER_TEMP'])/'vision-sand-android'
+          shutil.copytree('android',target,ignore=shutil.ignore_patterns('build','.gradle','local.properties'))
+          def replace(file,old,new,count):
+              text=file.read_text()
+              assert text.count(old)==count, str(file)
+              file.write_text(text.replace(old,new))
+          replace(target/'app/build.gradle',"applicationId 'com.vertex.vision.demo'","applicationId 'com.vertex.vision.sand.preview'",1)
+          replace(target/'app/src/main/AndroidManifest.xml','android:label="VERTEX VISION DEMO"','android:label="VERTEX VISION SAND"',1)
+          java=target/'app/src/main/java/com/vertex/demo/MainActivity.java'
+          replace(java,'0xffe51d57','0xff20241f',2)
+          replace(java,'0xfff7f8fc','0xff20241f',1)
+          icon=target/'app/src/main/res/drawable/icon.png'
+          assert icon.exists()
+          icon.unlink()
+          (icon.parent/'icon.xml').write_text('<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="64dp" android:height="64dp" android:viewportWidth="64" android:viewportHeight="64"><path android:fillColor="#20241f" android:pathData="M0,0H64V64H0Z"/><path android:fillColor="#dec795" android:pathData="M12,17h10l10,21l10,-21h10L32,51Z"/><path android:fillColor="#9b8559" android:pathData="M22,17l10,21l-2,8L12,17Z"/></vector>')
+          source=Path('android/app/src/main/assets/site')
+          for f in source.rglob('*'):
+              if f.is_file():
+                  assert (target/'app/src/main/assets/site'/f.relative_to(source)).read_bytes()==f.read_bytes()
+          PY
+      - name: Compile Sand Luxury APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle -p "$RUNNER_TEMP/vision-sand-android" --no-daemon assembleDebug 2>&1 | tee artifacts/sand-apk/android-build.txt
+      - name: Verify signature, isolated identity and every embedded asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$RUNNER_TEMP/vision-sand-android/app/build/outputs/apk/debug/app-debug.apk"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee artifacts/sand-apk/apk-signature.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" > artifacts/sand-apk/apk-badging.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump permissions "$APK" > artifacts/sand-apk/apk-permissions.txt
+          grep -q "package: name='com.vertex.vision.sand.preview'" artifacts/sand-apk/apk-badging.txt
+          grep -q "versionName='1.16-rc1'" artifacts/sand-apk/apk-badging.txt
+          grep -q "versionCode='20'" artifacts/sand-apk/apk-badging.txt
+          cp "$APK" artifacts/sand-apk/Vertex-Vision-1.16-Sand-Luxury.apk
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile,json,hashlib,os
+          out=Path('artifacts/sand-apk')
+          apk=out/'Vertex-Vision-1.16-Sand-Luxury.apk'
+          assets=Path('android/app/src/main/assets/site')
+          expected={f.relative_to(assets).as_posix():f.read_bytes() for f in assets.rglob('*') if f.is_file()}
+          with zipfile.ZipFile(apk) as z:
+              actual={name[len('assets/site/'):]:z.read(name) for name in z.namelist() if name.startswith('assets/site/') and not name.endswith('/')}
+              assert actual==expected,'APK assets differ from verified source'
+              assert not any(Path(n).suffix.lower() in {'.ttf','.otf','.woff','.woff2','.eot','.ttc','.jks','.keystore','.pem','.key'} for n in z.namelist()),'Excluded font/key binary in APK'
+              release=json.loads(actual['release.json'])
+              assert release['version']=='1.16-rc1' and release['design']['id']=='sand-luxury'
+              assert release['active_modules']==['views']
+              assert release['cloud_database_connected'] is False
+              assert all(f in actual for f in ['vision-design.js','vision-sand.css','vision-views-client.js','vision-fullstack.css'])
+          checksum=hashlib.sha256(apk.read_bytes()).hexdigest()
+          (out/'SHA256SUMS.txt').write_text(checksum+'  '+apk.name+'\n')
+          info={'sourceCommit':os.environ['SOURCE_SHA'],'workflowCommit':os.environ['GITHUB_SHA'],'workflowRun':os.environ['GITHUB_RUN_ID'],'version':'1.16-rc1','versionCode':20,'applicationId':'com.vertex.vision.sand.preview','label':'VERTEX VISION SAND','sha256':checksum,'bytes':apk.stat().st_size,'embeddedAssetsVerified':len(expected),'design':'sand-luxury','debugSigned':True,'nativeRuntimeTested':False,'cloudAuthConnected':False,'productionChanged':False,'changesFromVerifiedSource':['Separate package ID and label to avoid replacing existing apps','Native chrome background matches approved Sand design','Vector launcher icon matches VISION mark'],'limitations':['Operational workspace is not connected to cloud Auth/database','No embedded synthetic identities or SQL test harness','No new production deployment','Only Views is active; 18 future modules remain Coming Soon']}
+          (out/'BUILD-INFO.json').write_text(json.dumps(info,ensure_ascii=False,indent=2))
+          (out/'README-RU.txt').write_text('VERTEX VISION SAND 1.16-rc1\n\nОтдельная тестовая Android-сборка с новым дизайном Sand Luxury.\nAndroid 8.0+ и актуальный Android System WebView.\nПакет com.vertex.vision.sand.preview не заменяет прежние приложения Vertex.\nИнтерфейс и фотографии встроены в APK. Операционный раздел Views показывает\n«Не подключено»: настоящие вход, общая база и платежи не подключены.\nОстальные 18 направлений остаются Coming Soon.\n\nПодпись и все встроенные веб-файлы проверены. APK подписан debug-ключом,\nне предназначен для Google Play. Запуск на физическом телефоне не проверялся.\nИсходный снимок: '+os.environ['SOURCE_SHA']+'\n',encoding='utf-8')
+          print(json.dumps(info,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Vertex-Vision-Sand-APK-${{ github.sha }}
+          path: artifacts/sand-apk/
+          retention-days: 30
+          if-no-files-found: error
