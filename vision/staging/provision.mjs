@@ -1,12 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 import pg from 'pg';
 import {randomUUID} from 'node:crypto';
 import {migrate} from '../backend/migrate.mjs';
 import {provisionDemo,profiles,demo} from '../backend/demo.mjs';
 import {validateSupabaseStaging,validateStagingDatabaseURL,signInSynthetic} from './auth.mjs';
 
-const release=JSON.parse(fs.readFileSync(new URL('../release/0.1-RC1.json',import.meta.url),'utf8'));
+const candidateRoot=process.env.VISION_CANDIDATE_ROOT?path.resolve(process.env.VISION_CANDIDATE_ROOT):null;
+const releaseFile=candidateRoot?path.join(candidateRoot,'vision/release/0.1-RC1.json'):new URL('../release/0.1-RC1.json',import.meta.url);
+const migrationDirectory=candidateRoot?pathToFileURL(path.join(candidateRoot,'vision/database/migrations')+path.sep):new URL('../database/migrations/',import.meta.url);
+const release=JSON.parse(fs.readFileSync(releaseFile,'utf8'));
 const requiredProfiles=Object.freeze(['guest','views','dispatcher','staff','quality','audit']);
 const envName=key=>'VISION_E2E_'+key.toUpperCase()+'_';
 const required=(name)=>{
@@ -32,7 +36,7 @@ await client.connect();
 const db={query:(...args)=>client.query(...args),exec:sql=>client.query(sql)};
 try{
   await client.query("set statement_timeout='60s'");
-  await migrate(db);
+  await migrate(db,{directory:migrationDirectory});
   await provisionDemo(db,identities);
   const e2eUnitId=randomUUID();
   const runLabel=(process.env.GITHUB_RUN_ID||Date.now().toString()).replace(/[^0-9A-Za-z_-]/g,'').slice(-32);
