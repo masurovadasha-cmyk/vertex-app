@@ -13,12 +13,17 @@ if(!html.includes('href="vision-compact.css"'))html=html.replace('</head>','<lin
 if(!html.includes('src="vision-core.js"'))html=html.replace('</body>','<script src="vision-core.js"></script><script src="vision-shell.js"></script></body>');
 put('index.html',html);
 const release=JSON.parse(read('release.json'));
-Object.assign(release,{version:core.version,revision:core.revision,date:'2026-09-30',platform:core.id,core_version:core.coreVersion,modules:core.modules.map(m=>m.id),mode:'local-demo',cloud_database_connected:false});
+Object.assign(release,{version:core.version,revision:core.revision,date:'2026-09-30',platform:core.id,core_version:core.coreVersion,modules:core.modules.map(m=>m.id),mode:'local-demo',cloud_database_connected:false,unified_apk_hosted:false});
 for(const feature of ['VERTEX VISION primary platform','19 registered child modules','Versioned platform registry and API','Explicit adapters preserving existing module data'])if(!release.features.includes(feature))release.features.push(feature);
-for(const boundary of ['Shared cloud database and real authentication are not connected','Registration does not enable a module or imply completed workflows','JARVIS is a separate project'])if(!release.boundaries.includes(boundary))release.boundaries.push(boundary);
+for(const boundary of ['Shared cloud database and real authentication are not connected','Registration does not enable a module or imply completed workflows','JARVIS is a separate project','The existing hosted APK link is the previous Vertex 1.14 release, not VISION 1.15'])if(!release.boundaries.includes(boundary))release.boundaries.push(boundary);
 put('release.json',JSON.stringify(release,null,2)+'\n');
 const manifest=JSON.parse(read('manifest.webmanifest'));Object.assign(manifest,{name:'VERTEX VISION — Vertex Group',short_name:'VISION',description:'Views и направления Vertex Group в одной платформе. Демонстрационная версия.'});put('manifest.webmanifest',JSON.stringify(manifest,null,2)+'\n');
 let sw=read('sw.js').replace(/const CACHE='[^']+'/ ,"const CACHE='vertex-demo-v115-vision-unified1'");
 for(const file of ['vision-core.js','vision-shell.js','vision-shell.css','vision-compact.css'])if(!sw.includes("'./"+file+"'"))sw=sw.replace('const ASSETS=[',"const ASSETS=['./"+file+"',");put('sw.js',sw);
-for(const file of ['design-shell.js','mobile.js'])put(file,read(file).replaceAll('1.14-demo',core.version));
+put('design-shell.js',read('design-shell.js').replaceAll('1.14-demo',core.version));
+// Building web assets does not upload a new APK. Keep the hosted binary's identity explicit.
+let mobile=read('mobile.js').replaceAll('Android APK · 1.15-demo ↓','Android APK · 1.14-demo ↓');
+mobile=mobile.replace('APK 1.14 доступен по кнопке ниже;','По кнопке ниже — предыдущий APK Vertex 1.14, не VISION 1.15;');
+mobile=mobile.replace('APK 1.14 is available below;','The link below is the previous Vertex 1.14 APK, not VISION 1.15;');
+put('mobile.js',mobile);
 console.log('Built VISION public assets: '+core.version+' / '+core.modules.length+' modules. No database migrations or deployment performed.');
