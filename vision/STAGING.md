@@ -29,7 +29,7 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
 1. Create a dedicated free Supabase project `vertex-vision-staging`. Enable Data
    API and automatic RLS, disable automatic table grants. Keep the database
    password in the owner's password manager.
-2. Apply migrations `0001` through `0010` in order with the trusted database
+2. Apply migrations `0001` through `0011` in order with the trusted database
    owner (Supabase SQL editor or a secure migration job). Do not rerun applied
    files manually. `backend/migrate.mjs` provides checksum-tracked application
    for PostgreSQL adapters exposing `query` and `exec`.
@@ -164,13 +164,13 @@ bearer tokens or unrestricted request/response bodies when using these IDs for d
 
 ## Runtime readiness gate
 
-After migration `0010_runtime_readiness.sql`, the staging Worker exposes:
+After migration `0011_event_inbox.sql`, the staging Worker exposes:
 
 - `GET /health` — liveness/configuration/source metadata only.
 - `GET|HEAD /readyz` — schema/runtime readiness.
 
 When Supabase staging is configured, `/readyz` must return HTTP 200 with
-`ready=true`, `latestMigration=0010_runtime_readiness.sql`, all table/function/RLS
+`ready=true`, `latestMigration=0011_event_inbox.sql`, all table/function/RLS
 checks true, and `viewsReleaseActive=true`. A green health response alone is not
 sufficient for a staging release.
 
@@ -205,7 +205,7 @@ The workflow:
 
 1. validates all targets without printing secrets;
 2. runs the complete source/assembly test suite;
-3. applies checksum-tracked migrations through `0010_runtime_readiness.sql` to the
+3. applies checksum-tracked migrations through `0011_event_inbox.sql` to the
    dedicated Supabase staging database;
 4. signs in the six synthetic accounts through genuine Supabase Auth and maps their real
    Auth UUIDs into VISION RBAC;
@@ -222,3 +222,18 @@ The workflow:
 A green local/CI suite does **not** substitute for this cloud gate. Until a real run creates
 `cloud-e2e.json` with `status: passed`, `cloudStagingVerified` and
 `productionReady` remain false.
+
+
+## Event inbox reliability
+
+Migration `0011_event_inbox.sql` adds the durable inbound idempotency boundary for future
+at-least-once consumers. The uniqueness key is `(tenant_id, consumer, event_id)`; repeated
+delivery with the same identity/payload does not create duplicate business work.
+
+Consumers claim with a 60-second lease token, then explicitly complete or fail the inbox
+record. A processed event is never reclaimed. A failed or expired processing lease may be
+claimed again. Reusing an event ID with different envelope identity or payload hash is a
+hard conflict.
+
+No end-user or anonymous role receives direct table access or EXECUTE on inbox mutation
+functions. Those grants belong only to future dedicated consumer principals.
