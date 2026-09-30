@@ -19,6 +19,7 @@ const tracked=[
   'vision/backend/worker.mjs',
   'vision/backend/kernel.mjs',
   'vision/modules/views/command-contract.mjs',
+  'vision/modules/views/response-contract.mjs',
   'vision/modules/views/manifest.json',
   'wrangler.jsonc',
   'vision/wrangler.jsonc',
