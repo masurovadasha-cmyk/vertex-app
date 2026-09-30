@@ -5,7 +5,7 @@
   if(root&&root.document)root.VertexVisionCore=core;
 })(typeof globalThis==='undefined'?this:globalThis,function(){
   'use strict';
-  const VERSION='1.15-demo', REVISION='vision-unified1', CORE_VERSION='1.0.0';
+  const VERSION='1.15-demo', REVISION='vision-unified1-taxi-contract1', CORE_VERSION='1.0.0';
   const entries=[
     ['views','Views Hotel & Apartments','stays','Апартаменты, бронирования и кабинет собственника.','Apartments, reservations and host workspace.','demo','local-tested',['catalog','host','trips']],
     ['managing','Vertex Managing IO','property','Управление объектами и контроль сервиса.','Property operations and service oversight.','demo','planned',['host','service-control']],
@@ -15,7 +15,7 @@
     ['travel','Vertex Travel','travel','Турпакеты, экскурсии и единый план поездки.','Travel packages, excursions and journey planning.','demo','planned',['journey','packages']],
     ['aviation','Vertex Aviation / Авиакасса','travel','Запрос билетов: авиа, железная дорога и автобусы.','Ticket requests for flights, trains and buses.','demo','planned',['ticket-request']],
     ['rent-car','Vertex Rent Car','mobility','Аренда автомобилей и расчёт трансфера.','Car rental and transfer estimates.','demo','planned',['transfer']],
-    ['taxi','Vertex Taxi','mobility','Заявки на собственный автопарк и диспетчерская демо.','Own-fleet requests and demonstration dispatch.','demo','planned',['taxi']],
+    ['taxi','Vertex Taxi','mobility','Самостоятельный агрегатор такси и диспетчерская платформа Vertex.','Standalone Vertex taxi aggregator and dispatch platform.','demo','external-contract',['taxi']],
     ['concierge','Concierge Service','services','Помощь гостю, заявки и гид перед заселением.','Guest assistance, requests and check-in guide.','demo','planned',['concierge','requests','guest-guide']],
     ['cleaning','Vertex Cleaning','services','Уборка, назначение сотрудника и контроль качества.','Cleaning, assignment and quality review.','demo','local-tested',['cleaning-request','requests']],
     ['laundry','Vertex Laundry','services','Прачечная и запросы гостей на обработку вещей.','Laundry and guest garment-care requests.','demo','planned',['laundry-request']],
@@ -27,11 +27,18 @@
     ['ventures','Vertex Ventures','capital','Стартапы, партнёрства и венчурное направление.','Startups, partnerships and venture development.','planned','planned',[]],
     ['training','Views Training Center','education','Обучение команды и стандарты качества.','Team training and service standards.','planned','planned',[]]
   ];
-  const modules=entries.map(([id,name,domain,ru,en,mode,backend,actions])=>({
-    id,name,domain,description:{ru,en},parent:'vertex-vision',core:'1.x',version:'0.1.0',
-    dependencies:['vision-core'],mode,backend,cloudEnabled:false,actions,
-    dataBoundary:{identity:'vision-core',organization:'vision-core',orders:'vision-core',tasks:'vision-core',audit:'vision-core',privateSchema:id.replaceAll('-','_')}
-  }));
+  const modules=entries.map(([id,name,domain,ru,en,mode,backend,actions])=>{
+    const base={
+      id,name,domain,description:{ru,en},parent:'vertex-vision',core:'1.x',version:'0.1.0',
+      dependencies:['vision-core'],mode,backend,cloudEnabled:false,actions,
+      dataBoundary:{identity:'vision-core',organization:'vision-core',orders:'vision-core',tasks:'vision-core',audit:'vision-core',privateSchema:id.replaceAll('-','_')}
+    };
+    if(id==='taxi'){
+      base.integration={type:'external-api',contract:'/integration/v1',databaseAccess:'none',privateStateOwner:'vertex-taxi-core',serviceBindingPreferred:true};
+      base.dataBoundary={identity:'vision-core',organization:'vision-core',orders:'external-taxi',tasks:'external-taxi',audit:'vision-core',privateSchema:null};
+    }
+    return base;
+  });
   function freeze(value){if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;}
   function validate(items){
     if(!Array.isArray(items)||!items.length)throw new Error('module_registry_required');
@@ -41,10 +48,11 @@
       ids.add(item.id);
       if(item.parent!=='vertex-vision'||item.core!=='1.x')throw new Error('invalid_module_parent');
       if(!Array.isArray(item.dependencies)||item.dependencies.length!==1||item.dependencies[0]!=='vision-core')throw new Error('business_module_coupling_forbidden');
-      if(!['demo','planned'].includes(item.mode)||!['planned','local-tested'].includes(item.backend)||item.cloudEnabled!==false)throw new Error('unverified_cloud_capability');
+      if(!['demo','planned'].includes(item.mode)||!['planned','local-tested','external-contract'].includes(item.backend)||item.cloudEnabled!==false)throw new Error('unverified_cloud_capability');
       if(!Array.isArray(item.actions)||item.actions.some(a=>!/^([a-z]+)(-[a-z]+)*$/.test(a))||new Set(item.actions).size!==item.actions.length)throw new Error('invalid_module_actions');
       if(item.mode==='planned'&&item.actions.length)throw new Error('planned_module_cannot_launch');
       if(typeof item.name!=='string'||!item.description?.ru||!item.description?.en)throw new Error('module_copy_required');
+      if(item.id==='taxi'&&(!item.integration||item.integration.databaseAccess!=='none'||item.dataBoundary.privateSchema!==null))throw new Error('taxi_private_boundary_violation');
     }
     return true;
   }
@@ -64,6 +72,6 @@
     module:id=>typeof id==='string'?byId.get(id)||null:null,
     list:domain=>modules.filter(m=>!domain||m.domain===domain),
     canLaunch:(id,action)=>!!byId.get(id)?.actions.includes(action),
-    readiness:()=>({mode:'local-demo',sharedDatabase:'not-connected',authenticated:false,payments:false,notifications:false,productionReady:false,jarvis:'separate-project'})
+    readiness:()=>({mode:'local-demo',sharedDatabase:'not-connected',authenticated:false,payments:false,notifications:false,productionReady:false,jarvis:'separate-project',taxi:'external-contract'})
   });
 });
