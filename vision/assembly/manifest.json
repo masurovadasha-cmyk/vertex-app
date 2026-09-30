@@ -86,7 +86,9 @@
     "read-only-release-preflight",
     "backup-restore-drill",
     "n-minus-one-schema-compatibility",
-    "rollback-policy"
+    "rollback-policy",
+    "production-promotion-evidence",
+    "production-backup-restore-evidence"
   ],
   "kernel": {
     "routePolicy": "vision/backend/kernel.mjs",
@@ -145,5 +147,13 @@
     "ciBackupRestoreDrillRequired": true,
     "productionBackupRestoreVerified": false,
     "stagingDeployMode": "manual-only"
+  },
+  "productionPromotion": {
+    "policy": "vision/production/promotion-policy.json",
+    "evaluator": "vision/production/evaluate-promotion.mjs",
+    "workflow": ".github/workflows/vision-promotion-gate.yml",
+    "productionBackupWorkflow": ".github/workflows/vision-production-backup-restore.yml",
+    "mutationAllowed": false,
+    "passed": false
   }
 }
