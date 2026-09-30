@@ -128,3 +128,23 @@ staging Worker and separately checks Supabase RLS using real bearer tokens.
 
 The repository records this gate as **required but not yet verified**. Production approval
 does not change until that real cloud run succeeds and its sanitized evidence is reviewed.
+
+
+## Trusted release control
+
+Production promotion is now separated from candidate application code.
+
+The manual promotion workflow may evaluate evidence only when launched from protected
+`master`. The trusted controller checkout provides the promotion policy/evaluator, while
+the candidate is checked out separately by exact SHA into `candidate/`. Before evidence
+artifacts are downloaded, their workflow name, workflow path, successful conclusion,
+repository and candidate head SHA are verified through the GitHub Actions API.
+
+Release-evidence workflows and the Android release build pin reviewed GitHub Actions by
+immutable commit SHA. RC2 also exercises the effective read-only backup-principal checker
+against a synthetic PostgreSQL role before the same checker is allowed near production.
+
+The current RC intentionally records this layer as
+`implemented-requires-protected-master-controller`: the controller cannot be considered
+trusted until its infrastructure exists on protected master. This does not authorize a
+production deploy or database migration.
