@@ -29,7 +29,7 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
 1. Create a dedicated free Supabase project `vertex-vision-staging`. Enable Data
    API and automatic RLS, disable automatic table grants. Keep the database
    password in the owner's password manager.
-2. Apply migrations `0001` through `0006` in order with the trusted database
+2. Apply migrations `0001` through `0007` in order with the trusted database
    owner (Supabase SQL editor or a secure migration job). Do not rerun applied
    files manually. `backend/migrate.mjs` provides checksum-tracked application
    for PostgreSQL adapters exposing `query` and `exec`.
@@ -81,3 +81,22 @@ No email, push or other external delivery is implied. A future dispatcher must
 use a separate database principal with EXECUTE on `vision_outbox_claim(integer)`
 and `vision_outbox_ack(uuid,uuid)` only, and consumers must deduplicate event IDs.
 See [permission contract](PERMISSIONS.md).
+
+
+## Views Operations 0.1 staging gate
+
+Migration `0007_views_operations.sql` adds the first transactional Views vertical slice:
+properties/units, bookings/stays, internal cleaning jobs, RLS and
+`vision_views_command(jsonb)`.
+
+Versioned staging routes:
+
+- `POST /api/v1/views/commands`
+- `GET /api/v1/views/bookings?tenant_id=UUID`
+- `GET /api/v1/views/units?tenant_id=UUID`
+- `GET /api/v1/views/cleaning?tenant_id=UUID`
+
+The required smoke sequence is:
+`create_booking → confirm_booking → check_in → check_out → cleaning_start → cleaning_submit → cleaning_verify`.
+The final state must be booking `COMPLETED`, cleaning `VERIFIED` and unit `READY`.
+An overlapping confirmed booking must fail with conflict, while adjacent date ranges are allowed.
