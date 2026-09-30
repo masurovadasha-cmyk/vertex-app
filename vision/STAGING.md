@@ -141,3 +141,12 @@ organization or identity with neither membership nor guest link fails closed.
 Views read endpoints require both tenant and organization scope. RLS remains the final
 security boundary, but the transport contract also prevents a multi-organization user
 from accidentally combining several authorized organizations into one screen.
+
+
+## Typed Views command contract
+
+`POST /api/v1/views/commands` accepts only the eight reviewed Views command types and
+their exact v1 field sets. Transport-invalid UUIDs, dates, versions, money, idempotency
+keys, unknown command names or extra privilege-like fields are rejected with
+`400 invalid_command` before the SQL RPC. PostgreSQL then independently re-checks
+authorization and domain state inside the transaction.
