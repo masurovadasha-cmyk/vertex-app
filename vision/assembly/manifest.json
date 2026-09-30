@@ -81,7 +81,11 @@
     "android-build-signature-assets",
     "cloudflare-production-dry-run",
     "cloudflare-staging-dry-run",
-    "real-supabase-auth-e2e"
+    "real-supabase-auth-e2e",
+    "expand-only-migration-policy",
+    "read-only-release-preflight",
+    "backup-restore-drill",
+    "rollback-policy"
   ],
   "kernel": {
     "routePolicy": "vision/backend/kernel.mjs",
@@ -128,5 +132,13 @@
     "outbox": "transactional-at-least-once",
     "inbox": "durable-deduplication-with-lease",
     "globalExactlyOnce": false
+  },
+  "productionSafety": {
+    "manifest": "vision/production/safety-manifest.json",
+    "rollbackPlan": "vision/production/rollback-plan.json",
+    "workflow": ".github/workflows/vision-rc2-safety.yml",
+    "backupRestoreRequired": true,
+    "readOnlyPreflightRequired": true,
+    "productionApproved": false
   }
 }
