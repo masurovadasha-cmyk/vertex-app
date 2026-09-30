@@ -43,7 +43,7 @@ export async function handle(request,env={},fetcher=fetch){
   if(!['GET','HEAD'].includes(request.method))return json({error:'method_not_allowed'},405);
   return new Response(request.method==='HEAD'?null:JSON.stringify({service:'VERTEX VISION',environment:'staging',configured:configured(env),ui:'application-assembly-0.1',activeModule:'views',moduleCount:core.modules.length,productionReady:false}),{headers:{...security,'content-type':'application/json'}});
  }
- if(url.pathname!=='/api/v1/views/operations')return baseHandle(request,env,fetcher);
+ if(url.pathname!=='/api/v1/views/operations')return url.pathname.startsWith('/api/')?baseHandle(request,env,fetcher):json({error:'not_found'},404);
  if(!configured(env))return json({error:'backend_not_configured'},503);
  if(request.headers.has('origin') && request.headers.get('origin')!==url.origin)return json({error:'origin_denied'},403);
  if(request.method!=='GET')return json({error:'method_not_allowed'},405);
