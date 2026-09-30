@@ -9,7 +9,7 @@
     "test:unit": "node vertex/tools/group.test.cjs && node vertex/tools/concierge-demo.test.cjs && node vertex/tools/mobility.test.cjs && node vertex/tools/guest-guide.test.cjs && node vertex/tools/app-release.test.cjs && node --test vertex/tools/rental-domain.test.cjs && node --test vertex/tools/host-domain.test.cjs && node --test vertex/tools/taxi.test.cjs && npm run test:vision",
     "check:release": "node scripts/check-release.cjs",
     "sync:android": "node scripts/sync-android.cjs",
-    "test": "npm run test:unit && npm run test:journey && npm run test:server && npm run check:release && npm run check:vision-assembly && npm run check:staging-e2e",
+    "test": "npm run test:unit && npm run test:journey && npm run test:server && npm run check:release && npm run check:vision-assembly && npm run check:staging-e2e && npm run check:production-safety",
     "check:deploy": "wrangler deploy --dry-run",
     "deploy": "wrangler deploy",
     "cf:whoami": "wrangler whoami",
@@ -19,7 +19,8 @@
     "test:journey": "node journey.test.cjs && node journey-budget.test.cjs && node journey-care.test.cjs && node vertex/tools/journey-integration.test.cjs",
     "check:vision-assembly": "node vision/tools/verify-assembly.mjs",
     "assemble:vision": "npm run build:vision && npm run check:vision-assembly && node vision/tools/assemble.mjs",
-    "check:staging-e2e": "node --check vision/staging/auth.mjs && node --check vision/staging/provision.mjs && node --check vision/staging/cloud-e2e.mjs"
+    "check:staging-e2e": "node --check vision/staging/auth.mjs && node --check vision/staging/provision.mjs && node --check vision/staging/cloud-e2e.mjs",
+    "check:production-safety": "node vision/production/check-migration-safety.mjs && node --check vision/production/preflight.mjs && node --check vision/production/seed-restore-fixture.mjs && node --check vision/production/verify-restore.mjs"
   },
   "devDependencies": {
     "wrangler": "4.143.0"
