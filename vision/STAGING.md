@@ -29,7 +29,7 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
 1. Create a dedicated free Supabase project `vertex-vision-staging`. Enable Data
    API and automatic RLS, disable automatic table grants. Keep the database
    password in the owner's password manager.
-2. Apply migrations `0001` through `0007` in order with the trusted database
+2. Apply migrations `0001` through `0009` in order with the trusted database
    owner (Supabase SQL editor or a secure migration job). Do not rerun applied
    files manually. `backend/migrate.mjs` provides checksum-tracked application
    for PostgreSQL adapters exposing `query` and `exec`.
@@ -50,8 +50,7 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
    npx wrangler deploy --config vision/wrangler.jsonc --keep-vars
    ```
 
-6. Verify `/health` and perform the entire sequence using genuine Auth access
-   tokens. Test another guest, an unassigned staff member, a suspended user,
+6. Verify `/health`, sign in through `/api/v1/auth/sign-in`, load `/api/v1/auth/context`, and perform the entire sequence using genuine staging Auth identities. Test another guest, an unassigned staff member, a suspended user,
    changed-payload retry and stale version. Confirm table reads obey RLS even
    when called directly through Supabase, not just through the Worker.
 7. Confirm module release metadata: `views=ACTIVE`; every other module definition is
@@ -100,3 +99,26 @@ The required smoke sequence is:
 `create_booking → confirm_booking → check_in → check_out → cleaning_start → cleaning_submit → cleaning_verify`.
 The final state must be booking `COMPLETED`, cleaning `VERIFIED` and unit `READY`.
 An overlapping confirmed booking must fail with conflict, while adjacent date ranges are allowed.
+
+
+## Auth bootstrap 0.1
+
+Migration `0009_auth_context.sql` resolves the authenticated JWT subject into the active
+VISION tenant and allowed Views organizations. The browser no longer supplies tenant,
+organization or bearer token manually.
+
+Staging endpoints:
+
+- `POST /api/v1/auth/sign-in`
+- `POST /api/v1/auth/refresh`
+- `GET /api/v1/auth/context`
+- `POST /api/v1/auth/sign-out`
+
+Use distinct synthetic Supabase Auth users for manager, cleaner and quality verification.
+The access and refresh tokens are held only in module memory. Reload/logout clears them.
+The UI must receive organization scope from `vision_auth_context()`, never from editable
+browser fields.
+
+A green source test is not a cloud-auth claim. Record the real Supabase project ref,
+synthetic Auth UUIDs, migration checksum state and the successful genuine-auth E2E before
+marking cloud staging verified.
