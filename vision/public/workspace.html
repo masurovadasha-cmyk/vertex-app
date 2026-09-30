@@ -1,0 +1,11 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Личный кабинет Views · VERTEX VISION</title><link rel="icon" href="/modules/views/icon.svg"><link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/workspace.css"><script type="module" src="/workspace.mjs"></script></head><body><main>
+<nav><a class="back" href="/directions/views">← Views Apart</a><span class="pill">Тестовая облачная среда</span></nav>
+<header><img src="/modules/views/icon.svg" width="72" height="72" alt=""><div><div class="eyebrow">VERTEX VISION</div><h1>Личный кабинет<span>.</span></h1><p>Вход команды и гостей Views.</p></div></header>
+<p id="message" role="status" aria-live="polite">Загрузка…</p>
+<section id="login"><h2>Войти в VISION</h2><p>Используйте учётную запись приложения, созданную в Supabase. Пароль базы данных сюда вводить не нужно.</p>
+<form id="login-form"><label>Email<input id="email" name="email" type="email" autocomplete="username" required maxlength="254"></label><label>Пароль<input id="password" name="password" type="password" autocomplete="current-password" required maxlength="256"></label><button class="primary" id="sign-in" type="submit" disabled>Войти</button></form>
+<p class="muted">Сеанс действует в этой вкладке. После обновления страницы потребуется войти снова.</p></section>
+<section id="account" hidden><div class="section-head"><div><h2 id="name"></h2><p id="scope"></p></div><div class="actions"><button id="refresh">Обновить</button><button id="sign-out">Выйти</button></div></div>
+<form id="request-form" hidden><h2>Заявка на уборку</h2><label>Гость и направление<select id="request-context" required></select></label><label>Услуга<select id="service" required></select></label><button class="primary" id="create-request">Создать заявку</button><p class="muted">Тестовая среда: заявка сохраняется в облаке. Уведомления исполнителям и платежи ещё не подключены.</p></form>
+<h2>Доступные заявки</h2><p class="muted">Заявки загружаются по 50, начиная с новых.</p><div id="orders"></div><button id="more" hidden>Показать ещё</button></section>
+<noscript><p>Для входа включите JavaScript.</p></noscript><footer>Views Apart / VERTEX VISION</footer></main></body></html>

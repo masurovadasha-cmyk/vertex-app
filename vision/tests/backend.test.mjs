@@ -54,5 +54,21 @@ test('order reads require tenant and cannot inject PostgREST filters',async()=>{
   const urls=[];const f=async url=>{urls.push(url);return Response.json(url.endsWith('/user')?{id:uid}:[]);};
   assert.equal((await handle(request('/api/orders?tenant_id=eq.hack'),env,f)).status,400);
   assert.equal((await handle(request('/api/orders?tenant_id='+uid+'&select=secret&limit=10000'),env,f)).status,200);
-  const u=new URL(urls.at(-1));assert.equal(u.searchParams.get('limit'),'50');assert.equal(u.searchParams.get('tenant_id'),'eq.'+uid);
+  const u=new URL(urls.at(-1));assert.equal(u.searchParams.get('limit'),'51');assert.equal(u.searchParams.get('tenant_id'),'eq.'+uid);
+});
+
+test('keyset pagination preserves microseconds and rejects injected cursors',async()=>{
+ const rows=Array.from({length:51},(_,i)=>({id:'11111111-1111-4111-8111-'+String(i).padStart(12,'0'),created_at:'2026-09-30T13:00:00.123456+00:00'}));
+ let queried;
+ const f=async url=>{queried=url;return Response.json(url.endsWith('/user')?{id:uid}:rows);};
+ const r=await handle(request('/api/orders?tenant_id='+uid),env,f);
+ assert.equal((await r.json()).length,50);const cursor=r.headers.get('x-vision-next-cursor');assert.ok(cursor);
+ await handle(request('/api/orders?tenant_id='+uid+'&cursor='+cursor),env,f);
+ assert.equal(new URL(queried).searchParams.get('or'),'(created_at.lt.2026-09-30T13:00:00.123456+00:00,and(created_at.eq.2026-09-30T13:00:00.123456+00:00,id.lt.'+rows[49].id+'))');
+ assert.equal((await handle(request('/api/orders?tenant_id='+uid+'&cursor=invalid'),env,f)).status,400);
+});
+
+test('malformed upstream JSON is a service failure, never a client validation error',async()=>{
+ const r=await handle(request('/api/orders?tenant_id='+uid),env,async()=>new Response('<html>unavailable</html>'));
+ assert.equal(r.status,503);assert.deepEqual(await r.json(),{error:'backend_unavailable'});
 });

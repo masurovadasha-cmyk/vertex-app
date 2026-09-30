@@ -1,8 +1,9 @@
 // Owner-only SQL Editor smoke test. Uses synthetic JWT claims, NOT Auth tokens.
 // All fixtures and commands roll back; never expose this through an API.
-import {writeFile,mkdir} from 'node:fs/promises';
+import {writeFile,mkdir,readdir} from 'node:fs/promises';
 import {provisionDemo} from '../backend/demo.mjs';
 const statements=[];
+const migrationCount=(await readdir(new URL('../database/migrations/',import.meta.url))).filter(f=>f.endsWith('.sql')).length;
 const literal=value=>value===null?'NULL':"'"+String(value).replaceAll("'","''")+"'";
 await provisionDemo({async query(sql,params=[]){
   if(!['begin','commit','rollback'].includes(sql))statements.push(sql.replace(/\$(\d+)/g,(_,n)=>literal(params[Number(n)-1]))+';');
@@ -14,7 +15,7 @@ do $$ begin
  if exists(select 1 from public.vision_tenants where id='00000000-0000-4000-8000-000000000001') then
   raise exception 'Smoke fixture IDs already in use; refusing to modify existing data';
  end if;
- if (select count(*) from vision_private.schema_migrations)<>5 then raise exception 'Expected five migrations'; end if;
+ if (select count(*) from vision_private.schema_migrations)<>${migrationCount} then raise exception 'Migration count mismatch'; end if;
 end $$;
 ${statements.join('\n')}
 do $$

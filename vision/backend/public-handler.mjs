@@ -4,10 +4,13 @@ export function publicHandler(assets){return async(request,env)=>{
   if(env.VISION_ENV!=='staging')return Response.json({error:'staging_only'},{status:503,headers});
   const path=new URL(request.url).pathname;
   if(['/api/profiles','/api/modules','/dev.js'].includes(path))return new Response('Not found',{status:404,headers});
-  if(path==='/health'||path.startsWith('/api/'))return api(request,env);
+  if(path==='/health'||path==='/auth/config'||path.startsWith('/api/'))return api(request,env);
   if(!['GET','HEAD'].includes(request.method))return new Response('Method not allowed',{status:405,headers:{...headers,allow:'GET, HEAD'}});
   if(path==='/download/android')return new Response(null,{status:302,headers:{...headers,location:'https://vertex-app.masurovadasha.workers.dev/Vertex-Latest.apk'}});
   const asset=Object.hasOwn(assets,path)?assets[path]:null;
   if(!asset)return new Response('Not found',{status:404,headers});
-  return new Response(request.method==='HEAD'?null:asset.body,{headers:{...headers,'content-type':asset.type}});
+  const policy=path==='/directions/views/workspace'
+    ? "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self' https://"+(env.SUPABASE_STAGING_REF?.match(/^[a-z0-9]{20}$/)?env.SUPABASE_STAGING_REF:'unconfigured')+".supabase.co; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    :headers['content-security-policy'];
+  return new Response(request.method==='HEAD'?null:asset.body,{headers:{...headers,'content-security-policy':policy,'content-type':asset.type}});
 };}
