@@ -28,6 +28,7 @@ const tracked=[
   '.github/workflows/vision-rc2-safety.yml',
   'vision/production/check-migration-safety.mjs',
   'vision/production/check-n-minus-one-compatibility.mjs',
+  'vision/production/build-n-minus-one-baseline.mjs',
   'vision/production/preflight.mjs',
   'vision/production/rollback-plan.json',
   'vision/production/safety-manifest.json',
