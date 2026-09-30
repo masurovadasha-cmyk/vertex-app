@@ -1,5 +1,5 @@
 {
-  "stage": "rc2-compatibility-recovery-0.2",
+  "stage": "rc2-trusted-release-control-0.3",
   "productionApproved": false,
   "productionDeployAllowed": false,
   "databasePolicy": {
@@ -15,7 +15,8 @@
     "backupArtifactRetention": "provider-controlled",
     "ciDrillUsesSyntheticDataOnly": true,
     "ciRestoreDrillRequired": true,
-    "productionBackupRestoreVerified": false
+    "productionBackupRestoreVerified": false,
+    "effectiveReadOnlyPrincipalRequired": true
   },
   "rollbackPolicy": {
     "application": "previous-known-good-deployment",
@@ -32,6 +33,15 @@
     "restored-readiness",
     "rollback-compatibility",
     "real-staging-auth-e2e",
-    "explicit-owner-approval"
-  ]
+    "explicit-owner-approval",
+    "effective-read-only-backup-principal",
+    "trusted-release-controller"
+  ],
+  "releaseControl": {
+    "trustedControllerRequired": true,
+    "controllerRef": "refs/heads/master",
+    "candidatePolicyAuthority": false,
+    "immutableActionPinsRequired": true,
+    "evidenceWorkflowMetadataRequired": true
+  }
 }
