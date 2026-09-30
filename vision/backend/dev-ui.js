@@ -1,4 +1,17 @@
 let config, orders=[];const profile=document.querySelector('#profile'),message=document.querySelector('#message');
+fetch('/api/modules').then(r=>{if(!r.ok)throw new Error('Направления временно недоступны');return r.json();}).then(directions=>{
+  const container=document.querySelector('#directions');
+  for(const direction of directions.sort((a,b)=>a.order-b.order)){
+    const url=new URL(direction.entrypoint.url);if(url.protocol!=='https:')continue;
+    const card=document.createElement('a');card.className='direction-card';card.href=url.href;card.target='_blank';card.rel='noopener noreferrer';
+    const element=(tag,className,text,parent=card)=>{const el=document.createElement(tag);el.className=className;if(text)el.textContent=text;parent.append(el);return el;};
+    const top=element('div','direction-top');const icon=element('img','direction-icon',null,top);icon.src=direction.icon;icon.alt='';icon.width=96;icon.height=96;
+    const heading=element('div','',null,top);element('span','direction-tag','Направление '+String(direction.order).padStart(2,'0'),heading);element('h3','',direction.label,heading);element('div','direction-subtitle',direction.subtitle,heading);
+    element('p','',direction.description);const features=element('div','direction-features');for(const feature of direction.features)element('span','',feature,features);
+    const bottom=element('div','direction-bottom');element('span','direction-open','Открыть Views ↗',bottom);element('span','direction-release','Vertex Red · '+direction.entrypoint.verified_version.replace('-demo',''),bottom);
+    card.setAttribute('aria-label','Открыть '+direction.label+' '+direction.subtitle+' — Vertex Red, в новой вкладке');container.append(card);
+  }
+}).catch(error=>document.querySelector('#directions').textContent=error.message);
 async function api(path,command){const r=await fetch(path,{method:command?'POST':'GET',headers:{'x-vision-profile':profile.value,'content-type':'application/json'},body:command?JSON.stringify(command):undefined});const body=await r.json();if(!r.ok)throw new Error(body.error);return body;}
 function cell(row,value){const td=document.createElement('td');td.textContent=value;row.append(td);return td;}
 async function refresh(){

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none">
+  <title>Views Hotel &amp; Apartments</title>
+  <defs><linearGradient id="red" x1="12" y1="5" x2="86" y2="96" gradientUnits="userSpaceOnUse"><stop stop-color="#f75161"/><stop offset="1" stop-color="#a80930"/></linearGradient></defs>
+  <rect width="96" height="96" rx="25" fill="url(#red)"/>
+  <rect x=".5" y=".5" width="95" height="95" rx="24.5" stroke="#fff" stroke-opacity=".22"/>
+  <path d="M23 29h11l14 34 14-34h11L53 76H43L23 29Z" fill="#fff"/>
+  <path d="m38 25 10-8 10 8v14H38V25Z" fill="#fff" fill-opacity=".3"/>
+  <path d="M46 25h4v6h-4z" fill="#fff"/>
+</svg>

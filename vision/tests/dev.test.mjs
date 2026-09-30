@@ -4,6 +4,11 @@ import {startDev} from '../backend/dev.mjs';
 import {demo} from '../backend/demo.mjs';
 test('loopback development profiles run complete Golden Flow and reject cross-origin requests',async t=>{
  const app=await startDev({port:0});t.after(()=>app.close());
+ const directions=await (await fetch(app.url+'/api/modules')).json();
+ assert.equal(directions[0].id,'views');
+ assert.equal(new URL(directions[0].entrypoint.url).protocol,'https:');
+ const icon=await fetch(app.url+directions[0].icon);
+ assert.equal(icon.status,200);assert.match(icon.headers.get('content-type'),/image\/svg\+xml/);
  const setup=await (await fetch(app.url+'/api/profiles')).json();
  assert.equal(setup.organizations.filter(o=>o.kind!=='GROUP').length,13);
  assert.ok(setup.organizations.some(o=>o.code==='rent-car'));

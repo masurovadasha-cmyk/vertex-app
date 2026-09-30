@@ -3,6 +3,23 @@
   "name": "Views Hotel & Apartments",
   "version": "0.1.0",
   "core": ">=0.1",
+  "navigation": {
+    "label": "Views",
+    "subtitle": "Hotel & Apartments",
+    "description": "Апартаменты, гости и управление объектами — последний Vertex Red в отдельном направлении VISION.",
+    "order": 1,
+    "icon": "/modules/views/icon.svg",
+    "features": ["Каталог Views", "Host Studio", "Маршруты", "Taxi"]
+  },
+  "entrypoint": {
+    "type": "external",
+    "url": "https://vertex-app.masurovadasha.workers.dev/",
+    "source_directory": "vertex/dist",
+    "verified_version": "1.14-demo",
+    "verified_revision": "unified-journey1",
+    "theme": "red",
+    "identity_integration": "not_connected"
+  },
   "permissions": [
     "views.order.read",
     "views.order.create",

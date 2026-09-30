@@ -4,6 +4,7 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {PGlite} from '@electric-sql/pglite';
 import {migrate} from './migrate.mjs';
 import {demo,profiles,organizations,provisionDemo} from './demo.mjs';
+import {directions} from '../modules/registry.mjs';
 
 export async function startDev({port=8790,dataDir}={}) {
   const db=new PGlite(dataDir);
@@ -23,6 +24,8 @@ export async function startDev({port=8790,dataDir}={}) {
     const path=new URL(req.url,`http://${host}`).pathname;
     try{
       if(req.method==='GET' && (path==='/'||path==='/dev.js'))return send(200,await readFile(new URL(path==='/'?'./dev.html':'./dev-ui.js',import.meta.url),'utf8'),path==='/'?'text/html; charset=utf-8':'text/javascript');
+      if(req.method==='GET' && path==='/api/modules')return send(200,directions);
+      if(req.method==='GET' && path==='/modules/views/icon.svg')return send(200,await readFile(new URL('../modules/views/icon.svg',import.meta.url),'utf8'),'image/svg+xml');
       if(req.method==='GET' && path==='/api/profiles')return send(200,{demo,profiles:profiles.map(({key,name})=>({key,name})),organizations});
       const profile=profiles.find(p=>p.key===req.headers['x-vision-profile']);
       if(!profile)return send(401,{error:'choose_demo_profile'});
