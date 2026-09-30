@@ -67,7 +67,8 @@ if(!policyOnly){
   if(backup){
     const rule=policy.rules.productionBackupRestore;
     for(const [key,expected] of Object.entries(rule))if(backup[key]!==expected)reasons.push('backup:'+key+'='+String(backup[key]));
-    if(backup.latestMigration!==release.databaseMigration)reasons.push('backup_migration_mismatch');
+    if(backup.targetMigration!==release.databaseMigration)reasons.push('backup_target_migration_mismatch');
+    if(backup.backupSourceLatestMigration!==backup.restoredLatestMigration)reasons.push('backup_restore_version_mismatch');
   }
 }
 
