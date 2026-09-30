@@ -1,0 +1,60 @@
+{
+  "version": "0.3-target",
+  "principle": "simple modular monolith",
+  "user_navigation": [
+    {
+      "id": "dashboard",
+      "label": "Dashboard",
+      "purpose": "What needs attention today"
+    },
+    {
+      "id": "projects",
+      "label": "Projects",
+      "purpose": "All construction and engineering projects"
+    },
+    {
+      "id": "equipment",
+      "label": "Equipment",
+      "purpose": "Elevators, ventilation, heating, air conditioning and other assets"
+    },
+    {
+      "id": "service",
+      "label": "Service",
+      "purpose": "Maintenance, emergency and commissioning work"
+    },
+    {
+      "id": "team",
+      "label": "Team",
+      "purpose": "Specialists, skills and qualification documents"
+    },
+    {
+      "id": "documents",
+      "label": "Documents",
+      "purpose": "Contracts, estimates, drawings, licenses, certificates and reports"
+    }
+  ],
+  "core_flow": [
+    "project",
+    "equipment",
+    "service",
+    "specialist",
+    "document_history"
+  ],
+  "technical_layers": [
+    "ui",
+    "application_api",
+    "domain",
+    "persistence_integration"
+  ],
+  "constraints": [
+    "modular_monolith",
+    "no_microservices",
+    "no_private_vision_table_access",
+    "stable_versioned_contracts",
+    "single_service_engine_for_all_equipment",
+    "single_specialist_directory",
+    "single_document_center",
+    "verified_identity_before_scope",
+    "production_requires_explicit_owner_approval"
+  ]
+}
