@@ -11,6 +11,10 @@ const client=new pg.Client({connectionString:url,application_name:'vertex-vision
 await client.connect();
 const db={query:(...args)=>client.query(...args),exec:sql=>client.query(sql)};
 try{
+  await db.exec(`do $ begin
+    if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if;
+    if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if;
+  end $;`);
   await migrate(db);
   const identities=Object.fromEntries(['guest','views','dispatcher','staff','quality','audit'].map(key=>[key,randomUUID()]));
   await provisionDemo(db,identities);
