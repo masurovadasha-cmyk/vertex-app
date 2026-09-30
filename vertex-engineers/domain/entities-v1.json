@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "entities": {
+    "project": {
+      "fields": [
+        "id",
+        "client_id",
+        "name",
+        "type",
+        "site_address",
+        "status",
+        "stage",
+        "budget",
+        "currency",
+        "start_date",
+        "target_date",
+        "manager_user_id"
+      ]
+    },
+    "estimate": {
+      "fields": [
+        "id",
+        "project_id",
+        "version",
+        "currency",
+        "subtotal",
+        "tax",
+        "total",
+        "status",
+        "approved_at"
+      ]
+    },
+    "product_reference": {
+      "fields": [
+        "id",
+        "category",
+        "brand",
+        "model",
+        "application",
+        "specs",
+        "source_url",
+        "source_checked_at",
+        "relationship"
+      ]
+    },
+    "engineering_asset": {
+      "fields": [
+        "id",
+        "project_id",
+        "category",
+        "manufacturer",
+        "model",
+        "serial_number",
+        "site_location",
+        "commissioned_at",
+        "warranty_until",
+        "status"
+      ]
+    },
+    "elevator_asset": {
+      "extends": "engineering_asset",
+      "fields": [
+        "capacity_kg",
+        "speed_mps",
+        "stops",
+        "travel_m",
+        "drive_type",
+        "machine_room_type",
+        "safe_lift_registration_id"
+      ]
+    },
+    "hvac_asset": {
+      "extends": "engineering_asset",
+      "fields": [
+        "system_type",
+        "cooling_capacity_kw",
+        "heating_capacity_kw",
+        "airflow_m3h",
+        "refrigerant",
+        "zone"
+      ]
+    },
+    "work_order": {
+      "fields": [
+        "id",
+        "asset_id",
+        "type",
+        "priority",
+        "status",
+        "requested_at",
+        "assigned_team_id",
+        "scheduled_at",
+        "started_at",
+        "completed_at"
+      ]
+    },
+    "technician": {
+      "fields": [
+        "id",
+        "user_id",
+        "name",
+        "specialties",
+        "license_or_certificate_ids",
+        "employment_status"
+      ]
+    },
+    "compliance_document": {
+      "fields": [
+        "id",
+        "subject_type",
+        "subject_id",
+        "document_type",
+        "issuer",
+        "number",
+        "issued_at",
+        "expires_at",
+        "status",
+        "file_ref"
+      ]
+    },
+    "inspection": {
+      "fields": [
+        "id",
+        "asset_id",
+        "type",
+        "inspector_id",
+        "performed_at",
+        "result",
+        "findings",
+        "next_due_at"
+      ]
+    },
+    "supplier": {
+      "fields": [
+        "id",
+        "name",
+        "categories",
+        "country",
+        "contacts",
+        "approval_status"
+      ]
+    },
+    "procurement_order": {
+      "fields": [
+        "id",
+        "project_id",
+        "supplier_id",
+        "status",
+        "currency",
+        "total",
+        "ordered_at",
+        "expected_at",
+        "received_at"
+      ]
+    }
+  }
+}

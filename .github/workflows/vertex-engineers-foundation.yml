@@ -1,0 +1,26 @@
+name: VERTEX Engineers Foundation CI
+
+on:
+  push:
+    branches:
+      - "vertex-engineers-*"
+    paths:
+      - "vertex-engineers/**"
+      - ".github/workflows/vertex-engineers-foundation.yml"
+  pull_request:
+    paths:
+      - "vertex-engineers/**"
+      - ".github/workflows/vertex-engineers-foundation.yml"
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vertex-engineers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm test

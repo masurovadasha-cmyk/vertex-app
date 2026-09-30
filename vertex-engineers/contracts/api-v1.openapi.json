@@ -1,0 +1,103 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "VERTEX Engineers API",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "/api/v1/engineers"
+    }
+  ],
+  "paths": {
+    "/projects": {
+      "get": {
+        "operationId": "listEngineerProjects",
+        "responses": {
+          "200": {
+            "description": "Projects"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createEngineerProject",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}": {
+      "get": {
+        "operationId": "getEngineerProject",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/assets": {
+      "get": {
+        "operationId": "listEngineerAssets",
+        "responses": {
+          "200": {
+            "description": "Engineering assets"
+          }
+        }
+      }
+    },
+    "/work-orders": {
+      "get": {
+        "operationId": "listEngineerWorkOrders",
+        "responses": {
+          "200": {
+            "description": "Work orders"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createEngineerWorkOrder",
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        }
+      }
+    },
+    "/product-references": {
+      "get": {
+        "operationId": "listProductReferences",
+        "responses": {
+          "200": {
+            "description": "Reference catalog"
+          }
+        }
+      }
+    },
+    "/compliance": {
+      "get": {
+        "operationId": "listComplianceItems",
+        "responses": {
+          "200": {
+            "description": "Compliance items"
+          }
+        }
+      }
+    }
+  }
+}

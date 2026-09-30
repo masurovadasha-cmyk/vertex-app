@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "id": "engineers",
+  "name": "VERTEX Engineers",
+  "version": "0.1.0",
+  "core": ">=0.1",
+  "integration_mode": "detached_until_approved",
+  "vision_mount": "/engineers",
+  "permissions": [
+    "engineers.dashboard.read",
+    "engineers.project.read",
+    "engineers.project.write",
+    "engineers.estimate.read",
+    "engineers.estimate.write",
+    "engineers.procurement.read",
+    "engineers.procurement.write",
+    "engineers.asset.read",
+    "engineers.asset.write",
+    "engineers.maintenance.read",
+    "engineers.maintenance.dispatch",
+    "engineers.compliance.read",
+    "engineers.compliance.manage",
+    "engineers.technician.read",
+    "engineers.technician.manage"
+  ],
+  "services": [
+    "engineers.construction",
+    "engineers.elevators",
+    "engineers.hvac",
+    "engineers.projects",
+    "engineers.estimates",
+    "engineers.procurement",
+    "engineers.assets",
+    "engineers.maintenance",
+    "engineers.compliance"
+  ],
+  "events": [
+    "engineers.project.created",
+    "engineers.project.stage_changed",
+    "engineers.asset.commissioned",
+    "engineers.maintenance.requested",
+    "engineers.maintenance.completed",
+    "engineers.compliance.expiring",
+    "engineers.incident.opened",
+    "engineers.incident.closed"
+  ],
+  "workflows": [
+    "engineers-project-delivery-v1",
+    "engineers-elevator-installation-v1",
+    "engineers-hvac-design-install-v1",
+    "engineers-maintenance-v1"
+  ]
+}

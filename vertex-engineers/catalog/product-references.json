@@ -1,0 +1,129 @@
+{
+  "snapshot_date": "2026-10-01",
+  "disclaimer": "Public product references for engineering research and UI/catalog prototyping only. No dealership, authorization, partnership, local availability or trademark license is implied.",
+  "references": [
+    {
+      "id": "elevator-otis-gen3",
+      "category": "elevator",
+      "brand": "Otis",
+      "model": "Gen3",
+      "application": "connected passenger elevator platform for low- to higher-rise configurations",
+      "specs": {
+        "notes": "Gen3 Core/Edge/Peak public lineup; connected Otis ONE platform; regional specifications vary."
+      },
+      "source_url": "https://www.otis.com/en/us/products-services/products/gen3",
+      "source_checked_at": "2026-10-01",
+      "relationship": "reference_only"
+    },
+    {
+      "id": "elevator-kone-monospace-dx",
+      "category": "elevator",
+      "brand": "KONE",
+      "model": "MonoSpace DX",
+      "application": "machine-room-less passenger elevators for residential and commercial buildings",
+      "specs": {
+        "europe_500_dx": {
+          "max_travel_m": 75,
+          "max_speed_mps": 1.75,
+          "max_load_kg": 1150,
+          "max_floors": 24
+        }
+      },
+      "source_url": "https://distributors.kone.com/en/new-buildings/lift-elevator/kone-monospace-dx/",
+      "source_checked_at": "2026-10-01",
+      "relationship": "reference_only"
+    },
+    {
+      "id": "elevator-schindler-3000",
+      "category": "elevator",
+      "brand": "Schindler",
+      "model": "3000",
+      "application": "low- to mid-rise residential, hotel and small commercial passenger elevator",
+      "specs": {
+        "capacity_kg": "630-1179",
+        "max_travel_m": 70,
+        "max_stops": 24,
+        "speed_mps": "1.0-1.75",
+        "drive": "machine-room-less regenerative traction"
+      },
+      "source_url": "https://au.schindler.com/en/elevators/passenger/schindler-3000.html",
+      "source_checked_at": "2026-10-01",
+      "relationship": "reference_only"
+    },
+    {
+      "id": "elevator-tke-synergy-200",
+      "category": "elevator",
+      "brand": "TK Elevator",
+      "model": "synergy 200",
+      "application": "residential and commercial buildings",
+      "specs": {
+        "max_stops": 20,
+        "max_travel_m": 45,
+        "nominal_speed_mps": 1,
+        "load_kg": "320-1600"
+      },
+      "source_url": "https://digital.brochure.tkelevator.com/brochure/synergy200/introduction-synergy-200/",
+      "source_checked_at": "2026-10-01",
+      "relationship": "reference_only"
+    },
+    {
+      "id": "hvac-daikin-vrv",
+      "category": "hvac_vrf",
+      "brand": "Daikin",
+      "model": "VRV",
+      "application": "commercial variable refrigerant volume/flow multi-split air conditioning",
+      "specs": {
+        "max_indoor_units_public_global_page": 64,
+        "modes": [
+          "heat pump/cooling",
+          "heat recovery"
+        ],
+        "notes": "regional lineups and capacities vary"
+      },
+      "source_url": "https://www.daikin.com/products/ac/lineup/vrv",
+      "source_checked_at": "2026-10-01",
+      "relationship": "reference_only"
+    },
+    {
+      "id": "hvac-mitsubishi-city-multi",
+      "category": "hvac_vrf",
+      "brand": "Mitsubishi Electric",
+      "model": "CITY MULTI",
+      "application": "VRF systems for commercial and multi-zone buildings",
+      "specs": {
+        "notes": "CITY MULTI R2 public technology supports simultaneous cooling and heating using a two-pipe circuit; regional products vary."
+      },
+      "source_url": "https://www.mitsubishielectric.com/bu/air-conditioning-systems/technology/index.html",
+      "source_checked_at": "2026-10-01",
+      "relationship": "reference_only"
+    },
+    {
+      "id": "hvac-carrier-aquasnap-30mp",
+      "category": "chiller_heat_pump",
+      "brand": "Carrier",
+      "model": "AquaSnap 30MP",
+      "application": "indoor water-cooled/condenserless liquid chiller and heat-pump applications",
+      "specs": {
+        "cooling_kw_public_us_page": "60-281",
+        "compressor": "scroll",
+        "notes": "regional configurations vary"
+      },
+      "source_url": "https://www.carrier.com/us/en/commercial/chillers/30mp/",
+      "source_checked_at": "2026-10-01",
+      "relationship": "reference_only"
+    },
+    {
+      "id": "ventilation-systemair-geniox",
+      "category": "ventilation_ahu",
+      "brand": "Systemair",
+      "model": "Geniox / AHU range",
+      "application": "air handling and ventilation projects",
+      "specs": {
+        "notes": "Systemair publishes modular and compact AHU, fans, air distribution, fire safety and ventilation product ranges."
+      },
+      "source_url": "https://www.systemair.com/en/products/air-handling-units",
+      "source_checked_at": "2026-10-01",
+      "relationship": "reference_only"
+    }
+  ]
+}

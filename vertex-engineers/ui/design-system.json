@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "concept": "premium industrial engineering, compatible with the VERTEX ecosystem but independently releasable",
+  "palette": {
+    "graphite": "#15181C",
+    "steel": "#343A40",
+    "sand": "#D5B98C",
+    "ivory": "#F4F0E8",
+    "technical_blue": "#2D6CDF",
+    "success": "#2F855A",
+    "warning": "#C78100",
+    "danger": "#C83A3A"
+  },
+  "typography": {
+    "display": "clean geometric sans",
+    "body": "high-legibility sans",
+    "numeric": "tabular numerals for technical specs"
+  },
+  "navigation": [
+    "Dashboard",
+    "Projects",
+    "Construction",
+    "Elevators",
+    "HVAC",
+    "Assets",
+    "Service",
+    "Estimates",
+    "Procurement",
+    "Warehouse",
+    "Specialists",
+    "Compliance",
+    "Documents"
+  ],
+  "primary_screens": [
+    {
+      "id": "engineers-dashboard",
+      "purpose": "portfolio status, active sites, incidents, maintenance due, compliance expiry and financial snapshot"
+    },
+    {
+      "id": "project-control",
+      "purpose": "project lifecycle, schedule, budget, estimate, procurement, installation progress, QA/QC and handover"
+    },
+    {
+      "id": "elevator-center",
+      "purpose": "sales/specification pipeline plus installed-base registry, Safe Lift status, commissioning and service history"
+    },
+    {
+      "id": "hvac-studio",
+      "purpose": "ventilation/heating/AC design workflow, equipment schedule, drawings, estimate, installation and commissioning"
+    },
+    {
+      "id": "service-dispatch",
+      "purpose": "preventive maintenance calendar, emergency work orders, technician dispatch and SLA"
+    },
+    {
+      "id": "compliance-vault",
+      "purpose": "licenses, specialist certificates, inspections, expiry alerts and project compliance packs"
+    }
+  ],
+  "ui_rules": [
+    "Use sand as a VERTEX family accent, not as the only surface color.",
+    "Technical data must remain legible before decorative styling.",
+    "Every asset card exposes status, location, model/serial, next service and compliance state.",
+    "Third-party brand references display a Reference label unless a commercial relationship is separately verified.",
+    "Red is reserved for incidents, failed inspection or expired compliance only."
+  ]
+}
