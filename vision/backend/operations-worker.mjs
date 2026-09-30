@@ -1,8 +1,9 @@
 import {handle as baseHandle} from './worker.mjs';
 import {handleAuth} from './auth.mjs';
+import core from '../platform/registry.cjs';
 
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const ASSETS=new Set(['/operations/','/operations/index.html','/operations/app.mjs','/operations/auth.mjs','/operations/client.mjs','/operations/styles.css']);
+const ASSETS=new Set(['/','/index.html','/app.mjs','/styles.css','/operations/','/operations/index.html','/operations/app.mjs','/operations/auth.mjs','/operations/client.mjs','/operations/styles.css']);
 const security={
  'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer',
  'x-frame-options':'DENY','cross-origin-resource-policy':'same-origin',
@@ -24,8 +25,14 @@ async function body(response,limit){
 export async function handle(request,env={},fetcher=fetch){
  if(env.VISION_ENV!=='staging')return json({error:'staging_only'},503);
  const url=new URL(request.url);
+ if(url.pathname==='/views'||url.pathname==='/views/')return new Response(null,{status:308,headers:{...security,location:'/operations/'}});
+ if(url.pathname==='/api/vision/v1/modules'){
+  if(request.method!=='GET'&&request.method!=='HEAD')return json({error:'method_not_allowed'},405);
+  const payload={platform:core.id,name:core.name,version:core.version,revision:core.revision,activeModule:'views',services:core.services,modules:core.modules.map(({id,name,domain,icon,description,status})=>({id,name,domain,icon,description,status,route:id==='views'?'/views':null}))};
+  return request.method==='HEAD'?new Response(null,{status:200,headers:security}):json(payload);
+ }
  if(url.pathname==='/operations')return new Response(null,{status:308,headers:{...security,location:'/operations/'}});
- if(url.pathname.startsWith('/operations/')){
+ if(url.pathname==='/'||url.pathname==='/index.html'||url.pathname==='/app.mjs'||url.pathname==='/styles.css'||url.pathname.startsWith('/operations/')){
   if(!ASSETS.has(url.pathname))return json({error:'not_found'},404);
   if(!['GET','HEAD'].includes(request.method))return json({error:'method_not_allowed'},405);
   if(!env.OPERATIONS_UI?.fetch)return json({error:'ui_not_configured'},503);
@@ -34,7 +41,7 @@ export async function handle(request,env={},fetcher=fetch){
  if(url.pathname.startsWith('/api/v1/auth/'))return handleAuth(request,env,fetcher);
  if(['/health','/healthz'].includes(url.pathname)){
   if(!['GET','HEAD'].includes(request.method))return json({error:'method_not_allowed'},405);
-  return new Response(request.method==='HEAD'?null:JSON.stringify({service:'VERTEX VISION',environment:'staging',configured:configured(env),ui:'operations-0.1',productionReady:false}),{headers:{...security,'content-type':'application/json'}});
+  return new Response(request.method==='HEAD'?null:JSON.stringify({service:'VERTEX VISION',environment:'staging',configured:configured(env),ui:'application-assembly-0.1',activeModule:'views',moduleCount:core.modules.length,productionReady:false}),{headers:{...security,'content-type':'application/json'}});
  }
  if(url.pathname!=='/api/v1/views/operations')return baseHandle(request,env,fetcher);
  if(!configured(env))return json({error:'backend_not_configured'},503);
