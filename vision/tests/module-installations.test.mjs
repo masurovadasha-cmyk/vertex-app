@@ -17,7 +17,8 @@ test('module registry and organization installations preserve tenant boundaries'
  await t.test('SQL definitions exactly match the canonical product registry',async()=>{const rows=(await db.query('select id from public.vision_module_definitions order by id')).rows;assert.deepEqual(rows.map(r=>r.id),core.modules.map(m=>m.id).sort());});
  await t.test('registration does not enable modules',async()=>{const rows=(await db.query('select state from public.vision_module_installations')).rows;assert.ok(rows.every(r=>r.state==='REGISTERED'));});
  await t.test('membership alone does not grant installation visibility',async()=>assert.equal((await as(()=>db.query('select * from public.vision_module_installations'))).rows.length,0));
- await db.query('insert into public.vision_roles(id,tenant_id,code,name) values($1,$2,$1,$1)',[role,a]);
+ // UUID identity and textual role metadata must not share an inferred SQL parameter type.
+ await db.query("insert into public.vision_roles(id,tenant_id,code,name) values($1,$2,'module-reader','Synthetic module reader')",[role,a]);
  await db.query('insert into public.vision_membership_roles(tenant_id,membership_id,role_id) values($1,$2,$3)',[a,membership,role]);
  await db.query("insert into public.vision_role_permissions(role_id,permission_id) select $1,id from public.vision_permissions where code='modules.read'",[role]);
  await t.test('explicit read permission reveals only the authorized organization',async()=>{const rows=(await as(()=>db.query('select * from public.vision_module_installations'))).rows;assert.equal(rows.length,1);assert.equal(rows[0].tenant_id,a);assert.equal(rows[0].organization_id,orgA);});
