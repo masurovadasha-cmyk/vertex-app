@@ -58,11 +58,13 @@ for(const required of [
   'vision/platform/views-ops.js',
   'vision/backend/worker.mjs',
   'vision/backend/kernel.mjs',
+  'vision/backend/readiness.mjs',
   'vision/modules/views/command-contract.mjs',
   'vision/modules/views/response-contract.mjs',
   'vision/database/migrations/0007_views_operations.sql',
   'vision/database/migrations/0008_views_integrity.sql',
   'vision/database/migrations/0009_application_kernel.sql',
+  'vision/database/migrations/0010_runtime_readiness.sql',
   'vision/modules/views/manifest.json',
   'docs/architecture/TARGET-ARCHITECTURE-1.0.md'
 ]) assert.ok(exists(required),'missing assembly component '+required);
@@ -87,6 +89,9 @@ assert.equal(assembly.kernel.responseContract,'vision/modules/views/response-con
 assert.equal(assembly.kernel.responseProjection,'allowlisted-command-dto');
 assert.deepEqual(assembly.kernel.traceHeaders,['X-Request-ID','X-Correlation-ID']);
 assert.equal(release.viewsUI.sessionPolicy,'server-authoritative-context-from-verified-jwt');
+assert.equal(assembly.readiness.endpoint,'/readyz');
+assert.equal(assembly.readiness.serviceRoleRequired,false);
+assert.equal(release.runtimeReadiness.rpc,'public.vision_runtime_readiness()');
 
 const rootPkg=json('package.json');
 assert.ok(rootPkg.scripts?.['check:vision-assembly']);
