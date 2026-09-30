@@ -4,6 +4,10 @@ import {startDev} from '../backend/dev.mjs';
 import {demo} from '../backend/demo.mjs';
 test('loopback development profiles run complete Golden Flow and reject cross-origin requests',async t=>{
  const app=await startDev({port:0});t.after(()=>app.close());
+ const setup=await (await fetch(app.url+'/api/profiles')).json();
+ assert.equal(setup.organizations.filter(o=>o.kind!=='GROUP').length,13);
+ assert.ok(setup.organizations.some(o=>o.code==='rent-car'));
+ assert.ok(setup.organizations.some(o=>o.code==='taxi'));
  const request=(profile,path,body)=>fetch(app.url+path,{method:body?'POST':'GET',headers:{'x-vision-profile':profile,'content-type':'application/json'},body:body?JSON.stringify(body):undefined});
  assert.equal((await fetch(app.url+'/api/orders',{headers:{origin:'https://external.example','x-vision-profile':'guest'}})).status,403);
  assert.equal((await fetch(app.url+'/api/orders')).status,401);

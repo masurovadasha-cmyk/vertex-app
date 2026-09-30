@@ -18,4 +18,4 @@ async function run(command){document.querySelectorAll('button').forEach(b=>b.dis
 profile.onchange=()=>{message.textContent='';refresh().catch(e=>message.textContent=e.message);};
 document.querySelector('#refresh').onclick=()=>refresh().catch(e=>message.textContent=e.message);
 document.querySelector('#create').onclick=()=>run({...base('create'),customer_id:config.demo.customer_id,requester_organization_id:config.demo.views_id,service_id:config.demo.service_id});
-fetch('/api/profiles').then(r=>r.json()).then(async data=>{config=data;for(const p of data.profiles){const o=document.createElement('option');o.value=p.key;o.textContent=p.name;profile.append(o);}await refresh();}).catch(e=>message.textContent=e.message);
+fetch('/api/profiles').then(r=>r.json()).then(async data=>{config=data;document.querySelector('#organizations').textContent=data.organizations.filter(o=>o.kind!=='GROUP').map(o=>o.name).join(' · ');for(const p of data.profiles){const o=document.createElement('option');o.value=p.key;o.textContent=p.name;profile.append(o);}await refresh();}).catch(e=>message.textContent=e.message);

@@ -1,6 +1,22 @@
 // Synthetic identities for loopback-only development. Never Auth credentials.
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 export const demo={tenant_id:id(1),views_id:id(2),cleaning_id:id(3),customer_id:id(4),service_id:id(5),staff_id:id(13)};
+export const organizations=[
+ {id:id(6),code:'vertex-vision',name:'Vertex Vision',kind:'GROUP'},
+ {id:demo.views_id,code:'views',name:'Views Hotel & Apartments'},
+ {id:id(30),code:'engineers',name:'Vertex Engineers'},
+ {id:id(31),code:'technologies',name:'Vertex Technologies'},
+ {id:id(32),code:'managing',name:'Vertex Managing IO'},
+ {id:id(33),code:'ditalia',name:'D’Italia'},
+ {id:id(34),code:'aviasales',name:'Aviasales'},
+ {id:id(35),code:'travel',name:'Vertex Travel'},
+ {id:id(36),code:'concierge',name:'Concierge Service'},
+ {id:demo.cleaning_id,code:'cleaning',name:'Vertex Cleaning'},
+ {id:id(37),code:'laundry',name:'Laundry'},
+ {id:id(38),code:'rent-car',name:'Rent Car'},
+ {id:id(39),code:'taxi',name:'Taxi'},
+ {id:id(40),code:'mini-mart',name:'Mini Mart'}
+];
 export const profiles=[
  {key:'guest',id:id(10),name:'VISION-GUEST',org:null,permissions:[]},
  {key:'views',id:id(11),name:'Views',org:demo.views_id,permissions:['views.order.read','views.order.create']},
@@ -17,9 +33,12 @@ export async function provisionDemo(db, identities=Object.fromEntries(profiles.m
       const keys=Object.keys(fields);
       await db.query(`insert into public.vision_${table}(${keys.join(',')}) values(${keys.map((_,i)=>'$'+(i+1)).join(',')}) on conflict do nothing`,Object.values(fields));
     };
-    await insert('tenants',{id:demo.tenant_id,code:'vision-development',name:'VISION Synthetic Development'});
-    for(const [org,code] of [[demo.views_id,'views'],[demo.cleaning_id,'cleaning']])
-      await insert('organizations',{id:org,tenant_id:demo.tenant_id,code,name:code,kind:'COMPANY'});
+    await insert('tenants',{id:demo.tenant_id,code:'vision-development',name:'Vertex Vision — Synthetic Development'});
+    for(const org of organizations){
+      await insert('organizations',{...org,tenant_id:demo.tenant_id,kind:org.kind||'COMPANY',parent_id:org.kind?null:id(6)});
+      await db.query('update public.vision_organizations set name=$1,parent_id=$2 where tenant_id=$3 and id=$4',
+        [org.name,org.kind?null:id(6),demo.tenant_id,org.id]);
+    }
     await insert('customers',{id:demo.customer_id,tenant_id:demo.tenant_id,display_name:'Synthetic VISION Guest'});
     await insert('services',{id:demo.service_id,tenant_id:demo.tenant_id,code:'cleaning.guest',name:'Demo Cleaning',provider_organization_id:demo.cleaning_id});
     for(const [index,p] of profiles.entries()) {
