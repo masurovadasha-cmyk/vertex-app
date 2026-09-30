@@ -57,7 +57,10 @@ for(const asset of ['vision-core.js','vision-views.js','vision-shell.js']){
 for(const asset of ['vision-views.css','vision-shell.css']){
   assert.ok(index.includes('href="'+asset+'"'),'missing generated stylesheet '+asset);
 }
-for(const required of [
+const requiredComponents=Object.freeze([
+  'package.json',
+  'vision/package.json',
+  'vision/pnpm-lock.yaml',
   'vision/platform/registry.cjs',
   'vision/platform/views-ops.js',
   'vision/backend/worker.mjs',
@@ -65,6 +68,7 @@ for(const required of [
   'vision/backend/readiness.mjs',
   'vision/modules/views/command-contract.mjs',
   'vision/modules/views/response-contract.mjs',
+  'vision/modules/views/manifest.json',
   'vision/database/migrations/0007_views_operations.sql',
   'vision/database/migrations/0008_views_integrity.sql',
   'vision/database/migrations/0009_application_kernel.sql',
@@ -73,30 +77,30 @@ for(const required of [
   'vision/staging/auth.mjs',
   'vision/staging/provision.mjs',
   'vision/staging/cloud-e2e.mjs',
-  '.github/workflows/vision-cloud-e2e.yml',
-  '.github/workflows/vision-rc2-safety.yml',
-  'vision/production/check-backup-principal.mjs',
-  'vision/production/verify-production-restore.mjs',
-  'vision/production/promotion-policy.json',
-  'vision/production/evaluate-promotion.mjs',
-  '.github/workflows/vision-production-backup-restore.yml',
-  '.github/workflows/vision-promotion-gate.yml',
-  'vision/production/safety-manifest.json',
-  'vision/production/rollback-plan.json',
   'vision/production/check-migration-safety.mjs',
+  'vision/production/build-n-minus-one-baseline.mjs',
+  'vision/production/check-n-minus-one-compatibility.mjs',
   'vision/production/preflight.mjs',
+  'vision/production/check-backup-principal.mjs',
   'vision/production/seed-restore-fixture.mjs',
   'vision/production/verify-restore.mjs',
-  'vision/modules/views/manifest.json',
-  'vision/production/check-migration-safety.mjs',
-  'vision/production/check-n-minus-one-compatibility.mjs',
-  'vision/production/build-n-minus-one-baseline.mjs',
-  'vision/production/preflight.mjs',
-  'vision/production/rollback-plan.json',
+  'vision/production/verify-production-restore.mjs',
   'vision/production/safety-manifest.json',
+  'vision/production/rollback-plan.json',
+  'vision/production/promotion-policy.json',
+  'vision/production/evaluate-promotion.mjs',
+  '.github/workflows/vision-assembly.yml',
+  '.github/workflows/vision-cloud-e2e.yml',
+  '.github/workflows/vision-staging-deploy.yml',
   '.github/workflows/vision-rc2-safety.yml',
+  '.github/workflows/vision-production-backup-restore.yml',
+  '.github/workflows/vision-promotion-gate.yml',
+  '.github/workflows/build-android-apk.yml',
+  'docs/architecture/ADR-013-trusted-release-controller.md',
   'docs/architecture/TARGET-ARCHITECTURE-1.0.md'
-]) assert.ok(exists(required),'missing assembly component '+required);
+]);
+assert.equal(new Set(requiredComponents).size,requiredComponents.length,'assembly component list must be unique');
+for(const required of requiredComponents)assert.ok(exists(required),'missing assembly component '+required);
 
 const views=json('vision/modules/views/manifest.json');
 assert.equal(views.id,'views');
@@ -153,6 +157,10 @@ assert.equal(release.productionSafety.productionApproved,false);
 assert.equal(safety.productionApproved,false);
 assert.equal(safety.productionDeployAllowed,false);
 assert.equal(safety.databasePolicy.downMigrations,false);
+assert.equal(safety.backupPolicy.effectiveReadOnlyPrincipalRequired,true);
+assert.equal(safety.releaseControl.trustedControllerRequired,true);
+assert.equal(safety.releaseControl.controllerRef,'refs/heads/master');
+assert.equal(safety.releaseControl.candidatePolicyAuthority,false);
 assert.equal(rollback.databaseRollback.automaticDownMigrations,false);
 assert.equal(rollback.approval.explicitOwnerApprovalRequired,true);
 
