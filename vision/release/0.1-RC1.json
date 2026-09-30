@@ -79,7 +79,8 @@
     "defaultLimit": 50,
     "maxLimit": 100,
     "cursorHeader": "X-Next-Cursor",
-    "projection": "allowlisted-fields"
+    "projection": "allowlisted-fields",
+    "organizationScope": "required"
   },
   "integratedAssembly": {
     "status": "implemented-in-branch",
@@ -94,6 +95,7 @@
     "sessionContext": "public.vision_session_context(uuid,uuid)",
     "contextEndpoint": "/api/v1/context",
     "permissionSource": "postgresql-rbac-only",
-    "clientPermissionClaimsTrusted": false
+    "clientPermissionClaimsTrusted": false,
+    "organizationScopeRequired": true
   }
 }
