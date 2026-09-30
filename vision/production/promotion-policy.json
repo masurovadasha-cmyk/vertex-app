@@ -1,5 +1,5 @@
 {
-  "version": "0.2",
+  "version": "0.3",
   "mode": "evidence-only-no-deploy",
   "productionMutationAllowed": false,
   "sourceMustMatchAcrossEvidence": true,
@@ -55,5 +55,13 @@
   },
   "candidateSourceCommitRequired": true,
   "externalOwnerApprovalRequired": true,
-  "successStatus": "EVIDENCE_PASS"
+  "successStatus": "EVIDENCE_PASS",
+  "trustedController": {
+    "requiredRef": "refs/heads/master",
+    "policySource": "trusted-controller-checkout",
+    "candidateSource": "separate-immutable-checkout",
+    "validateEvidenceWorkflowMetadata": true,
+    "pinFirstPartyActionsByCommit": true,
+    "candidateMayNotSupplyPromotionPolicy": true
+  }
 }
