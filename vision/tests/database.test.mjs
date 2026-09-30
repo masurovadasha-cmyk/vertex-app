@@ -4,6 +4,7 @@ import {randomUUID} from 'node:crypto';
 import {readFile, readdir} from 'node:fs/promises';
 import {PGlite} from '@electric-sql/pglite';
 import pg from 'pg';
+import {dispatchOutbox} from '../backend/outbox.mjs';
 
 test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async t => {
   const url=process.env.VISION_TEST_DATABASE_URL;
@@ -172,6 +173,38 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
     assert.equal((await db.query('select public.vision_outbox_ack($1,$2) ok',[retry.id,retry.lease_token])).rows[0].ok,true);
     assert.equal((await db.query('select public.vision_outbox_ack($1,$2) ok',[retry.id,retry.lease_token])).rows[0].ok,false);
   });
+  await t.test('ordered delivery backs off, isolates poison events and bounds crash retries',async()=>{
+    await db.query("update public.vision_outbox_events set lease_until=clock_timestamp()-interval '1 second' where published_at is null");
+    const drained=await dispatchOutbox({db,deliver:async()=>({accepted:true}),maxEvents:100});
+    assert.ok(drained.acknowledged>0);
+    const x=await command(guest,create());
+    await command(dispatcher,{type:'assign',tenant_id:tenant,idempotency_key:id(),order_id:x.order_id,expected_version:1,assignee_user_id:staff});
+    await command(staff,{type:'start',tenant_id:tenant,idempotency_key:id(),order_id:x.order_id,expected_version:2});
+    const claim=async()=> (await db.query('select * from public.vision_outbox_claim(100)')).rows;
+    const first=await claim();assert.equal(first.length,1);assert.equal(Number(first[0].aggregate_version),1);
+    assert.equal((await claim()).length,0,'successors cannot bypass an active lease');
+    await denied(()=>as(guest,d=>d.query("select public.vision_outbox_nack($1,$2,'permanent')",[first[0].id,first[0].lease_token])));
+    await assert.rejects(()=>db.query('select * from public.vision_outbox_claim(0)'),/invalid_batch_size/);
+    await assert.rejects(()=>db.query("select public.vision_outbox_nack($1,$2,'private error text')",[first[0].id,first[0].lease_token]),/invalid_failure_code/);
+    assert.equal((await db.query("select public.vision_outbox_nack($1,$2,'transient') ok",[first[0].id,first[0].lease_token])).rows[0].ok,true);
+    assert.equal((await claim()).length,0,'backoff blocks successors too');
+    const y=await command(guest,create());
+    const independent=await claim();assert.equal(independent.length,1);assert.equal(independent[0].aggregate_id,y.order_id);
+    await db.query('select public.vision_outbox_ack($1,$2)',[independent[0].id,independent[0].lease_token]);
+    await db.query("update public.vision_outbox_events set next_attempt_at=clock_timestamp()-interval '1 second' where id=$1",[first[0].id]);
+    const retry=(await claim())[0];assert.equal(retry.id,first[0].id);assert.equal(retry.attempts,2);
+    assert.equal((await db.query('select public.vision_outbox_ack($1,$2) ok',[retry.id,first[0].lease_token])).rows[0].ok,false);
+    await db.query('select public.vision_outbox_ack($1,$2)',[retry.id,retry.lease_token]);
+    const second=(await claim())[0];assert.equal(Number(second.aggregate_version),2);
+    await db.query("select public.vision_outbox_nack($1,$2,'permanent')",[second.id,second.lease_token]);
+    assert.equal((await claim()).length,0,'quarantined predecessor blocks later versions');
+    const z=await command(guest,create());const crashed=(await claim())[0];assert.equal(crashed.aggregate_id,z.order_id);
+    await db.query("update public.vision_outbox_events set attempts=8,lease_until=clock_timestamp()-interval '1 second' where id=$1",[crashed.id]);
+    assert.equal((await claim()).length,0);
+    const dead=(await db.query('select * from public.vision_outbox_events where id=$1',[crashed.id])).rows[0];
+    assert.ok(dead.quarantined_at);assert.equal(dead.failure_code,'exhausted');assert.equal(dead.lease_token,null);
+    assert.equal((await db.query('select public.vision_outbox_ack($1,$2) ok',[crashed.id,crashed.lease_token])).rows[0].ok,false);
+  });
   await t.test('two PostgreSQL connections serialize retries and reject stale concurrent updates',{skip:!url},async()=>{
     const a=new pg.Client({connectionString:url}),b=new pg.Client({connectionString:url});
     await Promise.all([a.connect(),b.connect()]);
@@ -184,10 +217,24 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
       assert.equal(races.filter(r=>r.status==='fulfilled').length,1);
       assert.match(races.find(r=>r.status==='rejected').reason.message,/version_conflict/);
       // Two independent workers must not claim the same currently pending event.
+      for(let i=0;i<4;i++)await command(guest,create());
       await db.query("update public.vision_outbox_events set lease_until=now()-interval '1 second' where published_at is null");
       const claims=await Promise.all([a.query('select * from public.vision_outbox_claim(2)'),b.query('select * from public.vision_outbox_claim(2)')]);
       const ids=claims.flatMap(r=>r.rows.map(e=>e.id));
       assert.equal(ids.length,4);assert.equal(new Set(ids).size,4);
+      // A locked head event must not make a second worker skip ahead to a
+      // later version of that same order, even before the first claim commits.
+      await db.query("update public.vision_outbox_events set lease_until=clock_timestamp()-interval '1 second' where published_at is null");
+      await dispatchOutbox({db,deliver:async()=>({accepted:true}),maxEvents:100});
+      const ordered=await command(guest,create());
+      await command(dispatcher,{type:'assign',tenant_id:tenant,idempotency_key:id(),order_id:ordered.order_id,expected_version:1,assignee_user_id:staff});
+      await a.query('begin');
+      try{
+        const head=(await a.query('select * from public.vision_outbox_claim(100)')).rows;
+        assert.equal(head.length,1);assert.equal(head[0].aggregate_id,ordered.order_id);assert.equal(Number(head[0].aggregate_version),1);
+        const concurrent=(await b.query('select * from public.vision_outbox_claim(100)')).rows;
+        assert.equal(concurrent.length,0);
+      }finally{await a.query('rollback');}
     } finally {await Promise.all([a.end(),b.end()]);}
   });
 });

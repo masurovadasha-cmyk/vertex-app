@@ -50,7 +50,9 @@ Outbox claim uses `FOR UPDATE SKIP LOCKED`, a 60-second lease and a unique lease
 token. Only its current holder may acknowledge delivery. A crash before ack can
 cause redelivery: **at-least-once**, not exactly-once. Consumers must deduplicate
 by event ID and must not depend on global delivery order. Aggregate `version`
-supports per-order ordering. Grant claim/ack only to a separate server dispatcher.
+defines per-order ordering: only the earliest unpublished version is claimable.
+Retries back off; permanent failure or eight attempts quarantine the event and
+block its successors. Grant claim/ack/nack only to a separate server dispatcher.
 External delivery adapters are not connected by these migrations.
 
 ## Verification

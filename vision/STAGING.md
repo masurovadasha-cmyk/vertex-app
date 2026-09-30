@@ -29,7 +29,7 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
 1. Create a dedicated free Supabase project `vertex-vision-staging`. Enable Data
    API and automatic RLS, disable automatic table grants. Keep the database
    password in the owner's password manager.
-2. Apply migrations `0001` through `0004` in order with the trusted database
+2. Apply migrations `0001` through `0005` in order with the trusted database
    owner (Supabase SQL editor or a secure migration job). Do not rerun applied
    files manually. `backend/migrate.mjs` provides checksum-tracked application
    for PostgreSQL adapters exposing `query` and `exec`.
@@ -74,7 +74,12 @@ For mutations of existing orders, supply `order_id` and `expected_version`.
 ### Outbox
 
 Database claim/ack and crash/retry semantics are implemented and tested.
-No email, push or other external delivery is implied. A future dispatcher must
-use a separate database principal with EXECUTE on `vision_outbox_claim(integer)`
-and `vision_outbox_ack(uuid,uuid)` only, and consumers must deduplicate event IDs.
+No email, push or other external delivery is implied. `backend/outbox.mjs` is an
+adapter-driven runner with a delivery deadline and explicit durable acceptance.
+It is not scheduled or exposed through the API. Its separate database principal
+needs EXECUTE on `vision_outbox_claim(integer)`, `vision_outbox_ack(uuid,uuid)`
+and `vision_outbox_nack(uuid,uuid,text)` only. Consumers must deduplicate event IDs.
+Events are accepted in order-version sequence, with delayed retries and quarantine
+after permanent failure or eight attempts. Quarantine blocks only that aggregate.
+See [delivery decisions and recovery](../docs/architecture/ADR-002-ordered-outbox.md).
 See [permission contract](PERMISSIONS.md).

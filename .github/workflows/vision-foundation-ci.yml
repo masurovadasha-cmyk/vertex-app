@@ -1,9 +1,9 @@
 name: VERTEX VISION Foundation CI
 on:
   push:
-    branches: ['vision-foundation-*']
+    branches: ['vision-foundation-*', 'vision-reliability-*']
   pull_request:
-    branches: [master]
+    branches: [master, 'vision-foundation-*', 'views-red-direction']
     paths:
       - 'vision/**'
       - 'docs/architecture/**'
