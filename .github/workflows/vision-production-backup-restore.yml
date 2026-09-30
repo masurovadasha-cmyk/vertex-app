@@ -2,6 +2,11 @@ name: VERTEX VISION Production Backup Restore Evidence
 
 on:
   workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact candidate commit the production backup must protect
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -15,6 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     environment: production
+    env:
+      VISION_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      VISION_EXPECTED_PRODUCTION_DATABASE_HOST: ${{ vars.VISION_EXPECTED_PRODUCTION_DATABASE_HOST }}
+
     services:
       postgres:
         image: postgres:17
@@ -28,30 +37,54 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
-    env:
-      VISION_PRODUCTION_READONLY_DATABASE_URL: ${{ secrets.VISION_PRODUCTION_READONLY_DATABASE_URL }}
-      VISION_EXPECTED_PRODUCTION_DATABASE_HOST: ${{ vars.VISION_EXPECTED_PRODUCTION_DATABASE_HOST }}
 
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Require trusted master release controller
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/master"
+          [[ "$VISION_CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]
+
+      - name: Checkout trusted release controller
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+          ref: master
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '22'
 
-      - name: Install verification dependencies
+      - name: Checkout immutable candidate separately
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ env.VISION_CANDIDATE_SHA }}
+          path: candidate
+
+      - name: Validate controller and candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/master"
+          test "$(git -C candidate rev-parse HEAD)" = "$VISION_CANDIDATE_SHA"
+
+      - name: Install trusted controller dependencies
         run: |
           npm install
           npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
           mkdir -p artifacts/production-backup
 
-      - name: Validate read-only production backup principal
+      - name: Validate effective read-only production backup principal
+        env:
+          VISION_BACKUP_PRINCIPAL_TARGET: production
+          VISION_PRODUCTION_READONLY_DATABASE_URL: ${{ secrets.VISION_PRODUCTION_READONLY_DATABASE_URL }}
         run: node vision/production/check-backup-principal.mjs artifacts/production-backup/principal.json
 
-      - name: Read-only production preflight
+      - name: Read-only production preflight against candidate release
         env:
+          VISION_CANDIDATE_ROOT: candidate
           VISION_RELEASE_TARGET: production
           VISION_RELEASE_DATABASE_URL: ${{ secrets.VISION_PRODUCTION_READONLY_DATABASE_URL }}
           VISION_EXPECTED_DATABASE_HOST: ${{ vars.VISION_EXPECTED_PRODUCTION_DATABASE_HOST }}
@@ -59,22 +92,28 @@ jobs:
 
       - name: Create encrypted-in-transit PostgreSQL backup and restore only into CI database
         shell: bash
+        env:
+          VISION_PRODUCTION_READONLY_DATABASE_URL: ${{ secrets.VISION_PRODUCTION_READONLY_DATABASE_URL }}
         run: |
           set -euo pipefail
           PG_CONTAINER="$(docker ps --filter ancestor=postgres:17 --format '{{.ID}}' | head -n1)"
           test -n "$PG_CONTAINER"
-          docker exec -e SOURCE_DATABASE_URL="$VISION_PRODUCTION_READONLY_DATABASE_URL" "$PG_CONTAINER"             sh -c 'pg_dump "$SOURCE_DATABASE_URL" -Fc --no-owner --no-acl -f /tmp/vision-production.dump'
+          docker exec -e SOURCE_DATABASE_URL="$VISION_PRODUCTION_READONLY_DATABASE_URL" "$PG_CONTAINER" \
+            sh -c 'pg_dump "$SOURCE_DATABASE_URL" -Fc --no-owner --no-acl -f /tmp/vision-production.dump'
           docker exec "$PG_CONTAINER" sha256sum /tmp/vision-production.dump | awk '{print $1}' > artifacts/production-backup/backup-sha256.txt
           docker exec -e PGPASSWORD=disposable-ci-only "$PG_CONTAINER" dropdb -U postgres --if-exists vision_production_restore
           docker exec -e PGPASSWORD=disposable-ci-only "$PG_CONTAINER" createdb -U postgres vision_production_restore
-          docker exec -e PGPASSWORD=disposable-ci-only "$PG_CONTAINER"             pg_restore -U postgres -d vision_production_restore --no-owner --exit-on-error /tmp/vision-production.dump
+          docker exec -e PGPASSWORD=disposable-ci-only "$PG_CONTAINER" \
+            pg_restore -U postgres -d vision_production_restore --no-owner --exit-on-error /tmp/vision-production.dump
 
-      - name: Verify restored pre-migration production state
+      - name: Verify restored pre-migration production state against candidate target
         env:
+          VISION_CANDIDATE_ROOT: candidate
+          VISION_CANDIDATE_SHA: ${{ env.VISION_CANDIDATE_SHA }}
           VISION_RESTORED_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_production_restore
         run: node vision/production/verify-production-restore.mjs artifacts/production-backup/restore-verification.json
 
-      - name: Build sanitized backup/restore evidence
+      - name: Build sanitized backup/restore evidence with trusted controller
         shell: bash
         run: |
           set -euo pipefail
@@ -83,7 +122,7 @@ jobs:
           const source=JSON.parse(fs.readFileSync('artifacts/production-backup/source-preflight.json','utf8'));
           const restore=JSON.parse(fs.readFileSync('artifacts/production-backup/restore-verification.json','utf8'));
           const principal=JSON.parse(fs.readFileSync('artifacts/production-backup/principal.json','utf8'));
-          const release=JSON.parse(fs.readFileSync('vision/release/0.1-RC1.json','utf8'));
+          const release=JSON.parse(fs.readFileSync('candidate/vision/release/0.1-RC1.json','utf8'));
           const backupSha=fs.readFileSync('artifacts/production-backup/backup-sha256.txt','utf8').trim();
           if(!/^[a-f0-9]{64}$/.test(backupSha))throw Error('Invalid backup digest');
           if(principal.status!=='PASS'||principal.target!=='production'||principal.readOnlyPrincipal!==true||principal.productionChanged!==false)
@@ -93,7 +132,7 @@ jobs:
           const report={
             status:'PASS',
             target:'production',
-            sourceCommit:process.env.GITHUB_SHA,
+            sourceCommit:process.env.VISION_CANDIDATE_SHA,
             targetMigration:release.databaseMigration,
             backupSourceLatestMigration:source.latestApplied,
             restoredLatestMigration:restore.restoredLatestMigration,
@@ -128,7 +167,7 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
-          name: Vertex-Vision-Production-Backup-Restore-${{ github.sha }}
+          name: Vertex-Vision-Production-Backup-Restore-${{ env.VISION_CANDIDATE_SHA }}
           path: |
             artifacts/production-backup/principal.json
             artifacts/production-backup/restore-verification.json
