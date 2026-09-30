@@ -4,12 +4,15 @@ import pg from 'pg';
 
 const url=process.env.VISION_PRODUCTION_READONLY_DATABASE_URL;
 const expectedHost=process.env.VISION_EXPECTED_PRODUCTION_DATABASE_HOST;
+const target=process.env.VISION_BACKUP_PRINCIPAL_TARGET||'production';
+if(!['ci','production'].includes(target))throw new Error('invalid_backup_principal_target');
 if(!url)throw new Error('VISION_PRODUCTION_READONLY_DATABASE_URL required');
 if(!expectedHost)throw new Error('VISION_EXPECTED_PRODUCTION_DATABASE_HOST required');
 
 let parsed;try{parsed=new URL(url);}catch{throw new Error('invalid_database_url');}
 if(!['postgres:','postgresql:'].includes(parsed.protocol)||parsed.hostname!==expectedHost)throw new Error('production_database_host_mismatch');
-if(!['require','verify-full'].includes(parsed.searchParams.get('sslmode')||''))throw new Error('production_database_tls_required');
+if(target==='production'&&!['require','verify-full'].includes(parsed.searchParams.get('sslmode')||''))throw new Error('production_database_tls_required');
+if(target==='ci'&&!['localhost','127.0.0.1'].includes(parsed.hostname))throw new Error('ci_backup_database_must_be_local');
 
 const client=new pg.Client({connectionString:url,application_name:'vertex-vision-production-backup-principal-check'});
 await client.connect();
@@ -91,10 +94,10 @@ try{
   if(readOnly!=='on')throw new Error('production_backup_session_not_read_only');
 
   const report={
-    status:'PASS',target:'production',readOnlyPrincipal:true,elevatedRoleFlags:false,
+    status:'PASS',target,readOnlyPrincipal:true,elevatedRoleFlags:false,
     databaseCreate:false,publicSchemaCreate:false,privateSchemaCreate:false,effectiveTableWritePrivileges:0,
     sequenceWritePrivileges:0,mutatingDefinerFunctionExecutePrivileges:0,privilegedRoleMemberships:0,
-    transactionReadOnly:true,tlsRequired:true,productionChanged:false
+    transactionReadOnly:true,tlsRequired:target==='production',productionChanged:false
   };
   const output=process.argv[2]||'artifacts/production-backup/principal.json';
   fs.mkdirSync(path.dirname(output),{recursive:true});
