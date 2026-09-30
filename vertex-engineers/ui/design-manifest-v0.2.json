@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "module_id": "engineers",
+  "module_version": "0.2.0",
+  "branch": "vertex-engineers-operational-0.2",
+  "canva": {
+    "design_id": "DAHWtHztFic",
+    "title": "VERTEX Engineers — Operational Core 0.2",
+    "page_count": 8,
+    "view_url": "https://www.canva.com/d/KnvsSIEJmGU8O_C",
+    "edit_url": "https://www.canva.com/d/bs7dvEr2sd0_uwV",
+    "project_folder_url": "https://www.canva.com/folder/FAHWtJs7miI",
+    "audit_status": "manual_corrections_committed",
+    "source_status": "final"
+  },
+  "code": {
+    "api_contract": "contracts/api-v1.openapi.json",
+    "screen_contract": "ui/screens-v0.2.json",
+    "module_manifest": "module.json",
+    "database_schema": "database/schema-v1.sql",
+    "rls_contract": "database/rls-v1.sql"
+  },
+  "integration": {
+    "vision_mount": "/engineers",
+    "status": "prepared_not_merged",
+    "production_master_modified": false
+  }
+}

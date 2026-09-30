@@ -51,3 +51,16 @@ The module exposes a stable boundary through:
 - `ui/design-system.json` — navigation and visual tokens
 
 No merge into VERTEX Vision is part of this foundation release.
+
+## Operational Core 0.2
+
+The combined code + design result is maintained on branch `vertex-engineers-operational-0.2`.
+
+- Module version: `0.2.0`
+- API base: `/api/v1/engineers`
+- Final Canva design: `DAHWtHztFic`
+- UI contract: `ui/screens-v0.2.json`
+- Design manifest: `ui/design-manifest-v0.2.json`
+- Persistence contract: `database/schema-v1.sql` + `database/rls-v1.sql`
+- VERTEX Vision status: prepared for future integration; not merged into production/master.
+

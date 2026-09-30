@@ -1,53 +1,45 @@
-# VERTEX Engineers — Canva UI concept
+# VERTEX Engineers — Canva design
 
-Status: reviewed concept for the independent `vertex-engineers-foundation-0.1` branch.
+Status: **final reviewed design for Operational Core 0.2**.
 
 ## Final design
 
-- Canva design ID: `DAHWtKF4Zwg`
-- Title: **VERTEX Engineers — Vision Module Concept**
-- View: https://www.canva.com/d/_hcubeXm9jpoxZ6
-- Edit: https://www.canva.com/d/fhj6eHpt8PudXkp
+- Canva design ID: `DAHWtHztFic`
+- Title: **VERTEX Engineers — Operational Core 0.2**
+- Pages: 8
+- View: https://www.canva.com/d/KnvsSIEJmGU8O_C
+- Edit: https://www.canva.com/d/bs7dvEr2sd0_uwV
 - Project folder: https://www.canva.com/folder/FAHWtJs7miI
-- Superseded generated drafts are stored under the Canva `Drafts` subfolder.
+- Superseded generated versions are stored in the Canva `Drafts` subfolder.
 
-## Visual direction
+## Audit status
 
-Premium industrial engineering UI:
-- graphite / steel base
-- warm VERTEX sand accent
-- ivory content surfaces
-- restrained technical blue
-- high-legibility technical data and status chips
+The final design was manually corrected after AI generation. The saved version aligns with the current standalone code contract for:
 
-## Screen set
+- project stages and transition behavior
+- elevator asset fields
+- HVAC/MEP asset fields
+- work-order types, priorities, statuses and completion requirements
+- exact HTTP API routes
+- runtime-emitted vs contract-reserved domain events
+- PostgreSQL/RLS status as source-controlled design contracts only
+- event outbox status as schema-only in 0.2
+- future VERTEX Vision boundary
 
-1. Company & module structure
-2. Engineers Dashboard
-3. Project Control
-4. Elevator Center
-5. Elevator reference equipment
-6. HVAC / MEP Studio
-7. HVAC & heating reference equipment
-8. Service Dispatch
-9. Specialists & Compliance
-10. Integration Boundary
-11. Roadmap
-12. Integration Ready
+The design intentionally does **not** claim that PostgreSQL/RLS/outbox are deployed, does **not** claim live Safe Lift/regulator integration, and does **not** claim that VERTEX Engineers has been merged into VERTEX Vision.
 
-## Content rules
+## Code/design synchronization
 
-- Third-party manufacturers are **reference equipment only**.
-- No dealership, partnership or local availability is implied.
-- Manufacturer documentation must be checked before procurement.
-- Product specifications in the source catalog are regional reference data and are not copied into the presentation as guaranteed VERTEX specifications.
-- No fake contact details, fake clients, invented KPIs or template studio credits are part of the reviewed design.
-- Uzbekistan compliance notes are architecture inputs, not legal advice; current official rules must be re-checked before a real project.
+The canonical machine-readable design reference is:
 
-## Integration status
+`ui/design-manifest-v0.2.json`
 
-The Canva concept describes the intended future `/engineers` mount and VERTEX-compatible API/events/permissions boundary.
+The canonical UI/API mapping is:
 
-It does **not** mean VERTEX Engineers has been merged into VERTEX Vision.
+`ui/screens-v0.2.json`
 
-Production/master remains outside this branch and requires a separate integration approval.
+The branch for the combined code + design result is:
+
+`vertex-engineers-operational-0.2`
+
+Production/master is not modified by this design integration.
