@@ -12,7 +12,7 @@ test('Application Kernel exposes only declared command, context and read routes'
   assert.equal(routePlan(url('/api/commands'),'POST').rpc,'vision_command');
   const context=routePlan(url('/api/v1/context?tenant_id='+tenant+'&organization_id='+organization),'GET');
   assert.deepEqual({kind:context.kind,rpc:context.rpc,tenant:context.tenant,organization:context.organization},{kind:'context',rpc:'vision_session_context',tenant,organization});
-  assert.equal(routePlan(url('/api/v1/views/bookings?tenant_id='+tenant),'GET').table,'vision_views_bookings');
+  assert.equal(routePlan(url('/api/v1/views/bookings?tenant_id='+tenant+'&organization_id='+organization),'GET').table,'vision_views_bookings');
   assert.equal(routePlan(url('/api/v1/views/commands'),'GET'),null);
   assert.equal(routePlan(url('/api/v1/unknown'),'GET'),null);
 });
