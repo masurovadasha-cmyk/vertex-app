@@ -53,6 +53,37 @@ jobs:
         run: node vision/tools/verify-operations-ui.mjs
       - name: Cloudflare unified staging Worker dry-run
         run: npx wrangler deploy --config vision/wrangler.jsonc --dry-run
+      - name: Deploy dedicated VISION staging Worker when Cloudflare credentials exist
+        id: deploy
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "deployed=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Dedicated VISION staging deployment skipped: Cloudflare staging credentials are not configured."
+            exit 0
+          fi
+          npx wrangler deploy --config vision/wrangler.jsonc --keep-vars
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+      - name: Verify assembled staging shell when deployment URL is configured
+        if: steps.deploy.outputs.deployed == 'true'
+        shell: bash
+        env:
+          VISION_STAGING_URL: ${{ vars.VISION_STAGING_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${VISION_STAGING_URL:-}" ]; then
+            echo "::notice::Worker deployed but VISION_STAGING_URL is missing; external shell verification skipped."
+            exit 0
+          fi
+          base="${VISION_STAGING_URL%/}"
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$base/healthz" > assembly-health.json
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$base/api/vision/v1/modules" > assembly-modules.json
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "$base/" > assembly-root.html
+          node -e "const fs=require('fs');const h=JSON.parse(fs.readFileSync('assembly-health.json'));const m=JSON.parse(fs.readFileSync('assembly-modules.json'));const html=fs.readFileSync('assembly-root.html','utf8');if(h.service!=='VERTEX VISION'||h.activeModule!=='views'||m.modules?.length!==19||m.modules.filter(x=>x.status==='active').map(x=>x.id).join(',')!=='views'||!html.includes('Одна платформа.'))process.exit(1)"
       - name: Genuine Supabase/Cloudflare staging E2E when configured
         run: node vision/tools/verify-cloud-auth.mjs
         env:
