@@ -3,7 +3,7 @@
   "release": "0.1-RC1",
   "platformVersion": "1.16-rc1",
   "api": "v1",
-  "databaseMigration": "0008_views_integrity.sql",
+  "databaseMigration": "0009_application_kernel.sql",
   "activeModules": [
     "views"
   ],
@@ -62,11 +62,11 @@
       "cleaning"
     ],
     "dataPolicy": "real-staging-only-no-demo-fallback",
-    "sessionPolicy": "in-memory-auth-session-only",
+    "sessionPolicy": "server-authoritative-context-from-verified-jwt",
     "cloudStagingVerified": false
   },
-  "architectureVersion": "1.1",
-  "technicalStage": "integrated-application-assembly-0.1",
+  "architectureVersion": "1.2",
+  "technicalStage": "application-kernel-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -87,5 +87,13 @@
     "verifier": "vision/tools/verify-assembly.mjs",
     "workflow": ".github/workflows/vision-assembly.yml",
     "productionApproved": false
+  },
+  "applicationKernel": {
+    "status": "implemented-in-branch",
+    "routePolicy": "vision/backend/kernel.mjs",
+    "sessionContext": "public.vision_session_context(uuid,uuid)",
+    "contextEndpoint": "/api/v1/context",
+    "permissionSource": "postgresql-rbac-only",
+    "clientPermissionClaimsTrusted": false
   }
 }
