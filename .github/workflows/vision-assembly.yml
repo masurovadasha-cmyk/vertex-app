@@ -12,6 +12,7 @@ on:
       - 'package.json'
       - 'wrangler.jsonc'
       - '.github/workflows/vision-assembly.yml'
+      - '.github/workflows/vision-cloud-e2e.yml'
   push:
     branches: ['vision-foundation-rc-*']
     paths:
