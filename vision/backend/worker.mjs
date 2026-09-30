@@ -2,6 +2,7 @@ import {readPage} from '../modules/views/read-contract.mjs';
 import {routePlan,projectSessionContext} from './kernel.mjs';
 import {validateViewsCommand} from '../modules/views/command-contract.mjs';
 import {projectViewsCommandResponse} from '../modules/views/response-contract.mjs';
+import {projectRuntimeReadiness} from './readiness.mjs';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const json=(body,status=200,extra={})=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...extra}});
@@ -33,9 +34,25 @@ export async function handle(request,env,fetcher=fetch){
   if(env.VISION_ENV!=='staging')return reply({error:'staging_only'},503);
   if(url.pathname==='/health')return reply({
     service:'VERTEX VISION',environment:'staging',configured:configured(env),probe:'liveness-config-only',
-    architectureVersion:'1.4',requiredMigration:'0009_application_kernel.sql',
+    architectureVersion:'1.5',requiredMigration:'0010_runtime_readiness.sql',
     sourceCommit:/^[a-f0-9]{40}$/.test(env.VISION_SOURCE_COMMIT||'')?env.VISION_SOURCE_COMMIT:null
   });
+  if(url.pathname==='/readyz'){
+    if(!['GET','HEAD'].includes(request.method))return reply({error:'method_not_allowed'},405);
+    if(!configured(env))return reply({ready:false,error:'backend_not_configured'},503);
+    try{
+      const response=await fetcher(env.SUPABASE_URL+'/rest/v1/rpc/vision_runtime_readiness',{
+        method:'POST',
+        headers:{apikey:env.SUPABASE_PUBLISHABLE_KEY,'content-type':'application/json'},
+        body:'{}',redirect:'error',signal:AbortSignal.timeout(10000)
+      });
+      const body=await upstreamJSON(response,65536);
+      if(!response.ok)return reply({ready:false,error:'readiness_unavailable'},503);
+      const projected=projectRuntimeReadiness(body),status=projected.ready?200:503;
+      if(request.method==='HEAD')return new Response(null,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff','x-request-id':requestId}});
+      return reply(projected,status);
+    }catch{return reply({ready:false,error:'readiness_unavailable'},503);}
+  }
   if(!url.pathname.startsWith('/api/')){
     if(url.pathname.startsWith('/rest/')||url.pathname.startsWith('/auth/')||(url.pathname==='/vision'||url.pathname.startsWith('/vision/'))||url.pathname.startsWith('/.'))return reply({error:'not_found'},404);
     if(!['GET','HEAD'].includes(request.method))return reply({error:'method_not_allowed'},405);
