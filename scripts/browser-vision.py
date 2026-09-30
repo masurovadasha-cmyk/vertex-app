@@ -46,6 +46,16 @@ def run(live=False):
                         def serve(route):
                             parsed=urlparse(route.request.url)
                             if parsed.hostname!='vision.test':route.abort();return
+                            if parsed.path == '/api/v1/context':
+                                route.fulfill(status=200,content_type='application/json',body=json.dumps({
+                                    'actorId':'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+                                    'tenantId':'11111111-1111-4111-8111-111111111111',
+                                    'organizationId':'44444444-4444-4444-8444-444444444444',
+                                    'module':'views','moduleEnabled':True,'guestLinked':False,
+                                    'roles':['views-manager'],
+                                    'permissions':['views.operations.read','views.booking.manage','views.cleaning.execute','views.cleaning.verify'],
+                                    'capabilities':{'read_operations':True,'create_booking':False,'manage_booking':True,'execute_cleaning':True,'verify_cleaning':True}
+                                }));return
                             if parsed.path.startswith('/api/v1/views/'):
                                 if parsed.path.endswith('/units'):
                                     route.fulfill(status=200,content_type='application/json',body=json.dumps([{'id':'22222222-2222-4222-8222-222222222222','unit_number':'TEST-235','unit_type':'apartment','status':'READY'}]));return
@@ -85,11 +95,12 @@ def run(live=False):
                     check(str(width)+': disconnected operations state is explicit',page.locator('#visionViewsOperations .vvo-connect').is_visible())
                     page.keyboard.press('Escape')
                     if not live:
-                        page.evaluate("VertexVisionViews.configure({tenantId:'11111111-1111-4111-8111-111111111111',token:'test.jwt.token',permissions:['views.operations.read','views.booking.manage','views.cleaning.execute','views.cleaning.verify']})")
+                        page.evaluate("VertexVisionViews.configure({tenantId:'11111111-1111-4111-8111-111111111111',organizationId:'44444444-4444-4444-8444-444444444444',token:'test.jwt.token'})")
                         check(str(width)+': configured Views operations opens',page.evaluate("VertexVision.navigate('views','operations')"))
                         page.wait_for_selector('#visionViewsOperations .vvo-kpis')
                         check(str(width)+': real-data workspace renders mocked unit',page.locator('#visionViewsOperations').get_by_text('TEST-235').count()>0)
                         check(str(width)+': operations status reports one unit',page.evaluate("VertexVisionViews.status().counts.units===1"))
+                        check(str(width)+': UI permissions come from server context',page.evaluate("VertexVisionViews.status().permissions.includes('views.booking.manage') && VertexVisionViews.status().roles.join(',')==='views-manager'"))
                         page.keyboard.press('Escape')
                         page.evaluate("VertexVisionViews.clearSession()")
                     check(str(width)+': Views adapter remains launchable',page.evaluate("VertexVision.navigate('views','host')"))
