@@ -33,7 +33,7 @@ assert.ok(design.primary_screens.some((x) => x.id === "elevator-center"));
 assert.ok(design.primary_screens.some((x) => x.id === "hvac-studio"));
 
 const api = readJson("contracts/api-v1.openapi.json");
-assert.equal(api.info.version, "0.1.0");
+assert.equal(api.info.version, manifest.version);
 assert.ok(api.paths["/projects"]);
 assert.ok(api.paths["/work-orders"]);
 
