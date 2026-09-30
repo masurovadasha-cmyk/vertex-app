@@ -41,12 +41,14 @@
     const top=element('div','vv-dialog-top');const title=element('h2','',module.name);title.id='visionModuleTitle';dialog.setAttribute('aria-labelledby',title.id);
     const dismiss=button('×',close,'vv-close');dismiss.setAttribute('aria-label',tx('Закрыть','Close'));top.append(title,dismiss);dialog.append(top);
     dialog.append(element('p','vv-path','VERTEX VISION / '+module.name),element('p','',tx(module.description.ru,module.description.en)));
-    dialog.append(element('p','vv-disclosure',module.mode==='planned'?tx('Направление добавлено в архитектуру. Рабочие функции ещё не подключены.','This direction is registered in the architecture. Operational features are not connected yet.'):tx('Функции ниже работают в демо на этом устройстве. Заявки не отправляются сотрудникам и не синхронизируются с облаком.','The actions below run as a demo on this device. Requests are not delivered to staff or synchronized with the cloud.')));
+    dialog.append(element('p','vv-disclosure',module.status==='active'?tx('Views — активный модуль VERTEX VISION. Ниже доступны проверенные функции Views.','Views is the active VERTEX VISION module. Verified Views functions are available below.'):tx('Coming Soon · Направление уже зарегистрировано в архитектуре VERTEX VISION, но рабочие функции ещё не включены.','Coming Soon · This direction is registered in the VERTEX VISION architecture, but operational functions are not enabled yet.')));
     const meta=element('dl','vv-meta');
     for(const [label,value] of [[tx('Основа','Foundation'),'VISION Core '+core.coreVersion],[tx('Общие сервисы','Shared services'),tx('Клиенты · заказы · задачи · права · аудит','Customers · orders · tasks · permissions · audit')],[tx('Серверный процесс','Backend workflow'),module.backend==='local-tested'?tx('Views → Cleaning проверен локально; не запущен в облаке','Views → Cleaning tested locally; not running in the cloud'):tx('Планируется','Planned')],[tx('Общая база','Shared database'),tx('Целевая PostgreSQL / Supabase; не подключена','Target: PostgreSQL / Supabase; not connected')]]){meta.append(element('dt','',label),element('dd','',value));}
     dialog.append(meta);
     const actions=element('div','vv-actions');
-    for(const action of module.actions){const label=labels[action];if(!label)continue;const node=button(tx(...label),()=>navigate(id,action));node.dataset.vvAction=action;actions.append(node);}
+    if(module.status==='active'){
+      for(const action of module.actions){const label=labels[action];if(!label)continue;const node=button(tx(...label),()=>navigate(id,action));node.dataset.vvAction=action;actions.append(node);}
+    }else actions.append(element('span','vv-coming-soon',tx('Будущая ветка · Coming Soon','Future branch · Coming Soon')));
     dialog.append(actions);
     if(!dialog.open)dialog.showModal();dismiss.focus();return true;
   }
@@ -57,8 +59,9 @@
     const items=core.list(domain).filter(m=>[m.id,m.name,m.description.ru,m.description.en].join(' ').toLocaleLowerCase().includes(search));
     for(const m of items){
       const card=button('',()=>details(m.id),'vv-card');card.dataset.vvOpen=m.id;
-      const head=element('div','vv-card-top');head.append(element('span','vv-card-domain',tx(...groups[m.domain])),element('span','vv-tag '+(m.mode==='planned'?'vv-tag-planned':''),m.mode==='demo'?tx('Демо','Demo'):tx('В архитектуре','Registered')));
-      card.append(head,element('h3','',m.name),element('p','',tx(m.description.ru,m.description.en)),element('span','vv-card-link',tx('Открыть направление →','Open module →')));box.append(card);
+      const active=m.status==='active';
+      const head=element('div','vv-card-top');head.append(element('span','vv-card-domain',tx(...groups[m.domain])),element('span','vv-tag '+(active?'':'vv-tag-planned'),active?tx('Активно','Active'):tx('Скоро','Coming Soon')));
+      card.append(head,element('h3','',m.name),element('p','',tx(m.description.ru,m.description.en)),element('span','vv-card-link',active?tx('Открыть Views →','Open Views →'):tx('Будущая ветка →','Future branch →')));box.append(card);
     }
     document.getElementById('visionCount').textContent=tx('В реестре: '+core.modules.length+' · показано: '+items.length,'Registered: '+core.modules.length+' · shown: '+items.length);
     if(!items.length)box.append(element('p','vv-empty',tx('Направлений по этому запросу нет.','No modules match this search.')));
@@ -68,10 +71,10 @@
     const hero=element('div','vv-hero');const copy=element('div','vv-hero-copy');
     copy.append(element('p','vv-kicker','VERTEX GROUP / VISION CORE'),element('h1','vv-title',tx('Одна платформа.\nВсе направления.','One platform.\nEvery direction.')),element('p','vv-lead',tx('VERTEX VISION — общая основа. Views и все направления группы — модули единой экосистемы.','VERTEX VISION is the shared foundation. Views and every group direction are modules of one ecosystem.')));
     const shortcuts=element('div','vv-actions');
-    for(const [ru,en,id,action] of [['Открыть Views','Open Views','views','catalog'],['Моя поездка','My journey','travel','journey'],['Такси','Taxi','taxi','taxi'],['Заявки команды','Team requests','concierge','requests']]){const b=button(tx(ru,en),()=>navigate(id,action));b.dataset.vvShortcut=id;shortcuts.append(b);}copy.append(shortcuts);
+    for(const [ru,en,id,action] of [['Открыть Views','Open Views','views','catalog']]){const b=button(tx(ru,en),()=>navigate(id,action));b.dataset.vvShortcut=id;shortcuts.append(b);}copy.append(shortcuts);
     const foundation=element('div','vv-foundation');foundation.append(element('p','vv-kicker','VISION / CORE '+core.coreVersion),element('h2','',tx('Общее ядро','Shared foundation')));
     const shared=element('div','vv-services');for(const s of core.services)shared.append(element('span','',tx(s.ru,s.en)));foundation.append(shared,element('p','vv-foundation-note',tx('Модули взаимодействуют через ядро и события, а не через чужие таблицы.','Modules communicate through the core and events, not another module’s private tables.')));hero.append(copy,foundation);home.append(hero);
-    home.append(element('p','vv-disclosure',tx('ДЕМО '+core.version+' · Облачная база и настоящий вход ещё не подключены. Не вводите реальные персональные данные.','DEMO '+core.version+' · Cloud database and real sign-in are not connected. Do not enter real personal data.')));
+    home.append(element('p','vv-disclosure',tx('RC '+core.version+' · Views активен. Остальные подразделения показаны только как будущие ветки. Облачная staging-база и настоящий вход ещё должны пройти отдельную проверку.','RC '+core.version+' · Views is active. All other divisions are shown only as future branches. Cloud staging and real sign-in still require separate verification.')));
     const tools=element('div','vv-tools');const heading=element('div');heading.append(element('h2','',tx('Направления VISION','VISION modules')),element('p','vv-count'));heading.lastChild.id='visionCount';tools.append(heading);
     const filters=element('div','vv-filters');const label=element('label','',tx('Найти направление','Find a module'));const input=element('input');input.id='visionSearch';input.type='search';input.maxLength=120;input.value=query;input.placeholder=tx('Например, клининг','For example, cleaning');input.oninput=()=>{query=input.value;cards();};label.append(input);
     const selectLabel=element('label','',tx('Категория','Category'));const select=element('select');select.id='visionDomain';select.append(new Option(tx('Все направления','All modules'),''));for(const [id,label] of Object.entries(groups))select.append(new Option(tx(...label),id));select.value=domain;select.onchange=()=>{domain=select.value;cards();};selectLabel.append(select);filters.append(label,selectLabel);tools.append(filters);home.append(tools);
