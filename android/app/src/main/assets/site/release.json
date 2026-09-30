@@ -1,6 +1,6 @@
 {
-  "version": "1.12-demo",
-  "date": "2026-09-29",
+  "version": "1.14-demo",
+  "date": "2026-09-30",
   "mode": "local-demo",
   "features": [
     "UZ catalog",
@@ -45,7 +45,12 @@
     "approved red web palette preserving Host Studio",
     "Vertex Taxi in-app request form",
     "local taxi dispatch demonstration",
-    "taxi fare calculation and history"
+    "taxi fare calculation and history",
+    "Journey itinerary and preparation checklist",
+    "Separate UZS and USD trip budgets",
+    "Local guest care resolution history",
+    "Offline downloadable trip summary",
+    "Internal place overview without external redirects"
   ],
   "boundaries": [
     "No real payments or payouts",
@@ -57,6 +62,6 @@
     "Host messages are local property discussions, not a connected guest inbox",
     "Taxi requests stay in this browser; drivers are not notified. No live dispatch, GPS, route engine or taxi payments connected."
   ],
-  "revision": "studio-red-taxi1",
+  "revision": "unified-journey1",
   "web_entry": "https://vertex-app.masurovadasha.workers.dev/"
 }

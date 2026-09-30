@@ -57,7 +57,7 @@
       row('company','▦','Сведения о компании','Company information')+
       row('legal','§','Юридический отдел','Legal')+
       row('team','♙','Команда и задачи','Team & tasks')+
-      '</section><p class="vhv-version">Vertex 1.12 · video-reference host experience</p>', 'menu');
+      '</section><p class="vhv-version">Vertex 1.14 · video-reference host experience</p>', 'menu');
   }
   function earnings() {
     const d=snapshot(), planned=grouped(d.bookings.filter(active)), confirmedTotals=grouped(d.bookings.filter(confirmed));

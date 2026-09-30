@@ -9,8 +9,8 @@ const web=path.join(root,'vertex/dist');
 const android=path.join(root,'android/app/src/main/assets/site');
 const release=JSON.parse(fs.readFileSync(path.join(web,'release.json'),'utf8'));
 
-assert.equal(release.version,'1.12-demo');
-assert.equal(release.date,'2026-09-29');
+assert.equal(release.version,'1.14-demo');
+assert.equal(release.date,'2026-09-30');
 assert.ok(Array.isArray(release.boundaries)&&release.boundaries.length>=5);
 assert.ok(release.features.includes('property discussions'));
 assert.ok(release.features.includes('owner operations dashboard'));
@@ -29,18 +29,18 @@ assert.ok(release.features.includes('host analytics'));
 assert.ok(release.features.includes('listing editor'));
 
 const gradle=fs.readFileSync(path.join(root,'android/app/build.gradle'),'utf8');
-assert.match(gradle,/versionCode\s+16\b/);
-assert.match(gradle,/versionName\s+'1\.12-demo'/);
+assert.match(gradle,/versionCode\s+18\b/);
+assert.match(gradle,/versionName\s+'1\.14-demo'/);
 
 const index=fs.readFileSync(path.join(web,'index.html'),'utf8');
-assert.match(index,/<title>Vertex 1\.12/);
+assert.match(index,/<title>Vertex 1\.14/);
 for(const required of ['views-catalog.js','app.js','mobile.js','business.js','rentals.js','concierge-demo.js','group.js','mobility.js','guest-guide.js','profile-menu.js','host-console.js','host-console-more.js','host-domain.js','web-entry.js']) assert.ok(index.includes(required),'missing script '+required);
 
 const mobile=fs.readFileSync(path.join(web,'mobile.js'),'utf8');
-assert.doesNotMatch(mobile,/Vertex-Latest\.apk/);
+assert.match(mobile,/https:\/\/vertex-app\.masurovadasha\.workers\.dev\/Vertex-Latest\.apk/);
 assert.match(mobile,/signing key|ключ подписи/);
 const shell=fs.readFileSync(path.join(web,'design-shell.js'),'utf8');
-assert.match(shell,/1\.12-demo/);
+assert.match(shell,/1\.14-demo/);
 const app=fs.readFileSync(path.join(web,'app.js'),'utf8');
 assert.match(app,/const cartAmount=/);
 assert.match(app,/Capacity on request · destination imagery/);
@@ -70,7 +70,7 @@ assert.match(profileMenu,/\['payment-methods','payment-history','payouts','trans
 assert.match(fs.readFileSync(path.join(web,'design.css'),'utf8'),/bottom:calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
 
 const sw=fs.readFileSync(path.join(web,'sw.js'),'utf8');
-assert.match(sw,/vertex-demo-v112-studio-red-taxi1/);
+assert.match(sw,/vertex-demo-v114-unified-journey1/);
 assert.doesNotMatch(sw,/bali\.jpg|istanbul\.jpg/i);
 assert.match(sw,/mobility\.js/);
 assert.match(sw,/mobility\.css/);
@@ -110,4 +110,4 @@ for(const name of fs.readdirSync(web)){
 const androidRelease=JSON.parse(fs.readFileSync(path.join(android,'release.json'),'utf8'));
 assert.equal(androidRelease.version,release.version);
 
-console.log('PASS Vertex 1.12 release semantics, Uzbekistan catalog, demo boundaries, owner dashboard and discussions');
+console.log('PASS Vertex 1.14 release semantics, Uzbekistan catalog, demo boundaries, owner dashboard and discussions');

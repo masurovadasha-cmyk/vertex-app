@@ -12,7 +12,7 @@ let state={tasks:[],packages:[]},role='guest',department='all',storageError=fals
 try{const s=JSON.parse(localStorage.getItem(key)||'null');if(s){state.tasks=Array.isArray(s.tasks)?s.tasks.filter(validTask).slice(0,200):[];state.packages=Array.isArray(s.packages)?s.packages.filter(p=>p&&typeof p.id==='string'&&typeof p.city==='string'&&Number.isInteger(p.guests)&&p.guests>=1&&p.guests<=20&&Number.isInteger(root.VertexRentalDomain.nights(p.start,p.end))&&root.VertexRentalDomain.nights(p.start,p.end)>0&&root.VertexRentalDomain.nights(p.start,p.end)<=30&&Array.isArray(p.lines)&&p.lines.every(l=>l&&typeof l.id==='string'&&(l.amount===null||Number.isFinite(l.amount)&&l.amount>=0))&&(p.total===null||Number.isFinite(p.total)&&p.total>=0)).slice(0,50):[];}}catch{storageError=true;}
 // A failed persistence attempt must not leave a successful-looking mutation in memory.
 let committed = JSON.stringify(state);
-function save(){try{const next=JSON.stringify(state);localStorage.setItem(key,next);committed=next;storageError=false;return true;}catch{state=JSON.parse(committed);storageError=true;return false;}}
+function save(){try{const next=JSON.stringify(state);localStorage.setItem(key,next);committed=next;storageError=false;root.dispatchEvent(new CustomEvent('vertex-group-change'));return true;}catch{state=JSON.parse(committed);storageError=true;return false;}}
 const uid=()=>crypto.randomUUID();
 const cityLabel=id=>{const c=window.VertexCatalog?.cities?.find(c=>c.id===id);return c?tx(c.ru,c.en):id;};
 const depName=id=>{const d=departments.find(d=>d[0]===id);return d?tx(d[1],d[2]):id;};
@@ -32,5 +32,7 @@ function refresh(){entry.innerHTML=`<div><span class="eyebrow">VERTEX GROUP</spa
 const priorRender=render;render=function(){priorRender();refresh();};
 // Keep the existing trips overview and append the same persistent package ledger.
 const tripObserver=new MutationObserver(()=>{if(!$('modal').open||$('groupTripLink'))return;const title=$('modalTitle').textContent;if(!/^(Поездки|Trips|Ваша поездка|Your trip)$/i.test(title))return;const button=document.createElement('button');button.id='groupTripLink';button.className='outline wide';button.textContent=tx('Турпакеты и задачи поездки','Trip packages & tasks');button.onclick=packages;$('modalBody').append(button);});tripObserver.observe($('modalBody'),{childList:true});
-window.VertexGroup={requests:tasks,packages,builder,request};render();
+const readonlyCopy=value=>value&&typeof value==='object'?Object.freeze(Array.isArray(value)?value.map(readonlyCopy):Object.fromEntries(Object.entries(value).map(([key,item])=>[key,readonlyCopy(item)]))):value;
+window.VertexGroup=Object.freeze({requests:tasks,packages,builder,request,snapshot:()=>readonlyCopy({tasks:state.tasks,packages:state.packages})});render();
+
 })(typeof window==='undefined'?globalThis:window);
