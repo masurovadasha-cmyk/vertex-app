@@ -29,7 +29,7 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
 1. Create a dedicated free Supabase project `vertex-vision-staging`. Enable Data
    API and automatic RLS, disable automatic table grants. Keep the database
    password in the owner's password manager.
-2. Apply migrations `0001` through `0004` in order with the trusted database
+2. Apply migrations `0001` through `0006` in order with the trusted database
    owner (Supabase SQL editor or a secure migration job). Do not rerun applied
    files manually. `backend/migrate.mjs` provides checksum-tracked application
    for PostgreSQL adapters exposing `query` and `exec`.
@@ -54,7 +54,10 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
    tokens. Test another guest, an unassigned staff member, a suspended user,
    changed-payload retry and stale version. Confirm table reads obey RLS even
    when called directly through Supabase, not just through the Worker.
-7. Record actual project ref, source commit, deployed Worker version, URL and
+7. Confirm module release metadata: `views=ACTIVE`; every other module definition is
+   `COMING_SOON`. Tenant module installations remain separately authorized and must not
+   be silently enabled.
+8. Record actual project ref, source commit, deployed Worker version, URL and
    smoke-test results. A configured `/health` is only a liveness/configuration
    signal, **not proof of working Auth, migrations or successful staging**.
 
