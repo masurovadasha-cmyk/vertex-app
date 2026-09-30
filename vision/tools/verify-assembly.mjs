@@ -108,6 +108,9 @@ assert.equal(release.runtimeReadiness.rpc,'public.vision_runtime_readiness()');
 assert.equal(release.eventReliability.deliveryModel,'at-least-once');
 assert.equal(release.eventReliability.deduplication,'tenant-consumer-event-id');
 assert.equal(assembly.reliability.globalExactlyOnce,false);
+assert.equal(release.eventReliability.deliveryModel,'at-least-once');
+assert.equal(release.eventReliability.deduplication,'tenant-consumer-event-id');
+assert.equal(assembly.reliability.globalExactlyOnce,false);
 
 const rootPkg=json('package.json');
 assert.ok(rootPkg.scripts?.['check:vision-assembly']);
