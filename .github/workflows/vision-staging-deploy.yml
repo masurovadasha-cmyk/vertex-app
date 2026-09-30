@@ -77,6 +77,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           VISION_STAGING_URL: ${{ vars.VISION_STAGING_URL }}
         run: |
+          set +e
           set -uo pipefail
           node --input-type=module - <<'JS'
           import fs from 'node:fs';
