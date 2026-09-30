@@ -160,3 +160,16 @@ Unexpected fields or impossible lifecycle states fail closed as backend dependen
 All API responses include `X-Request-ID`. Successful Views mutations additionally include
 `X-Correlation-ID`, which must match the command response `correlation_id`. Do not log
 bearer tokens or unrestricted request/response bodies when using these IDs for diagnostics.
+
+
+## Runtime readiness gate
+
+After migration `0010_runtime_readiness.sql`, the staging Worker exposes:
+
+- `GET /health` — liveness/configuration/source metadata only.
+- `GET|HEAD /readyz` — schema/runtime readiness.
+
+When Supabase staging is configured, `/readyz` must return HTTP 200 with
+`ready=true`, `latestMigration=0010_runtime_readiness.sql`, all table/function/RLS
+checks true, and `viewsReleaseActive=true`. A green health response alone is not
+sufficient for a staging release.
