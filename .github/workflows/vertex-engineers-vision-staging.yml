@@ -1,0 +1,73 @@
+name: VERTEX Engineers → VISION Staging CI
+
+on:
+  push:
+    branches:
+      - "vertex-engineers-vision-staging-0.1"
+    paths:
+      - "vertex-engineers/**"
+      - "vision/**"
+      - ".github/workflows/vertex-engineers-vision-staging.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: vision_test_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install root and VISION dependencies
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+
+      - name: VERTEX Engineers standalone tests
+        working-directory: vertex-engineers
+        run: |
+          npm test
+          npm run release:check
+
+      - name: VISION integration tests
+        run: node --test vision/tests/engineers-integration.test.mjs
+
+      - name: Full VISION test suite
+        run: npm run test:vision
+
+      - name: PostgreSQL VISION isolation suite
+        run: node --test vision/tests/database.test.mjs
+        env:
+          VISION_TEST_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_test_ci
+
+      - name: Root release regression check
+        run: node scripts/check-release.cjs
+
+      - name: VISION Cloudflare dry-run
+        run: npx wrangler deploy --config vision/wrangler.jsonc --dry-run
+
+      - name: Engineers boundary assertions
+        run: |
+          test -f vision/modules/engineers/manifest.json
+          test -f vision/modules/engineers/integration.json
+          test -f vision/database/migrations/0006_engineers_module_v0_2.sql
+          ! grep -R -E "state[[:space:]]*=[[:space:]]*['\"]ENABLED['\"]" vision/database/migrations/0006_engineers_module_v0_2.sql

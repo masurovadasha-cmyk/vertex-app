@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "module_id": "engineers",
+  "module_version": "0.2.0",
+  "source_branch": "vertex-engineers-release-0.2.0",
+  "staging_branch": "vertex-engineers-vision-staging-0.1",
+  "vision_mount": "/engineers",
+  "api_base": "/api/v1/engineers",
+  "registration_state": "REGISTERED",
+  "enable_by_default": false,
+  "cloud_enabled": false,
+  "runtime_binding": "not_connected",
+  "database_binding": "not_applied",
+  "scope_mapping": {
+    "tenant_id": "x-tenant-id",
+    "organization_id": "x-organization-id"
+  },
+  "boundary": {
+    "direct_private_table_access": false,
+    "direct_private_code_imports": false,
+    "integration_via": [
+      "versioned_api",
+      "domain_events",
+      "permissions_rls"
+    ]
+  },
+  "activation_gate": [
+    "verified_staging_identity",
+    "verified_rls_mapping",
+    "engineers_database_adapter",
+    "staging_e2e",
+    "explicit_owner_approval"
+  ]
+}

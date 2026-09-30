@@ -10,7 +10,7 @@
     ['views','Views Hotel & Apartments','stays','Апартаменты, бронирования и кабинет собственника.','Apartments, reservations and host workspace.','demo','local-tested',['catalog','host','trips']],
     ['managing','Vertex Managing IO','property','Управление объектами и контроль сервиса.','Property operations and service oversight.','demo','planned',['host','service-control']],
     ['real-estate','Vertex Real Estate','property','Покупка, продажа и долгосрочная аренда.','Property purchase, sale and long-term rental.','demo','planned',['property-request']],
-    ['engineers','Vertex Engineers','property','Электрика, сантехника и обслуживание объектов.','Electrical, plumbing and property maintenance.','demo','planned',['engineering-request']],
+    ['engineers','VERTEX Engineers','engineering','Строительство, лифты, HVAC/MEP и инженерный сервис.','Construction, elevators, HVAC/MEP and engineering service.','demo','local-tested',['engineering-request'],'0.2.0'],
     ['aura-design','Aura Design Studio','property','Интерьеры, проектирование и дизайн.','Interiors, project planning and design.','planned','planned',[]],
     ['travel','Vertex Travel','travel','Турпакеты, экскурсии и единый план поездки.','Travel packages, excursions and journey planning.','demo','planned',['journey','packages']],
     ['aviation','Vertex Aviation / Авиакасса','travel','Запрос билетов: авиа, железная дорога и автобусы.','Ticket requests for flights, trains and buses.','demo','planned',['ticket-request']],
@@ -27,8 +27,8 @@
     ['ventures','Vertex Ventures','capital','Стартапы, партнёрства и венчурное направление.','Startups, partnerships and venture development.','planned','planned',[]],
     ['training','Views Training Center','education','Обучение команды и стандарты качества.','Team training and service standards.','planned','planned',[]]
   ];
-  const modules=entries.map(([id,name,domain,ru,en,mode,backend,actions])=>({
-    id,name,domain,description:{ru,en},parent:'vertex-vision',core:'1.x',version:'0.1.0',
+  const modules=entries.map(([id,name,domain,ru,en,mode,backend,actions,version='0.1.0'])=>({
+    id,name,domain,description:{ru,en},parent:'vertex-vision',core:'1.x',version,
     dependencies:['vision-core'],mode,backend,cloudEnabled:false,actions,
     dataBoundary:{identity:'vision-core',organization:'vision-core',orders:'vision-core',tasks:'vision-core',audit:'vision-core',privateSchema:id.replaceAll('-','_')}
   }));
