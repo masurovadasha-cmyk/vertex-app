@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "events": {
+    "order.created": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "order_id",
+        "correlation_id",
+        "occurred_at"
+      ]
+    },
+    "order.assigned": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "order_id",
+        "task_id",
+        "assignee_user_id",
+        "correlation_id",
+        "occurred_at"
+      ]
+    },
+    "task.completed": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "order_id",
+        "task_id",
+        "correlation_id",
+        "occurred_at"
+      ]
+    },
+    "quality.passed": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "order_id",
+        "correlation_id",
+        "occurred_at"
+      ]
+    }
+  }
+}

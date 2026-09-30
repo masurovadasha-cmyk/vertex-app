@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "required": [
+    "id",
+    "name",
+    "version",
+    "core",
+    "permissions",
+    "services",
+    "events",
+    "workflows"
+  ],
+  "example": {
+    "id": "cleaning",
+    "name": "Vertex Cleaning",
+    "version": "0.1.0",
+    "core": ">=0.1",
+    "permissions": [
+      "cleaning.task.read_assigned",
+      "cleaning.task.update_assigned"
+    ],
+    "services": [
+      "cleaning.guest",
+      "cleaning.checkout"
+    ],
+    "events": [
+      "task.completed"
+    ],
+    "workflows": [
+      "cleaning-service-v1"
+    ]
+  }
+}
