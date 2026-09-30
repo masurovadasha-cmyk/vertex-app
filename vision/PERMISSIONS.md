@@ -89,3 +89,18 @@ Booking confirmation serializes on the unit and rejects overlapping `CONFIRMED` 
 `CHECKED_IN` stays. Checkout atomically closes the stay, moves the unit to `CLEANING`,
 creates a cleaning job and writes audit/outbox records. Cleaning verification returns the
 unit to `READY` and completes the checked-out booking.
+
+
+## Server-authoritative application context
+
+Client code never supplies its own role or permission list. After Supabase Auth verifies
+the bearer token, the staging API calls
+`vision_session_context(tenant_id, organization_id)`. That function resolves the JWT
+subject through active VISION users, memberships, roles, permission grants, module
+installation state and the Views release state.
+
+The browser receives an allowlisted context DTO containing actor/tenant/organization IDs,
+roles, permissions, guest-link state and capability booleans. This context may control
+navigation and button visibility, but every query still relies on RLS and every command
+still re-authorizes inside PostgreSQL. UI capability checks are therefore convenience,
+not the security boundary.
