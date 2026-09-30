@@ -18,6 +18,7 @@ const tracked=[
   'vision/platform/views-ops.js',
   'vision/backend/worker.mjs',
   'vision/backend/kernel.mjs',
+  'vision/backend/readiness.mjs',
   'vision/modules/views/command-contract.mjs',
   'vision/modules/views/response-contract.mjs',
   'vision/modules/views/manifest.json',
