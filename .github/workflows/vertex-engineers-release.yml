@@ -1,0 +1,76 @@
+name: VERTEX Engineers Release 0.2.0
+
+on:
+  push:
+    branches:
+      - "vertex-engineers-release-0.2.0"
+    paths:
+      - "vertex-engineers/**"
+      - ".github/workflows/vertex-engineers-release.yml"
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Engineers tests
+        working-directory: vertex-engineers
+        run: npm test
+
+      - name: Engineers release checks
+        working-directory: vertex-engineers
+        run: node scripts/release-check.mjs
+
+      - name: Root release regression check
+        run: |
+          if [ -f scripts/check-release.cjs ]; then
+            node scripts/check-release.cjs
+          else
+            echo "Root scripts/check-release.cjs not present; skipped."
+          fi
+
+      - name: Build release bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="0.2.0"
+          OUT="vertex-engineers/release-dist"
+          STAGE="$OUT/vertex-engineers-$VERSION"
+          rm -rf "$OUT"
+          mkdir -p "$STAGE"
+
+          rsync -a             --exclude='release-dist/'             --exclude='node_modules/'             vertex-engineers/ "$STAGE/"
+
+          (
+            cd "$STAGE"
+            find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > "../FILE-SHA256SUMS.txt"
+          )
+
+          tar -czf "$OUT/vertex-engineers-$VERSION.tar.gz" -C "$OUT" "vertex-engineers-$VERSION"
+          (
+            cd "$OUT"
+            zip -qr "vertex-engineers-$VERSION.zip" "vertex-engineers-$VERSION"
+            sha256sum "vertex-engineers-$VERSION.tar.gz" "vertex-engineers-$VERSION.zip" > ARCHIVE-SHA256SUMS.txt
+          )
+
+          echo "Release bundle:"
+          ls -lah "$OUT"
+          cat "$OUT/ARCHIVE-SHA256SUMS.txt"
+
+      - name: Upload final candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: vertex-engineers-0.2.0-final-candidate
+          path: |
+            vertex-engineers/release-dist/vertex-engineers-0.2.0.tar.gz
+            vertex-engineers/release-dist/vertex-engineers-0.2.0.zip
+            vertex-engineers/release-dist/FILE-SHA256SUMS.txt
+            vertex-engineers/release-dist/ARCHIVE-SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 30

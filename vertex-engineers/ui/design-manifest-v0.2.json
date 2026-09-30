@@ -2,7 +2,7 @@
   "schema_version": 1,
   "module_id": "engineers",
   "module_version": "0.2.0",
-  "branch": "vertex-engineers-operational-0.2",
+  "branch": "vertex-engineers-release-0.2.0",
   "canva": {
     "design_id": "DAHWtHztFic",
     "title": "VERTEX Engineers — Operational Core 0.2",
@@ -19,6 +19,10 @@
     "module_manifest": "module.json",
     "database_schema": "database/schema-v1.sql",
     "rls_contract": "database/rls-v1.sql"
+  },
+  "release": {
+    "manifest": "release/release-manifest.json",
+    "status": "release_candidate"
   },
   "integration": {
     "vision_mount": "/engineers",

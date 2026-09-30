@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "product": "VERTEX Engineers",
+  "version": "0.2.0",
+  "release_name": "Operational Core 0.2.0 Final Candidate",
+  "status": "release_candidate",
+  "branch": "vertex-engineers-release-0.2.0",
+  "source_commit": "2bb0e078cfb9ce5b728a912bce743d81f8bc3049",
+  "created_for": "standalone_release",
+  "module_path": "vertex-engineers",
+  "code": {
+    "module_manifest": "module.json",
+    "api_contract": "contracts/api-v1.openapi.json",
+    "screen_contract": "ui/screens-v0.2.json",
+    "database_schema": "database/schema-v1.sql",
+    "rls_contract": "database/rls-v1.sql",
+    "event_contract": "contracts/events-v1.json"
+  },
+  "design": {
+    "manifest": "ui/design-manifest-v0.2.json",
+    "canva_design_id": "DAHWtHztFic",
+    "canva_title": "VERTEX Engineers — Operational Core 0.2",
+    "canva_view_url": "https://www.canva.com/d/KnvsSIEJmGU8O_C",
+    "canva_edit_url": "https://www.canva.com/d/bs7dvEr2sd0_uwV"
+  },
+  "quality_gate": {
+    "node": "22",
+    "tests_required": true,
+    "release_check_required": true,
+    "archive_checksums_required": true
+  },
+  "integration": {
+    "vision_mount_prepared": "/engineers",
+    "vision_merge_status": "not_merged",
+    "production_master_modified": false,
+    "direct_private_vision_code_coupling_allowed": false
+  },
+  "artifacts": [
+    "vertex-engineers-0.2.0.tar.gz",
+    "vertex-engineers-0.2.0.zip",
+    "FILE-SHA256SUMS.txt",
+    "ARCHIVE-SHA256SUMS.txt"
+  ]
+}
