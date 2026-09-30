@@ -25,7 +25,7 @@ def run(live=False):
                 try:
                     data=json.loads(download(URL+'api/vision/v1/health?check='+str(time.time_ns())))
                     release=json.loads(download(URL+'release.json?check='+str(time.time_ns())))
-                    if data.get('revision')=='vision-unified1' and release.get('revision')=='vision-unified1':break
+                    if data.get('revision')=='vision-views-active-rc1' and release.get('revision')=='vision-views-active-rc1':break
                 except (OSError,ValueError):pass
                 if attempt==19:raise RuntimeError('Unified Cloudflare deployment was not observed')
                 time.sleep(8)
@@ -58,7 +58,9 @@ def run(live=False):
                     check(str(width)+': VISION is the first section',page.locator('main > section').first.get_attribute('id')=='visionHome')
                     check(str(width)+': 19 visible child module cards',page.locator('[data-vv-open]').count()==19)
                     check(str(width)+': all modules depend on the core, not on Views',page.evaluate("VertexVision.core.modules.every(m=>m.parent==='vertex-vision' && m.dependencies.join()==='vision-core')"))
-                    check(str(width)+': explicit disconnected-cloud disclosure','не подключены' in page.locator('#visionHome .vv-disclosure').inner_text())
+                    check(str(width)+': Views-only RC disclosure','Views активен' in page.locator('#visionHome .vv-disclosure').inner_text())
+                    check(str(width)+': only Views is active',page.evaluate("VertexVision.core.modules.filter(m=>m.status==='active').map(m=>m.id).join(',')==='views'"))
+                    check(str(width)+': 18 future modules are Coming Soon',page.evaluate("VertexVision.core.modules.filter(m=>m.status==='coming-soon').length===18"))
                     check(str(width)+': no horizontal document overflow',page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
                     page.screenshot(path=str(OUT/f'vision-home-{width}.png'))
                     page.locator('#visionSearch').fill('laundry');check(str(width)+': module search',page.locator('[data-vv-open]').count()==1)
@@ -69,10 +71,12 @@ def run(live=False):
                         check(str(width)+': '+module+' detail opens',page.locator('#visionModuleDialog').is_visible())
                         check(str(width)+': '+module+' dialog fits',page.locator('#visionModuleDialog').evaluate('e=>e.scrollWidth<=e.clientWidth+1'))
                         page.keyboard.press('Escape')
-                    for module,action,selector in [('views','host','.vh-shell'),('taxi','taxi','#taxiForm'),('travel','packages','#groupPackageForm'),('cleaning','cleaning-request','#groupRequestForm'),('concierge','guest-guide','#modal[open]')]:
+                    page.evaluate("document.querySelectorAll('dialog[open]').forEach(d=>d.close())")
+                    check(str(width)+': Views adapter remains launchable',page.evaluate("VertexVision.navigate('views','host')"))
+                    check(str(width)+': existing Views UI opens',page.locator('.vh-shell').first.is_visible())
+                    for module,action in [('taxi','taxi'),('travel','packages'),('cleaning','cleaning-request'),('concierge','guest-guide')]:
                         page.evaluate("document.querySelectorAll('dialog[open]').forEach(d=>d.close())")
-                        check(str(width)+': adapter '+module,page.evaluate('([m,a])=>VertexVision.navigate(m,a)',[module,action]))
-                        check(str(width)+': existing UI '+module,page.locator(selector).first.is_visible())
+                        check(str(width)+': future adapter blocked '+module,page.evaluate('([m,a])=>VertexVision.navigate(m,a)===false',[module,action]))
                     page.evaluate("document.querySelectorAll('dialog[open]').forEach(d=>d.close())")
                     check(str(width)+': unknown action rejected',page.evaluate("VertexVision.navigate('views','invalid')===false"))
                     page.locator('#language').click()
