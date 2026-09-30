@@ -64,6 +64,109 @@
         "correlation_id",
         "occurred_at"
       ]
+    },
+    "views.booking.created": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "booking_id",
+        "unit_id",
+        "correlation_id",
+        "occurred_at"
+      ]
+    },
+    "views.booking.confirmed": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "booking_id",
+        "unit_id",
+        "correlation_id",
+        "occurred_at"
+      ]
+    },
+    "views.booking.checked_in": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "booking_id",
+        "unit_id",
+        "correlation_id",
+        "occurred_at"
+      ]
+    },
+    "views.booking.checked_out": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "booking_id",
+        "unit_id",
+        "correlation_id",
+        "occurred_at"
+      ]
+    },
+    "views.booking.cancelled": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "booking_id",
+        "unit_id",
+        "correlation_id",
+        "occurred_at"
+      ]
+    },
+    "views.cleaning.required": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "booking_id",
+        "unit_id",
+        "correlation_id",
+        "occurred_at",
+        "cleaning_job_id"
+      ]
+    },
+    "views.cleaning.started": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "booking_id",
+        "unit_id",
+        "correlation_id",
+        "occurred_at",
+        "cleaning_job_id"
+      ]
+    },
+    "views.cleaning.submitted": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "booking_id",
+        "unit_id",
+        "correlation_id",
+        "occurred_at",
+        "cleaning_job_id"
+      ]
+    },
+    "views.cleaning.verified": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "booking_id",
+        "unit_id",
+        "correlation_id",
+        "occurred_at",
+        "cleaning_job_id"
+      ]
     }
   }
 }
