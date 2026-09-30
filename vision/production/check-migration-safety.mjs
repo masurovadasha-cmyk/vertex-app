@@ -27,7 +27,7 @@ const errors=[];
 for(const [index,name] of files.entries()){
   const sql=fs.readFileSync(path.join(dir,name),'utf8').replaceAll('\r\n','\n');
   const normalized=strip(sql);
-  const migrationSurface=normalized.replace(/\$\$[\s\S]*?\$\$/g,' $function_body$ ');
+  const migrationSurface=normalized.replace(/\$([A-Za-z_][A-Za-z0-9_]*|)\$[\s\S]*?\$\1\$/g,' $function_body$ ');
   if(name.slice(0,4)!==String(index+1).padStart(4,'0'))errors.push(name+': migration sequence is not contiguous');
   if(!/^begin\s*;/i.test(normalized))errors.push(name+': migration must begin explicitly');
   if(!/commit\s*;\s*$/i.test(normalized))errors.push(name+': migration must commit explicitly');
@@ -39,9 +39,10 @@ for(const [index,name] of files.entries()){
     }
   }
 
-  const definer=[...normalized.matchAll(/create(?:\s+or\s+replace)?\s+function\b[\s\S]*?security\s+definer[\s\S]*?\$\$/ig)];
-  for(const match of definer){
-    if(!/set\s+search_path\s*=\s*''/i.test(match[0]))errors.push(name+': SECURITY DEFINER function missing empty search_path');
+  const functionHeaders=[...normalized.matchAll(/create(?:\s+or\s+replace)?\s+function\b[\s\S]*?\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/ig)].map(match=>match[0]);
+  for(const header of functionHeaders){
+    if(/security\s+definer/i.test(header)&&!/set\s+search_path\s*=\s*''/i.test(header))
+      errors.push(name+': SECURITY DEFINER function missing empty search_path');
   }
 }
 if(errors.length){
