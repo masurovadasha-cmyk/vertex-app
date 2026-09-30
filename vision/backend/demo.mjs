@@ -19,7 +19,7 @@ export const organizations=[
 ];
 export const profiles=[
  {key:'guest',id:id(10),name:'VISION-GUEST',org:null,permissions:[]},
- {key:'views',id:id(11),name:'Views',org:demo.views_id,permissions:['views.order.read','views.order.create','views.operations.read','views.booking.create','views.booking.manage','views.cleaning.execute','views.cleaning.verify']},
+ {key:'views',id:id(11),name:'Views',org:demo.views_id,permissions:['views.order.read','views.order.create','views.operations.read','views.booking.create','views.booking.manage']},
  {key:'dispatcher',id:id(12),name:'Vertex Cleaning',org:demo.cleaning_id,permissions:['cleaning.order.read','cleaning.order.assign']},
  {key:'staff',id:id(13),name:'Cleaning Staff',org:demo.cleaning_id,permissions:['cleaning.task.read_assigned','cleaning.task.update_assigned']},
  {key:'quality',id:id(14),name:'Quality',org:demo.cleaning_id,permissions:['cleaning.quality.review']},
