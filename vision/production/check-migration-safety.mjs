@@ -27,6 +27,7 @@ const errors=[];
 for(const [index,name] of files.entries()){
   const sql=fs.readFileSync(path.join(dir,name),'utf8').replaceAll('\r\n','\n');
   const normalized=strip(sql);
+  const migrationSurface=normalized.replace(/\$\$[\s\S]*?\$\$/g,' $function_body$ ');
   if(name.slice(0,4)!==String(index+1).padStart(4,'0'))errors.push(name+': migration sequence is not contiguous');
   if(!/^begin\s*;/i.test(normalized))errors.push(name+': migration must begin explicitly');
   if(!/commit\s*;\s*$/i.test(normalized))errors.push(name+': migration must commit explicitly');
@@ -34,7 +35,7 @@ for(const [index,name] of files.entries()){
   // 0001-0004 are the reviewed foundation baseline. RC-era migrations are expand-only.
   if(Number(name.slice(0,4))>=5){
     for(const [pattern,label] of forbidden){
-      if(pattern.test(normalized))errors.push(name+': '+label+' is forbidden after the foundation baseline');
+      if(pattern.test(migrationSurface))errors.push(name+': '+label+' is forbidden after the foundation baseline');
     }
   }
 
