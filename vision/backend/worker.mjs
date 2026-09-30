@@ -1,5 +1,6 @@
+import {readPlan,readPage} from '../modules/views/read-contract.mjs';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const json = (body,status=200) => Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
+const json = (body,status=200,extra={}) => Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...extra}});
 
 async function boundedJSON(source,limit) {
   if(Number(source.headers.get('content-length'))>limit) throw new Error('body_too_large');
@@ -20,7 +21,7 @@ async function upstreamJSON(response,limit) {
 export async function handle(request,env,fetcher=fetch) {
   const url=new URL(request.url);
   if(env.VISION_ENV!=='staging')return json({error:'staging_only'},503);
-  if(url.pathname==='/health')return json({service:'VERTEX VISION',environment:'staging',configured:configured(env)});
+  if(url.pathname==='/health')return json({service:'VERTEX VISION',environment:'staging',configured:configured(env),probe:'liveness-config-only',architectureVersion:'1.1',requiredMigration:'0008_views_integrity.sql',sourceCommit:/^[a-f0-9]{40}$/.test(env.VISION_SOURCE_COMMIT||'')?env.VISION_SOURCE_COMMIT:null});
   if(!url.pathname.startsWith('/api/')){
     if(url.pathname.startsWith('/rest/')||url.pathname.startsWith('/auth/')||url.pathname.startsWith('/vision')||url.pathname.startsWith('/.'))return json({error:'not_found'},404);
     if(!['GET','HEAD'].includes(request.method))return json({error:'method_not_allowed'},405);
@@ -42,7 +43,7 @@ export async function handle(request,env,fetcher=fetch) {
     }
     const user=await upstreamJSON(identity,65536);
     if(!uuid.test(user.id||''))return json({error:'unauthorized'},401);
-    let result;
+    let result,plan;
     if((url.pathname==='/api/commands'||url.pathname==='/api/v1/views/commands') && request.method==='POST') {
       const mediaType=request.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
       if(mediaType!=='application/json')return json({error:'json_required'},415);
@@ -61,18 +62,21 @@ export async function handle(request,env,fetcher=fetch) {
         '/api/v1/views/bookings':'vision_views_bookings','/api/v1/views/units':'vision_views_units','/api/v1/views/cleaning':'vision_views_cleaning_jobs'
       };
       const table=tables[url.pathname];
-      const params=new URLSearchParams({tenant_id:'eq.'+tenant,select:'*',limit:'50',order:'created_at.desc,id.desc'});
+      plan=readPlan(url);
+      const params=plan?.params??new URLSearchParams({tenant_id:'eq.'+tenant,select:'*',limit:'50',order:'created_at.desc,id.desc'});
       result=await upstream('/rest/v1/'+table+'?'+params);
     } else return json({error:'not_found'},404);
     const body=await upstreamJSON(result,1048576);
     if(!result.ok){
-      const conflicts=['23505','40001'].includes(body.code);
+      const conflicts=['23505','40001','23P01'].includes(body.code);
       const forbidden=body.code==='42501'||result.status===403;
-      const invalid=['22023','22P02','23503','23502'].includes(body.code);
+      const invalid=['22023','22P02','22003','22007','22008','23503','23502','23514'].includes(body.code);
       return json({error:conflicts?'conflict':forbidden?'forbidden':invalid?'invalid_command':'backend_unavailable'},conflicts?409:forbidden?403:invalid?400:503);
     }
+    if(plan){const page=readPage(body,plan);return json(page.items,200,{'x-page-limit':String(plan.limit),...(page.nextCursor?{'x-next-cursor':page.nextCursor}:{})});}
     return json(body);
   } catch(e){
+    if(['invalid_page_query','tenant_id_required'].includes(e.message))return json({error:e.message},400);
     if(e.message==='body_too_large')return json({error:'body_too_large'},413);
     if(e.message==='invalid_json')return json({error:'invalid_json'},400);
     return json({error:'backend_unavailable'},503);

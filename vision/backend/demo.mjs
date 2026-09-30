@@ -58,6 +58,15 @@ export async function provisionDemo(db, identities=Object.fromEntries(profiles.m
         await db.query('insert into public.vision_role_permissions(role_id,permission_id) select $1,id from public.vision_permissions where code=$2 on conflict do nothing',[role,code]);
       }
     }
+    // This is the explicitly synthetic development fixture, not a production grant.
+    await insert('module_installations',{tenant_id:demo.tenant_id,organization_id:demo.views_id,module_id:'views',state:'ENABLED'});
+    const reviewer=identities.quality,reviewMembership=id(301),reviewRole=id(302);
+    const bound=(await db.query('select user_id from public.vision_memberships where id=$1',[reviewMembership])).rows[0];
+    if(bound&&bound.user_id!==reviewer)throw new Error('Synthetic Views reviewer is already bound to another identity');
+    await insert('memberships',{id:reviewMembership,tenant_id:demo.tenant_id,user_id:reviewer,organization_id:demo.views_id});
+    await insert('roles',{id:reviewRole,tenant_id:demo.tenant_id,code:'demo-views-reviewer',name:'Synthetic Views reviewer'});
+    await insert('membership_roles',{tenant_id:demo.tenant_id,membership_id:reviewMembership,role_id:reviewRole});
+    await db.query("insert into public.vision_role_permissions(role_id,permission_id) select $1,id from public.vision_permissions where code='views.cleaning.verify' on conflict do nothing",[reviewRole]);
     await db.query('commit');
   }catch(e){await db.query('rollback');throw e;}
 }
