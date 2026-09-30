@@ -19,7 +19,11 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: disposable-ci-only
         ports: ['5432:5432']
-        options: --health-cmd 'pg_isready -U postgres' --health-interval 5s --health-timeout 5s --health-retries 10
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,6 +45,14 @@ jobs:
                       z.write(p)
           Path('artifacts/next-stage/source-sha.txt').write_text(subprocess.check_output(['git','rev-parse','HEAD']).decode())
           PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vision-source-${{ github.sha }}
+          path: |
+            artifacts/next-stage/source.zip
+            artifacts/next-stage/source-sha.txt
+          retention-days: 14
+          if-no-files-found: error
       - name: Install pinned dependencies
         run: |
           npm install
