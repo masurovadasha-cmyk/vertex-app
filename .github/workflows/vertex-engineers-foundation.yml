@@ -24,3 +24,15 @@ jobs:
         with:
           node-version: "22"
       - run: npm test
+      - name: Verify integrated UI preview
+        run: |
+          test -f ui/app/index.html
+          test -f ui/app/engineers.css
+          test -f ui/app/engineers.js
+      - name: Upload Engineers UI preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: vertex-engineers-ui-preview
+          path: vertex-engineers/ui/app/
+          if-no-files-found: error
+          retention-days: 30
