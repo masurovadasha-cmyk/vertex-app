@@ -8,13 +8,14 @@ const workflows=[
   '.github/workflows/vision-staging-deploy.yml',
   '.github/workflows/vision-rc2-safety.yml',
   '.github/workflows/vision-production-backup-restore.yml',
-  '.github/workflows/vision-promotion-gate.yml'
+  '.github/workflows/vision-promotion-gate.yml',
+  '.github/workflows/build-android-apk.yml'
 ];
 
 test('release evidence workflows pin first-party actions to immutable commit SHAs',()=>{
   for(const file of workflows){
     const body=fs.readFileSync(file,'utf8');
-    const refs=[...body.matchAll(/uses:\s*(actions\/[A-Za-z0-9_-]+)@([^\s]+)/g)];
+    const refs=[...body.matchAll(/uses:\s*([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)@([^\s]+)/g)];
     assert.ok(refs.length>0,file+' has no reviewed first-party action references');
     for(const [,action,ref] of refs)assert.match(ref,/^[a-f0-9]{40}$/i,file+' '+action+' must be SHA-pinned');
   }
@@ -30,6 +31,6 @@ test('integrated assembly watches every release evidence workflow on PR and bran
 
 test('production backup principal checker validates effective privileges',()=>{
   const body=fs.readFileSync('vision/production/check-backup-principal.mjs','utf8');
-  for(const marker of ['has_table_privilege','has_function_privilege','pg_auth_members','transaction_read_only'])
+  for(const marker of ['has_table_privilege','has_sequence_privilege','has_function_privilege','pg_has_role','transaction_read_only'])
     assert.ok(body.includes(marker),'missing backup principal hardening: '+marker);
 });
