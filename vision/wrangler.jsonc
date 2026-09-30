@@ -1,0 +1,11 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "vertex-vision-staging",
+  "main": "backend/worker.mjs",
+  "compatibility_date": "2026-09-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {"VISION_ENV": "staging"},
+  "observability": {"enabled": true, "head_sampling_rate": 1}
+}

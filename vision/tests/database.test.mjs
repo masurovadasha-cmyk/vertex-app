@@ -131,6 +131,21 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
     await denied(()=>command(guest,initial));
     await db.query("update public.vision_users set status='ACTIVE' where id=$1",[guest]);
   });
+  await t.test('all tables have RLS; suspended memberships and inactive organizations fail closed',async()=>{
+    const unprotected=await db.query("select relname from pg_class join pg_namespace n on n.oid=relnamespace where n.nspname='public' and relkind='r' and relname like 'vision_%' and not relrowsecurity");
+    assert.equal(unprotected.rows.length,0);
+    await db.query("update public.vision_memberships set status='SUSPENDED' where user_id=$1",[dispatcher]);
+    assert.equal((await as(dispatcher,d=>d.query('select id from public.vision_orders'))).rows.length,0);
+    await denied(()=>command(dispatcher,{...step('assign'),assignee_user_id:staff}));
+    await db.query("update public.vision_memberships set status='ACTIVE' where user_id=$1",[dispatcher]);
+    await db.query("update public.vision_organizations set status='INACTIVE' where id=$1",[views]);
+    await denied(()=>command(guest,initial));
+    await denied(()=>command(viewsManager,create()));
+    await db.query("update public.vision_organizations set status='ACTIVE' where id=$1",[views]);
+    await db.query('update public.vision_guest_links set active=false where user_id=$1',[guest]);
+    await denied(()=>command(guest,initial));
+    await db.query('update public.vision_guest_links set active=true where user_id=$1',[guest]);
+  });
   await t.test('composite keys block cross-tenant privileged writes',async()=>{
     await assert.rejects(()=>insert('memberships',{tenant_id:tenant,user_id:foreignUser,organization_id:cleaning}),/foreign key/);
     await assert.rejects(()=>insert('organizations',{tenant_id:tenant,code:'bad-parent',name:'Bad',kind:'BRANCH',parent_id:otherOrg}),/foreign key/);
@@ -167,6 +182,11 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
       const races=await Promise.allSettled([command(dispatcher,{...assign,idempotency_key:id()},a),command(dispatcher,{...assign,idempotency_key:id()},b)]);
       assert.equal(races.filter(r=>r.status==='fulfilled').length,1);
       assert.match(races.find(r=>r.status==='rejected').reason.message,/version_conflict/);
+      // Two independent workers must not claim the same currently pending event.
+      await db.query("update public.vision_outbox_events set lease_until=now()-interval '1 second' where published_at is null");
+      const claims=await Promise.all([a.query('select * from public.vision_outbox_claim(2)'),b.query('select * from public.vision_outbox_claim(2)')]);
+      const ids=claims.flatMap(r=>r.rows.map(e=>e.id));
+      assert.equal(ids.length,4);assert.equal(new Set(ids).size,4);
     } finally {await Promise.all([a.end(),b.end()]);}
   });
 });
