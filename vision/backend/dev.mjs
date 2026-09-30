@@ -1,5 +1,6 @@
 import http from 'node:http';
-import {readFile,mkdir} from 'node:fs/promises';
+import {readFile,mkdir,open,unlink} from 'node:fs/promises';
+import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {PGlite} from '@electric-sql/pglite';
 import {migrate} from './migrate.mjs';
@@ -7,8 +8,32 @@ import {demo,profiles,organizations,provisionDemo} from './demo.mjs';
 import {validateViewsCommand} from '../modules/views/command-contract.mjs';
 import {projectViewsCommandResponse} from '../modules/views/response-contract.mjs';
 
+async function acquireDevDataDirLock(dataDir){
+  if(!dataDir)return async()=>{};
+  const normalized=path.resolve(dataDir).replace(/[\\/]+$/,'');
+  const lockPath=normalized+'.lock';
+  let handle;
+  try{
+    handle=await open(lockPath,'wx',0o600);
+    await handle.writeFile(JSON.stringify({pid:process.pid,createdAt:new Date().toISOString()})+'\n');
+  }catch(error){
+    if(error?.code==='EEXIST')throw new Error('development_database_locked');
+    throw error;
+  }
+  let released=false;
+  return async()=>{
+    if(released)return;
+    released=true;
+    await handle.close();
+    await unlink(lockPath).catch(error=>{if(error?.code!=='ENOENT')throw error;});
+  };
+}
+
 export async function startDev({port=8790,dataDir}={}) {
-  const db=new PGlite(dataDir);
+  const releaseLock=await acquireDevDataDirLock(dataDir);
+  let db;
+  try{
+  db=new PGlite(dataDir);
   await db.exec(`do $$ begin
     if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if;
     if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if;
@@ -51,7 +76,20 @@ export async function startDev({port=8790,dataDir}={}) {
     }catch(e){send(['42501'].includes(e.code)?403:['23505','40001'].includes(e.code)?409:400,{error:e.message});}
   });
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve);});
-  return {url:`http://127.0.0.1:${server.address().port}`,close:async()=>{await new Promise(r=>server.close(r));await queue;await db.close();}};
+  let closed=false;
+  return {url:`http://127.0.0.1:${server.address().port}`,close:async()=>{
+    if(closed)return;
+    closed=true;
+    await new Promise(r=>server.close(r));
+    await queue;
+    await db.close();
+    await releaseLock();
+  }};
+  }catch(error){
+    await db?.close().catch(()=>{});
+    await releaseLock().catch(()=>{});
+    throw error;
+  }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   const directory=new URL('../.data/development/',import.meta.url);await mkdir(directory,{recursive:true});
