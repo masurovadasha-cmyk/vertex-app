@@ -81,6 +81,7 @@
     "routePolicy": "vision/backend/kernel.mjs",
     "contextEndpoint": "/api/v1/context",
     "permissionSource": "postgresql-rbac-only",
-    "clientPermissionClaimsTrusted": false
+    "clientPermissionClaimsTrusted": false,
+    "organizationScopeRequired": true
   }
 }
