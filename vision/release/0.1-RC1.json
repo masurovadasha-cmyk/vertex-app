@@ -3,30 +3,9 @@
   "release": "0.1-RC1",
   "platformVersion": "1.16-rc1",
   "api": "v1",
-  "databaseMigration": "0007_views_operations.sql",
-  "activeModules": [
-    "views"
-  ],
-  "comingSoonModules": [
-    "managing",
-    "real-estate",
-    "engineers",
-    "aura-design",
-    "travel",
-    "aviation",
-    "rent-car",
-    "taxi",
-    "concierge",
-    "cleaning",
-    "laundry",
-    "ditalia",
-    "market",
-    "bar",
-    "technologies",
-    "investment",
-    "ventures",
-    "training"
-  ],
+  "databaseMigration": "0008_views_integrity.sql",
+  "activeModules": ["views"],
+  "comingSoonModules": ["managing", "real-estate", "engineers", "aura-design", "travel", "aviation", "rent-car", "taxi", "concierge", "cleaning", "laundry", "ditalia", "market", "bar", "technologies", "investment", "ventures", "training"],
   "cloudStagingVerified": false,
   "productionApproved": false,
   "productionReady": false,
@@ -39,30 +18,31 @@
   "viewsOperations": {
     "status": "implemented-in-branch",
     "apiBase": "/api/v1/views",
-    "commands": [
-      "create_booking",
-      "confirm_booking",
-      "check_in",
-      "check_out",
-      "cancel_booking",
-      "cleaning_start",
-      "cleaning_submit",
-      "cleaning_verify"
-    ],
+    "commands": ["create_booking", "confirm_booking", "check_in", "check_out", "cancel_booking", "cleaning_start", "cleaning_submit", "cleaning_verify"],
     "cloudStagingVerified": false
   },
   "viewsUI": {
     "status": "implemented-in-branch",
     "primaryAction": "operations",
-    "tabs": [
-      "dashboard",
-      "calendar",
-      "bookings",
-      "units",
-      "cleaning"
-    ],
+    "tabs": ["dashboard", "calendar", "bookings", "units", "cleaning"],
     "dataPolicy": "real-staging-only-no-demo-fallback",
     "sessionPolicy": "in-memory-auth-session-only",
     "cloudStagingVerified": false
+  },
+  "architectureVersion": "1.1",
+  "technicalStage": "views-integrity-1",
+  "viewsIntegrity": {
+    "status": "implemented-in-branch",
+    "inventory": "unique-tenant-unit-night",
+    "quality": "independent-executor-reviewer",
+    "moduleGate": "SQL-and-RLS",
+    "cloudMigrationApplied": false
+  },
+  "viewsReadAPI": {
+    "format": "array",
+    "defaultLimit": 50,
+    "maxLimit": 100,
+    "cursorHeader": "X-Next-Cursor",
+    "projection": "allowlisted-fields"
   }
 }
