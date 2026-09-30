@@ -47,7 +47,9 @@ jobs:
       - name: Cloudflare compatibility dry-run
         run: npm run check:deploy
       - name: Separate VISION staging build without deployment
-        run: npx wrangler deploy --config vision/wrangler.jsonc --dry-run
+        run: |
+          node vision/tools/build-public.mjs
+          npx wrangler deploy --config vision/wrangler.jsonc --dry-run
       - name: Foundation safety assertions
         run: |
           test -f vision/database/migrations/0001_vision_foundation.sql

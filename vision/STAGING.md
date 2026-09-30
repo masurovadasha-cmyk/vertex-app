@@ -29,6 +29,12 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
 
 ## Cloud staging
 
+The public preview serves only `vision/public` pages, the reviewed Views stylesheet
+and icon, release metadata and a fixed Android-download redirect. Local profile
+selection, local commands and development database files are never bundled.
+The API remains fail-closed until real staging identity/database configuration.
+Public portal availability is not a successful backend Golden Flow.
+
 1. Create a dedicated free Supabase project `vertex-vision-staging`. Enable Data
    API and automatic RLS, disable automatic table grants. Keep the database
    password in the owner's password manager.
@@ -51,6 +57,7 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
 5. Build and deploy **only** the staging config:
 
    ```sh
+   node vision/tools/build-public.mjs
    npx wrangler deploy --config vision/wrangler.jsonc --dry-run
    npx wrangler deploy --config vision/wrangler.jsonc --keep-vars
    ```
