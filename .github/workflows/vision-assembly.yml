@@ -68,8 +68,7 @@ jobs:
       - name: Build and verify integrated application contract
         run: |
           set -o pipefail
-          npm run build:vision 2>&1 | tee artifacts/assembly/build.txt
-          npm run check:vision-assembly 2>&1 | tee artifacts/assembly/assembly-contract.txt
+          npm run assemble:vision 2>&1 | tee artifacts/assembly/assembly-build.txt
       - name: Full application regressions
         run: |
           set -o pipefail
