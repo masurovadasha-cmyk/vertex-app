@@ -13,11 +13,11 @@ test('Views Operations booking, stay and cleaning vertical slice',async t=>{
     const keys=Object.keys(fields);
     return db.query(`insert into public.vision_${table}(${keys.join(',')}) values(${keys.map((_,i)=>'$'+(i+1)).join(',')})`,Object.values(fields));
   };
-  const tenant=id(),views=id(),customer=id(),otherCustomer=id(),manager=id(),guest=id(),guest2=id(),property=id(),unit=id();
+  const tenant=id(),views=id(),customer=id(),otherCustomer=id(),manager=id(),reviewer=id(),guest=id(),guest2=id(),property=id(),unit=id();
   await insert('tenants',{id:tenant,code:'views-ops',name:'Views Ops Test'});
   await insert('organizations',{id:views,tenant_id:tenant,code:'views',name:'Views Hotel & Apartments',kind:'COMPANY'});
   for(const [cid,name] of [[customer,'Synthetic Guest A'],[otherCustomer,'Synthetic Guest B']])await insert('customers',{id:cid,tenant_id:tenant,display_name:name});
-  for(const [uid,name] of [[manager,'Synthetic Views Manager'],[guest,'Synthetic Guest A'],[guest2,'Synthetic Guest B']])await insert('users',{id:uid,tenant_id:tenant,display_name:name});
+  for(const [uid,name] of [[manager,'Synthetic Views Manager'],[reviewer,'Synthetic Quality Reviewer'],[guest,'Synthetic Guest A'],[guest2,'Synthetic Guest B']])await insert('users',{id:uid,tenant_id:tenant,display_name:name});
   for(const [uid,cid] of [[guest,customer],[guest2,otherCustomer]])await insert('guest_links',{tenant_id:tenant,user_id:uid,customer_id:cid,requester_organization_id:views});
 
   const membership=id(),role=id();
@@ -27,6 +27,12 @@ test('Views Operations booking, stay and cleaning vertical slice',async t=>{
   for(const code of ['views.operations.read','views.booking.create','views.booking.manage','views.cleaning.execute','views.cleaning.verify']){
     await db.query('insert into public.vision_role_permissions(role_id,permission_id) select $1,id from public.vision_permissions where code=$2',[role,code]);
   }
+  await insert('module_installations',{tenant_id:tenant,organization_id:views,module_id:'views',state:'ENABLED'});
+  const reviewMembership=id(),reviewRole=id();
+  await insert('memberships',{id:reviewMembership,tenant_id:tenant,user_id:reviewer,organization_id:views});
+  await insert('roles',{id:reviewRole,tenant_id:tenant,code:'independent-reviewer',name:'Independent Reviewer'});
+  await insert('membership_roles',{tenant_id:tenant,membership_id:reviewMembership,role_id:reviewRole});
+  await db.query("insert into public.vision_role_permissions(role_id,permission_id) select $1,id from public.vision_permissions where code='views.cleaning.verify'",[reviewRole]);
   await insert('views_properties',{id:property,tenant_id:tenant,organization_id:views,code:'u-tower',name:'NRG U-Tower'});
   await insert('views_units',{id:unit,tenant_id:tenant,organization_id:views,property_id:property,unit_number:'TEST-235',unit_type:'apartment'});
 
@@ -95,7 +101,8 @@ test('Views Operations booking, stay and cleaning vertical slice',async t=>{
     assert.equal(result.cleaning_status,'IN_PROGRESS');
     result=await command(manager,{type:'cleaning_submit',tenant_id:tenant,idempotency_key:key(),cleaning_job_id:cleaning.id,expected_version:result.cleaning_version});
     assert.equal(result.cleaning_status,'INSPECTION');
-    result=await command(manager,{type:'cleaning_verify',tenant_id:tenant,idempotency_key:key(),cleaning_job_id:cleaning.id,expected_version:result.cleaning_version});
+    await denied(()=>command(manager,{type:'cleaning_verify',tenant_id:tenant,idempotency_key:key(),cleaning_job_id:cleaning.id,expected_version:result.cleaning_version}),/independent_quality_required/);
+    result=await command(reviewer,{type:'cleaning_verify',tenant_id:tenant,idempotency_key:key(),cleaning_job_id:cleaning.id,expected_version:result.cleaning_version});
     assert.equal(result.cleaning_status,'VERIFIED');assert.equal(result.booking_status,'COMPLETED');
     assert.equal((await db.query('select status from public.vision_views_units where id=$1',[unit])).rows[0].status,'READY');
   });

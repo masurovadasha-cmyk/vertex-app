@@ -27,7 +27,7 @@ export async function startDev({port=8790,dataDir}={}) {
       const profile=profiles.find(p=>p.key===req.headers['x-vision-profile']);
       if(!profile)return send(401,{error:'choose_demo_profile'});
       let command;
-      if(path==='/api/commands'&&req.method==='POST'){
+      if(['/api/commands','/api/v1/views/commands'].includes(path)&&req.method==='POST'){
         if(req.headers['content-type']!=='application/json')return send(415,{error:'json_required'});
         let body='';for await(const chunk of req){body+=chunk.toString();if(body.length>8192)return send(413,{error:'too_large'});}
         try{command=JSON.parse(body);}catch{return send(400,{error:'invalid_json'});}
@@ -37,7 +37,8 @@ export async function startDev({port=8790,dataDir}={}) {
         try{
           await db.query('set local role authenticated');
           await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:profile.id})]);
-          const r=command?await db.query('select public.vision_command($1::jsonb) result',[JSON.stringify(command)]):
+          const rpc=path==='/api/v1/views/commands'?'vision_views_command':'vision_command';
+          const r=command?await db.query('select public.'+rpc+'($1::jsonb) result',[JSON.stringify(command)]):
             await db.query(`select * from public.${path==='/api/audit'?'vision_audit_events':'vision_orders'} order by created_at desc limit 50`);
           await db.query('commit');return command?r.rows[0].result:r.rows;
         }catch(e){await db.query('rollback');throw e;}

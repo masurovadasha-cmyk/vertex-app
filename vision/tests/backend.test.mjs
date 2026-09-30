@@ -29,7 +29,7 @@ test('bad JWT is rejected by Auth, no RPC runs',async()=>{
   assert.equal(response.status,401);assert.equal(calls,1);
 });
 test('SQL conflict and denied access map without leaking database details',async()=>{
-  for(const [code,status] of [['40001',409],['23505',409],['42501',403],['22023',400],['XX000',503]]){
+  for(const [code,status] of [['40001',409],['23505',409],['42501',403],['22023',400],['23514',400],['22003',400],['23P01',409],['XX000',503]]){
     const r=await handle(request('/api/commands',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}),env,async url=>
       url.endsWith('/user')?Response.json({id:uid}):Response.json({code,message:'private detail'},{status:400}));
     assert.equal(r.status,status);assert.ok(!(await r.text()).includes('private detail'));
@@ -60,15 +60,21 @@ test('versioned Views API routes commands to the dedicated RPC and fixes read fi
   assert.deepEqual(JSON.parse(calls[1].options.body),{command});
 
   const urls=[];
-  const read=await handle(request('/api/v1/views/bookings?tenant_id='+uid+'&select=private&limit=9999'),env,async url=>{
+  const read=await handle(request('/api/v1/views/bookings?tenant_id='+uid+'&select=private&limit=50'),env,async url=>{
     urls.push(url);return Response.json(url.endsWith('/user')?{id:uid}:[]);
   });
   assert.equal(read.status,200);
   const upstream=new URL(urls.at(-1));
   assert.match(upstream.pathname,/vision_views_bookings$/);
   assert.equal(upstream.searchParams.get('tenant_id'),'eq.'+uid);
-  assert.equal(upstream.searchParams.get('select'),'*');
-  assert.equal(upstream.searchParams.get('limit'),'50');
+  assert.ok(!upstream.searchParams.get('select').includes('*'));
+  assert.ok(!upstream.searchParams.get('select').includes('private'));
+  assert.equal(upstream.searchParams.get('limit'),'51');
+  assert.equal(read.headers.get('x-page-limit'),'50');
+  const oversized=await handle(request('/api/v1/views/bookings?tenant_id='+uid+'&limit=9999'),env,async url=>{
+    assert.ok(url.endsWith('/user'),'invalid pagination must not query data');return Response.json({id:uid});
+  });
+  assert.equal(oversized.status,400);
 });
 
 test('staging worker serves static assets without requiring backend secrets',async()=>{
