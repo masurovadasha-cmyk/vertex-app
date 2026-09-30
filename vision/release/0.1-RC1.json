@@ -66,7 +66,7 @@
     "cloudStagingVerified": false
   },
   "architectureVersion": "1.6",
-  "technicalStage": "rc2-compatibility-recovery-prepared-0.2",
+  "technicalStage": "production-promotion-evidence-prepared-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -165,5 +165,21 @@
     "ciBackupRestoreDrill": "implemented-and-required",
     "productionBackupRestoreVerified": false,
     "stagingDeployMode": "manual-only"
+  },
+  "productionPromotion": {
+    "status": "implemented-blocked-by-required-external-evidence",
+    "policy": "vision/production/promotion-policy.json",
+    "evaluator": "vision/production/evaluate-promotion.mjs",
+    "workflow": ".github/workflows/vision-promotion-gate.yml",
+    "productionBackupWorkflow": ".github/workflows/vision-production-backup-restore.yml",
+    "mutationAllowed": false,
+    "requiredEvidence": [
+      "integrated-assembly",
+      "rc2-safety",
+      "real-staging-auth-e2e",
+      "production-backup-restore"
+    ],
+    "ownerApprovalRequired": true,
+    "passed": false
   }
 }
