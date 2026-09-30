@@ -5,12 +5,13 @@ const root=path.resolve(__dirname,'../..'),site=path.join(root,'vertex/dist');
 const read=name=>fs.readFileSync(path.join(site,name),'utf8');
 const put=(name,text)=>fs.writeFileSync(path.join(site,name),text);
 core.validate(core.modules);
-for(const [source,target] of [['registry.cjs','vision-core.js'],['shell.js','vision-shell.js'],['shell.css','vision-shell.css'],['compact.css','vision-compact.css']])put(target,fs.readFileSync(path.join(__dirname,source),'utf8'));
+for(const [source,target] of [['registry.cjs','vision-core.js'],['views-ops.js','vision-views.js'],['views-ops.css','vision-views.css'],['shell.js','vision-shell.js'],['shell.css','vision-shell.css'],['compact.css','vision-compact.css']])put(target,fs.readFileSync(path.join(__dirname,source),'utf8'));
 let html=read('index.html');
 html=html.replace(/<title>[^<]*<\/title>/,`<title>VERTEX VISION ${core.version} — Vertex Group · Views</title>`);
 if(!html.includes('href="vision-shell.css"'))html=html.replace('</head>','<link rel="stylesheet" href="vision-shell.css"></head>');
 if(!html.includes('href="vision-compact.css"'))html=html.replace('</head>','<link rel="stylesheet" href="vision-compact.css"></head>');
-if(!html.includes('src="vision-core.js"'))html=html.replace('</body>','<script src="vision-core.js"></script><script src="vision-shell.js"></script></body>');
+if(!html.includes('href="vision-views.css"'))html=html.replace('</head>','<link rel="stylesheet" href="vision-views.css"></head>');
+if(!html.includes('src="vision-core.js"'))html=html.replace('</body>','<script src="vision-core.js"></script><script src="vision-views.js"></script><script src="vision-shell.js"></script></body>');
 put('index.html',html);
 const release=JSON.parse(read('release.json'));
 Object.assign(release,{version:core.version,revision:core.revision,date:'2026-09-30',platform:core.id,core_version:core.coreVersion,modules:core.modules.map(m=>m.id),active_modules:core.modules.filter(m=>m.status==='active').map(m=>m.id),coming_soon_modules:core.modules.filter(m=>m.status==='coming-soon').map(m=>m.id),mode:'release-candidate',cloud_database_connected:false,unified_apk_hosted:false});
@@ -19,7 +20,7 @@ for(const boundary of ['Shared cloud database and real authentication are not co
 put('release.json',JSON.stringify(release,null,2)+'\n');
 const manifest=JSON.parse(read('manifest.webmanifest'));Object.assign(manifest,{name:'VERTEX VISION — Vertex Group',short_name:'VISION',description:'Views и направления Vertex Group в одной платформе. Демонстрационная версия.'});put('manifest.webmanifest',JSON.stringify(manifest,null,2)+'\n');
 let sw=read('sw.js').replace(/const CACHE='[^']+'/ ,`const CACHE='vertex-vision-${core.version.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-${core.revision}'`);
-for(const file of ['vision-core.js','vision-shell.js','vision-shell.css','vision-compact.css'])if(!sw.includes("'./"+file+"'"))sw=sw.replace('const ASSETS=[',"const ASSETS=['./"+file+"',");put('sw.js',sw);
+for(const file of ['vision-core.js','vision-views.js','vision-views.css','vision-shell.js','vision-shell.css','vision-compact.css'])if(!sw.includes("'./"+file+"'"))sw=sw.replace('const ASSETS=[',"const ASSETS=['./"+file+"',");put('sw.js',sw);
 put('design-shell.js',read('design-shell.js').replaceAll('1.14-demo',core.version));
 // Building web assets does not upload a new APK. Keep the hosted binary's identity explicit.
 let mobile=read('mobile.js').replaceAll('Android APK · 1.15-demo ↓','Android APK · 1.14-demo ↓');
