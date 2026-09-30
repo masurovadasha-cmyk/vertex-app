@@ -101,9 +101,20 @@ jobs:
           import fs from 'node:fs';
           const p='artifacts/staging/deployment.json',m=JSON.parse(fs.readFileSync(p)),h=JSON.parse(fs.readFileSync('artifacts/staging/health.json'));
           if(h.service!=='VERTEX VISION'||h.environment!=='staging'||h.sourceCommit!==m.sourceCommit||h.requiredMigration!==m.requiredMigration||h.probe!=='liveness-config-only')throw Error('Staging health/source verification failed');
-          m.deploymentVerified=true;m.backendConfigured=h.configured===true;m.authenticatedE2E=false;
+          m.deploymentVerified=true;m.backendConfigured=h.configured===true;m.databaseReady=false;m.authenticatedE2E=false;
           fs.writeFileSync(p,JSON.stringify(m,null,2));
           JS
+          if node -e "const h=require('./artifacts/staging/health.json');process.exit(h.configured===true?0:1)"; then
+            curl --fail --silent --show-error --retry 5 --retry-delay 2 "${VISION_STAGING_URL%/}/readyz" -o artifacts/staging/readiness.json
+            node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const p='artifacts/staging/deployment.json',m=JSON.parse(fs.readFileSync(p)),r=JSON.parse(fs.readFileSync('artifacts/staging/readiness.json'));
+          if(r.ready!==true||r.latestMigration!==m.requiredMigration||r.architectureVersion!==m.architectureVersion||r.tablesOk!==true||r.functionsOk!==true||r.rlsOk!==true||r.viewsReleaseActive!==true)throw Error('Staging readiness verification failed');
+          m.databaseReady=true;fs.writeFileSync(p,JSON.stringify(m,null,2));
+          JS
+          else
+            echo "::notice::Worker source verified, but Supabase staging is not configured; /readyz was not claimed."
+          fi
       - name: Record truthful staging result
         if: always()
         run: |
