@@ -17,6 +17,10 @@ on:
       - '.github/workflows/vision-promotion-gate.yml'
   workflow_dispatch:
     inputs:
+      candidate_sha:
+        description: Exact 40-character candidate source commit validated by every evidence run
+        required: true
+        type: string
       assembly_run_id:
         description: Integrated Assembly workflow run ID
         required: true
@@ -51,6 +55,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
+          ref: ${{ inputs.candidate_sha }}
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -68,6 +73,12 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
+      - name: Validate immutable candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${{ inputs.candidate_sha }}" =~ ^[a-f0-9]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "${{ inputs.candidate_sha }}"
       - name: Prepare evidence directories
         run: mkdir -p evidence/assembly evidence/rc2 evidence/cloud evidence/backup artifacts/promotion
       - uses: actions/download-artifact@v7
@@ -105,13 +116,14 @@ jobs:
       - name: Evaluate immutable promotion evidence
         env:
           VISION_PROMOTION_EVIDENCE_DIR: evidence
+          VISION_PROMOTION_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
         run: |
           set -o pipefail
           node vision/production/evaluate-promotion.mjs | tee artifacts/promotion/evaluation.json
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: Vertex-Vision-Promotion-Evaluation-${{ github.sha }}
+          name: Vertex-Vision-Promotion-Evaluation-${{ inputs.candidate_sha }}
           path: artifacts/promotion/
           retention-days: 30
           if-no-files-found: error
