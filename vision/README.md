@@ -77,3 +77,16 @@ The machine-readable source of truth is `vision/assembly/manifest.json`. The ded
 suite, PostgreSQL/RLS/integrity tests, desktop/mobile browser verification and dry-runs
 both Cloudflare configurations. A green assembly is required but does not authorize a
 production merge, production deployment or production database migration.
+
+
+## Typed command contract
+
+Views commands are validated twice. The staging API first applies the transport-level
+allowlist in `vision/modules/views/command-contract.mjs`: known command type, exact
+allowed fields, UUIDs, dates, positive record versions, idempotency keys, currency and
+bounded money. Unknown fields such as client-supplied admin flags are rejected before the
+SQL RPC is called.
+
+PostgreSQL remains authoritative for permissions, module state, booking/cleaning state
+transitions, concurrency, audit, receipts and outbox. The API validator is therefore a
+narrow input contract, not a replacement for database authorization.
