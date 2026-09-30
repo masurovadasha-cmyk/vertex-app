@@ -1,0 +1,10 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {randomUUID} from 'node:crypto';import {PGlite} from '@electric-sql/pglite';import {migrate} from '../backend/migrate.mjs';import {provisionViewsAuth} from '../backend/provision-views-auth.mjs';
+test('staging auth provisioning is idempotent and grants separated Views roles',async t=>{const db=new PGlite();t.after(()=>db.close());await db.exec('create role anon;create role authenticated;');await migrate(db);const ids={manager:randomUUID(),cleaner:randomUUID(),quality:randomUUID()};const a=await provisionViewsAuth(db,ids),b=await provisionViewsAuth(db,ids);assert.deepEqual(a,b);
+ const rows=(await db.query(`select u.id,p.code from public.vision_users u join public.vision_memberships m on m.user_id=u.id join public.vision_membership_roles mr on mr.membership_id=m.id join public.vision_role_permissions rp on rp.role_id=mr.role_id join public.vision_permissions p on p.id=rp.permission_id where u.id=any($1) order by u.id,p.code`,[Object.values(ids)])).rows;
+ const by=id=>rows.filter(r=>r.id===id).map(r=>r.code);
+ assert.deepEqual(by(ids.manager),['views.booking.create','views.booking.manage','views.operations.read']);
+ assert.deepEqual(by(ids.cleaner),['views.cleaning.execute']);
+ assert.deepEqual(by(ids.quality),['views.cleaning.verify','views.operations.read']);
+ assert.equal((await db.query('select count(*)::int n from public.vision_views_units where id=$1',[a.unit_id])).rows[0].n,1);
+});
+test('staging auth provisioning rejects missing, duplicate or malformed identities',async()=>{const db=new PGlite();try{await db.exec('create role anon;create role authenticated;');await migrate(db);const x=randomUUID();for(const ids of [{},{manager:x,cleaner:x,quality:randomUUID()},{manager:'bad',cleaner:randomUUID(),quality:randomUUID()}])await assert.rejects(()=>provisionViewsAuth(db,ids),/invalid_auth_identities/);}finally{await db.close();}});
