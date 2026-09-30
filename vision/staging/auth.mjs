@@ -38,7 +38,8 @@ export async function signInSynthetic({url,key,email,password},fetcher=fetch){
 
 export function validateStagingDatabaseURL(value,projectRef){
   let url;try{url=new URL(value);}catch{throw new Error('invalid_staging_database_url');}
-  if(!['postgres:','postgresql:'].includes(url.protocol)||!url.hostname||!url.username||!url.pathname||url.pathname==='/')throw new Error('invalid_staging_database_url');
+  if(!['postgres:','postgresql:'].includes(url.protocol)||!url.hostname||!url.username||!url.password||!url.pathname||url.pathname==='/')throw new Error('invalid_staging_database_url');
+  if(!['require','verify-full'].includes(url.searchParams.get('sslmode')||''))throw new Error('staging_database_tls_required');
   const direct=url.hostname===`db.${projectRef}.supabase.co`;
   const pooler=url.hostname.endsWith('.pooler.supabase.com')&&url.username.includes(projectRef);
   if(!direct&&!pooler)throw new Error('database_project_mismatch');
