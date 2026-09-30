@@ -127,7 +127,7 @@ jobs:
             });
             if(!response.ok)throw Error('Unable to read evidence run: '+envName);
             const run=await response.json();
-            if(run.name!==name||run.path!==path||run.head_sha!==candidate||run.conclusion!=='success'||run.repository?.full_name!==repo)
+            if(run.name!==name||run.path!==path||run.event!=='workflow_dispatch'||run.head_branch!=='master'||run.conclusion!=='success'||run.repository?.full_name!==repo)
               throw Error('Untrusted evidence workflow run: '+envName);
           }
           JS
