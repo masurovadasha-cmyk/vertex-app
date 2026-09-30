@@ -6,8 +6,9 @@ import pg from 'pg';
 const url=process.env.VISION_RESTORED_DATABASE_URL;
 if(!url)throw new Error('VISION_RESTORED_DATABASE_URL required');
 const root=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
-const release=JSON.parse(fs.readFileSync(path.join(root,'vision/release/0.1-RC1.json'),'utf8'));
-const migrationsDir=path.join(root,'vision/database/migrations');
+const candidateRoot=process.env.VISION_CANDIDATE_ROOT?path.resolve(process.env.VISION_CANDIDATE_ROOT):root;
+const release=JSON.parse(fs.readFileSync(path.join(candidateRoot,'vision/release/0.1-RC1.json'),'utf8'));
+const migrationsDir=path.join(candidateRoot,'vision/database/migrations');
 const local=fs.readdirSync(migrationsDir)
   .filter(name=>/^\d{4}_.+\.sql$/.test(name)).sort()
   .map(name=>{
