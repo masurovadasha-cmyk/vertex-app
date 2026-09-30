@@ -1,0 +1,33 @@
+{
+  "stage": "rc2-production-safety-0.1",
+  "productionApproved": false,
+  "productionDeployAllowed": false,
+  "databasePolicy": {
+    "migrations": "expand-only-after-foundation",
+    "baselineThrough": "0004_private_subject_permissions.sql",
+    "downMigrations": false,
+    "forwardFixOnly": true,
+    "checksumTracked": true
+  },
+  "backupPolicy": {
+    "requiredBeforeProductionMigration": true,
+    "restoreVerificationRequired": true,
+    "backupArtifactRetention": "provider-controlled",
+    "ciDrillUsesSyntheticDataOnly": true
+  },
+  "rollbackPolicy": {
+    "application": "previous-known-good-deployment",
+    "database": "no-automatic-down-migration",
+    "schemaCompatibility": "n-minus-one-application-must-remain-compatible-with-expanded-schema"
+  },
+  "gates": [
+    "migration-safety-scan",
+    "read-only-database-preflight",
+    "backup-created",
+    "restore-verified",
+    "restored-readiness",
+    "rollback-compatibility",
+    "real-staging-auth-e2e",
+    "explicit-owner-approval"
+  ]
+}
