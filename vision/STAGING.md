@@ -150,3 +150,13 @@ their exact v1 field sets. Transport-invalid UUIDs, dates, versions, money, idem
 keys, unknown command names or extra privilege-like fields are rejected with
 `400 invalid_command` before the SQL RPC. PostgreSQL then independently re-checks
 authorization and domain state inside the transaction.
+
+
+## Response contract and tracing
+
+The staging Worker projects successful Views command results through an allowlisted v1 DTO.
+Unexpected fields or impossible lifecycle states fail closed as backend dependency errors.
+
+All API responses include `X-Request-ID`. Successful Views mutations additionally include
+`X-Correlation-ID`, which must match the command response `correlation_id`. Do not log
+bearer tokens or unrestricted request/response bodies when using these IDs for diagnostics.
