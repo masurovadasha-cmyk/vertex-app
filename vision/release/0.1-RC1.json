@@ -66,7 +66,7 @@
     "cloudStagingVerified": false
   },
   "architectureVersion": "1.6",
-  "technicalStage": "rc2-production-safety-prepared-0.1",
+  "technicalStage": "rc2-compatibility-recovery-prepared-0.2",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -159,8 +159,11 @@
     "migrationPolicy": "expand-only-after-foundation",
     "readOnlyPreflight": "vision/production/preflight.mjs",
     "backupRestoreDrill": "postgresql-native-dump-restore-synthetic-ci",
-    "backupRestoreVerified": false,
     "productionApproved": false,
-    "productionChanged": false
+    "productionChanged": false,
+    "nMinusOneCompatibility": "vision/production/check-n-minus-one-compatibility.mjs",
+    "ciBackupRestoreDrill": "implemented-and-required",
+    "productionBackupRestoreVerified": false,
+    "stagingDeployMode": "manual-only"
   }
 }
