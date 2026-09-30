@@ -33,7 +33,7 @@ export async function handle(request,env,fetcher=fetch){
   if(env.VISION_ENV!=='staging')return reply({error:'staging_only'},503);
   if(url.pathname==='/health')return reply({
     service:'VERTEX VISION',environment:'staging',configured:configured(env),probe:'liveness-config-only',
-    architectureVersion:'1.3',requiredMigration:'0009_application_kernel.sql',
+    architectureVersion:'1.4',requiredMigration:'0009_application_kernel.sql',
     sourceCommit:/^[a-f0-9]{40}$/.test(env.VISION_SOURCE_COMMIT||'')?env.VISION_SOURCE_COMMIT:null
   });
   if(!url.pathname.startsWith('/api/')){
