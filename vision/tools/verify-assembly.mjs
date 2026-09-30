@@ -75,6 +75,12 @@ for(const required of [
   'vision/staging/cloud-e2e.mjs',
   '.github/workflows/vision-cloud-e2e.yml',
   '.github/workflows/vision-rc2-safety.yml',
+  'vision/production/check-backup-principal.mjs',
+  'vision/production/verify-production-restore.mjs',
+  'vision/production/promotion-policy.json',
+  'vision/production/evaluate-promotion.mjs',
+  '.github/workflows/vision-production-backup-restore.yml',
+  '.github/workflows/vision-promotion-gate.yml',
   'vision/production/safety-manifest.json',
   'vision/production/rollback-plan.json',
   'vision/production/check-migration-safety.mjs',
@@ -126,6 +132,11 @@ assert.equal(assembly.productionSafety.productionBackupRestoreVerified,false);
 assert.equal(assembly.productionSafety.stagingDeployMode,'manual-only');
 assert.equal(release.productionSafety.productionBackupRestoreVerified,false);
 assert.equal(release.productionSafety.stagingDeployMode,'manual-only');
+assert.equal(assembly.productionPromotion.mutationAllowed,false);
+assert.equal(assembly.productionPromotion.passed,false);
+assert.equal(release.productionPromotion.mutationAllowed,false);
+assert.equal(release.productionPromotion.passed,false);
+assert.equal(release.productionPromotion.ownerApprovalRequired,true);
 assert.equal(release.eventReliability.deliveryModel,'at-least-once');
 assert.equal(release.eventReliability.deduplication,'tenant-consumer-event-id');
 assert.equal(assembly.reliability.globalExactlyOnce,false);
