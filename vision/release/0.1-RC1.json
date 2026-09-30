@@ -66,7 +66,7 @@
     "cloudStagingVerified": false
   },
   "architectureVersion": "1.5",
-  "technicalStage": "runtime-readiness-0.1",
+  "technicalStage": "real-supabase-auth-e2e-prepared-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -121,5 +121,25 @@
     ],
     "serviceRoleRequired": false,
     "cloudVerified": false
+  },
+  "realStagingE2E": {
+    "status": "prepared-blocked-on-external-staging-configuration",
+    "workflow": ".github/workflows/vision-cloud-e2e.yml",
+    "provisioning": "vision/staging/provision.mjs",
+    "authHelper": "vision/staging/auth.mjs",
+    "e2eRunner": "vision/staging/cloud-e2e.mjs",
+    "identities": [
+      "guest",
+      "views",
+      "dispatcher",
+      "staff",
+      "quality",
+      "audit"
+    ],
+    "appliesChecksumTrackedMigrations": true,
+    "genuineSupabaseAuthRequired": true,
+    "directRLSVerification": true,
+    "cloudVerified": false,
+    "productionChanged": false
   }
 }
