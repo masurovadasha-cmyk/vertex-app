@@ -79,6 +79,29 @@ jobs:
           VISION_RELEASE_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_rc2_source
         run: node vision/production/preflight.mjs artifacts/rc2/source-preflight.json
 
+      - name: Build N-1 foundation baseline and prove forward schema compatibility
+        shell: bash
+        env:
+          VISION_BASELINE_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_rc2_baseline
+          VISION_RELEASE_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_rc2_source
+        run: |
+          set -euo pipefail
+          PG_CONTAINER="$(docker ps --filter ancestor=postgres:17 --format '{{.ID}}' | head -n1)"
+          test -n "$PG_CONTAINER"
+          docker exec -e PGPASSWORD=disposable-ci-only "$PG_CONTAINER" dropdb -U postgres --if-exists vision_rc2_baseline
+          docker exec -e PGPASSWORD=disposable-ci-only "$PG_CONTAINER" createdb -U postgres vision_rc2_baseline
+          node --input-type=module - <<'JS'
+          import pg from 'pg';
+          import {migrate} from './vision/backend/migrate.mjs';
+          const client=new pg.Client({connectionString:process.env.VISION_BASELINE_DATABASE_URL,application_name:'vertex-vision-n-minus-one-baseline'});
+          await client.connect();
+          try{
+            const db={query:(...args)=>client.query(...args),exec:sql=>client.query(sql)};
+            await migrate(db,{through:'0004_private_subject_permissions.sql'});
+          }finally{await client.end();}
+          JS
+          node vision/production/check-n-minus-one-compatibility.mjs artifacts/rc2/n-minus-one-compatibility.json
+
       - name: Create native PostgreSQL backup and restore into a clean database
         shell: bash
         run: |
@@ -132,6 +155,7 @@ jobs:
             safetyStage:safety.stage,
             backupRestoreVerified:true,
             migrationSafetyVerified:true,
+            nMinusOneCompatibilityVerified:true,
             rollbackPolicyVerified:true,
             cloudE2ERequired:true,
             productionApproved:false,
