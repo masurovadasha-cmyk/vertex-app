@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VERTEX VISION · Views Operations</title><link rel="stylesheet" href="/operations/styles.css"><script type="module" src="/operations/app.mjs"></script></head>
+<body>
+<header><a href="#hub" class="brand">VERTEX <strong>VISION</strong></a><span class="badge">STAGING · Operations 0.1</span><button id="logout" type="button" hidden>Завершить сеанс</button></header>
+<main>
+<div class="intro"><p class="eyebrow">VERTEX GROUP / OPERATIONS</p><h1>Одна система.<br>Первый рабочий модуль — Views.</h1><p>Операционная панель тестовой среды. Остальные направления — будущие ветки.</p></div>
+<p id="network" class="notice" hidden>Нет сети. Изменения временно недоступны.</p>
+<p id="message" role="status" aria-live="polite"></p>
+<section id="connect" class="panel"><h2>Подключить тестовый сеанс</h2><p>Нужен действующий access token отдельного пользователя Supabase staging. Это проверочный вход, а не production-авторизация. Используйте только синтетические данные.</p>
+<form id="connectForm" autocomplete="off">
+<label>Tenant UUID<input name="tenant" required autocomplete="off" spellcheck="false"></label>
+<label>Organization UUID<input name="organization" required autocomplete="off" spellcheck="false"></label>
+<label class="wide">Supabase access token<input name="token" type="password" required autocomplete="off" spellcheck="false" maxlength="8185"></label>
+<button type="submit">Подключиться</button><small>Токен не записывается в браузерное хранилище и стирается после завершения сеанса или перезагрузки.</small>
+</form></section>
+<section id="workspace" hidden>
+<nav aria-label="Разделы"><button data-tab="hub">Vision Hub</button><button data-tab="dashboard">Обзор</button><button data-tab="calendar">Календарь</button><button data-tab="bookings">Бронирования</button><button data-tab="cleaning">Уборка</button></nav>
+<div class="toolbar"><form id="rangeForm"><label>С<input id="from" type="date" required></label><label>До (не включая)<input id="to" type="date" required></label><button type="submit">Обновить</button></form><small>До 31 дня. Состояния подтверждает сервер.</small></div>
+<div id="uncertain" class="notice" hidden><strong>Результат операции пока неизвестен.</strong><p>Новые операции заблокированы. Повтор отправляет прежнюю команду с тем же ключом, без создания дубликата.</p><button id="retry" type="button">Проверить повтором той же команды</button></div>
+<p id="truncated" class="notice" hidden>Выборка неполная: достигнут лимит 200 строк. Сузьте даты. Итоги относятся ко всей разрешённой выборке, таблицы показывают только её часть.</p>
+<section data-panel="hub"><h2>Направления VISION</h2><div id="modules" class="grid"></div></section>
+<section data-panel="dashboard" hidden><h2>Views · Операционный обзор</h2><div id="summary" class="grid"></div><p id="updated"></p><p>Финансовые показатели и персональные данные гостей в этой панели не отображаются.</p></section>
+<section data-panel="calendar" hidden><h2>Календарь квартир</h2><div id="calendar" class="table-wrap"></div></section>
+<section data-panel="bookings" hidden><h2>Бронирования выбранного периода</h2><div id="bookings" class="stack"></div>
+<details id="newBooking" class="panel" hidden><summary>Создать тестовое бронирование</summary><p>Клиент должен быть заранее создан оператором staging. Здесь не создаются реальные персональные данные.</p><form id="bookingForm">
+<label>Квартира<select name="unit_id" required></select></label><label>Customer UUID<input name="customer_id" required spellcheck="false"></label>
+<label>Заезд<input name="check_in" type="date" required></label><label>Выезд<input name="check_out" type="date" required></label>
+<label>Стоимость<input name="total" type="number" min="0" max="999999999999.99" step="0.01" value="0" required></label><label>Валюта<select name="currency"><option>USD</option><option>UZS</option></select></label>
+<button type="submit">Создать бронь</button></form></details></section>
+<section data-panel="cleaning" hidden><h2>Незавершённые уборки</h2><p>Внутренний процесс Views. Отдельная ветка Vertex Cleaning остаётся Coming Soon.</p><div id="cleaning" class="stack"></div></section>
+</section>
+<footer>JARVIS — отдельный проект. Панель не включает платежи, внешние уведомления или облачную синхронизацию до подключения и проверки staging.</footer>
+</main></body></html>
