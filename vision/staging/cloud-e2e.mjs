@@ -3,7 +3,9 @@ import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {validateSupabaseStaging,signInSynthetic} from './auth.mjs';
 
-const release=JSON.parse(fs.readFileSync(new URL('../release/0.1-RC1.json',import.meta.url),'utf8'));
+const candidateRoot=process.env.VISION_CANDIDATE_ROOT?path.resolve(process.env.VISION_CANDIDATE_ROOT):null;
+const releaseFile=candidateRoot?path.join(candidateRoot,'vision/release/0.1-RC1.json'):new URL('../release/0.1-RC1.json',import.meta.url);
+const release=JSON.parse(fs.readFileSync(releaseFile,'utf8'));
 const required=name=>{
   const value=process.env[name];
   if(!value)throw new Error('missing_staging_secret:'+name);
