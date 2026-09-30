@@ -6,7 +6,7 @@ create function public.vision_auth_context()
 returns jsonb
 language plpgsql
 stable
-security invoker
+security definer
 set search_path=''
 as $$
 declare
