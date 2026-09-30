@@ -41,8 +41,7 @@ set release_state = case when id='views' then 'ACTIVE' else 'COMING_SOON' end,
 -- Product release state is metadata only. Tenant installation state remains
 -- separately controlled and defaults to REGISTERED; this migration grants no
 -- client mutation capability and enables no cloud writes.
-create unique index if not exists vision_single_active_release_module
-  on public.vision_module_definitions ((release_state))
-  where release_state='ACTIVE';
+create index if not exists vision_module_release_state_idx
+  on public.vision_module_definitions (release_state, sort_order);
 
 commit;
