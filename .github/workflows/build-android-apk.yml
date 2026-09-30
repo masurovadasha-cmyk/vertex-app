@@ -72,8 +72,8 @@ jobs:
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee release-apk/apk-signature.txt
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" > release-apk/apk-badging.txt
           grep -q "package: name='com.vertex.vision.demo'" release-apk/apk-badging.txt
-          grep -q "versionCode='19'" release-apk/apk-badging.txt
-          grep -q "versionName='1.15-demo'" release-apk/apk-badging.txt
+          grep -q "versionCode='20'" release-apk/apk-badging.txt
+          grep -q "versionName='1.16-rc1'" release-apk/apk-badging.txt
           python - <<'PY'
           from pathlib import Path
           import zipfile
@@ -84,12 +84,12 @@ jobs:
                       assert apk.read('assets/site/'+file.relative_to(root).as_posix()) == file.read_bytes(), str(file)
           Path('release-apk/apk-assets.txt').write_text('PASS: every embedded web asset matches the generated, synchronization-checked source.\nNative Android runtime is not tested by this job.\n')
           PY
-          cp "$APK" release-apk/Vertex-Vision-1.15-demo-code19.apk
+          cp "$APK" release-apk/Vertex-Vision-1.16-rc1-code20.apk
           (cd release-apk && sha256sum Vertex-Vision-1.15-demo-code19.apk > SHA256SUMS.txt)
           git rev-parse HEAD > release-apk/source-commit.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: Vertex-Vision-1.15-demo-code19-${{ github.sha }}
+          name: Vertex-Vision-1.16-rc1-code20-${{ github.sha }}
           path: release-apk/
           if-no-files-found: error
           retention-days: 30
