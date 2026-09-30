@@ -20,7 +20,7 @@
     "physicalDeviceTested": false
   },
   "cloudflare": {
-    "publication_status": "awaiting CI, merge and live verification",
+    "publication_status": "published-and-hash-verified",
     "worker": "vertex-app",
     "url": "https://vertex-app.masurovadasha.workers.dev"
   },

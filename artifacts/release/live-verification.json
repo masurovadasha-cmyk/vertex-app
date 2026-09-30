@@ -74,5 +74,8 @@
     "views-utower-1.jpg": "8e6be651be53862c6fb58eb7b8088a93e0490998612a549343fa15918d61a3b7",
     "views-utower-2.jpg": "b90f8d3410356340b08eacafed140b3be7c6df3339c7fb8b19b68228ff71111c",
     "web-entry.js": "ccf1b13a9825573d7004596a8d71f729018f0839bb90edf4428f89ee6d0ef945"
-  }
+  },
+  "checked": 69,
+  "failures": [],
+  "passed": true
 }

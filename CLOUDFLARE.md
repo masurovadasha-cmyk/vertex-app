@@ -1,17 +1,17 @@
 # Vertex on Cloudflare
 
-## Current production release: 1.9-demo
+## Current production release: 1.14-demo / unified-journey1
 
-Published and verified on 2026-09-29.
+Published and verified on 2026-09-30.
 
 - Worker: `vertex-app`
 - Account: `b3aa874550f12baee308e3e7b4dba309`
 - Public URL: https://vertex-app.masurovadasha.workers.dev
 - Production source: `vertex/dist`
 - Production branch: `master`
-- Cloudflare Workers Build ID: `f0ac2859-2c9c-49fe-a0af-85290a8edb13`
-- Cloudflare Worker version ID: `15430952-3c36-44ed-a27b-0a0e41d3b09c`
-- Public `/release.json`: verified as `1.9-demo`
+- Cloudflare Workers Build ID: `6a8a9c28-e27e-49f7-83d3-a219a96aedc1`
+- Cloudflare Worker version ID: `9b6cbcda-f6a3-4748-b212-eef3e9c654f0`
+- Public `/release.json`: verified as `1.14-demo`
 
 ## Deployment path
 
@@ -55,3 +55,4 @@ integrations and are not implied by a successful static-assets deploy.
 
 Vertex JARVIS is a different project and must never be deployed through
 `vertex-app`.
+

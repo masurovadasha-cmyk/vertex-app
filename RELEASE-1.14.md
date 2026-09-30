@@ -21,7 +21,7 @@ Canva: https://www.canva.com/d/QSLYbk11KQQ2Khj — design `DAHWq7gBEj8`. The imp
 
 ## Deployment and boundaries
 
-The existing Cloudflare Git integration publishes `master` to Worker `vertex-app`. A release is complete only after Canva confirmation, successful CI and live file-hash verification. See the release journals for the actual deployment outcome.
+The existing Cloudflare Git integration published source commit `429adee99ed3cc1b7595ce9ffd09ee149b79fde9` to Worker `vertex-app`. Build `6a8a9c28-e27e-49f7-83d3-a219a96aedc1` succeeded; Worker version `9b6cbcda-f6a3-4748-b212-eef3e9c654f0` was deployed to 100% traffic. All 69 served files, including the APK, matched the Git snapshot by SHA-256. PR validation run `36707708212` and Android build run `36708090013` passed. See the release journals for the detailed evidence.
 
 Requests, payments, taxi dispatch, support cases and team roles are local demonstrations. There is no authenticated production booking/payment/driver backend. The concierge retains its demo fallback and browser voice capabilities; it does not retrain its model automatically. Canva resets demo state on reload; web and Android use local device storage. Observed Views prices retain their original dates and guest counts. No OLX content is included.
 
