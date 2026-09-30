@@ -22,6 +22,7 @@ export async function handle(request,env,fetcher=fetch) {
   if(env.VISION_ENV!=='staging')return json({error:'staging_only'},503);
   if(url.pathname==='/health')return json({service:'VERTEX VISION',environment:'staging',configured:configured(env)});
   if(!url.pathname.startsWith('/api/')){
+    if(url.pathname.startsWith('/rest/')||url.pathname.startsWith('/auth/')||url.pathname.startsWith('/vision')||url.pathname.startsWith('/.'))return json({error:'not_found'},404);
     if(!['GET','HEAD'].includes(request.method))return json({error:'method_not_allowed'},405);
     if(!env.ASSETS||typeof env.ASSETS.fetch!=='function')return json({error:'assets_not_configured'},503);
     return env.ASSETS.fetch(request);
