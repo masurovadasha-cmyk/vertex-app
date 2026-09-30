@@ -11,7 +11,9 @@ html=html.replace(/<title>[^<]*<\/title>/,`<title>VERTEX VISION ${core.version} 
 if(!html.includes('href="vision-shell.css"'))html=html.replace('</head>','<link rel="stylesheet" href="vision-shell.css"></head>');
 if(!html.includes('href="vision-compact.css"'))html=html.replace('</head>','<link rel="stylesheet" href="vision-compact.css"></head>');
 if(!html.includes('href="vision-views.css"'))html=html.replace('</head>','<link rel="stylesheet" href="vision-views.css"></head>');
-if(!html.includes('src="vision-core.js"'))html=html.replace('</body>','<script src="vision-core.js"></script><script src="vision-views.js"></script><script src="vision-shell.js"></script></body>');
+if(!html.includes('src="vision-core.js"'))html=html.replace('</body>','<script src="vision-core.js"></script></body>');
+if(!html.includes('src="vision-views.js"'))html=html.replace('</body>','<script src="vision-views.js"></script></body>');
+if(!html.includes('src="vision-shell.js"'))html=html.replace('</body>','<script src="vision-shell.js"></script></body>');
 put('index.html',html);
 const release=JSON.parse(read('release.json'));
 Object.assign(release,{version:core.version,revision:core.revision,date:'2026-09-30',platform:core.id,core_version:core.coreVersion,modules:core.modules.map(m=>m.id),active_modules:core.modules.filter(m=>m.status==='active').map(m=>m.id),coming_soon_modules:core.modules.filter(m=>m.status==='coming-soon').map(m=>m.id),mode:'release-candidate',cloud_database_connected:false,unified_apk_hosted:false});
