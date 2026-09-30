@@ -23,9 +23,6 @@ test('verified user token is forwarded to SQL RPC without privileged substitutio
   assert.equal(calls[0].url,env.SUPABASE_URL+'/auth/v1/user');
   assert.equal(calls[1].options.headers.authorization,'Bearer test.jwt.token');
   assert.deepEqual(JSON.parse(calls[1].options.body),{command});
-  assert.equal((await write.clone().json()).private_note,undefined);
-  assert.match(write.headers.get('x-request-id')||'',/^[0-9a-f-]{36}$/i);
-  assert.equal(write.headers.get('x-correlation-id'),uid);
   assert.equal(response.headers.get('cache-control'),'no-store');
 });
 test('bad JWT is rejected by Auth, no RPC runs',async()=>{
@@ -62,6 +59,9 @@ test('versioned Views API routes commands to the dedicated RPC and fixes read fi
   assert.equal(write.status,200);
   assert.equal(calls[1].url,env.SUPABASE_URL+'/rest/v1/rpc/vision_views_command');
   assert.deepEqual(JSON.parse(calls[1].options.body),{command});
+  assert.equal((await write.clone().json()).private_note,undefined);
+  assert.match(write.headers.get('x-request-id')||'',/^[0-9a-f-]{36}$/i);
+  assert.equal(write.headers.get('x-correlation-id'),uid);
 
   const urls=[];
   const read=await handle(request('/api/v1/views/bookings?tenant_id='+uid+'&organization_id='+org+'&select=private&limit=50'),env,async url=>{
