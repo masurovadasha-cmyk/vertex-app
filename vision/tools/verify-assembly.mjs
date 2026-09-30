@@ -67,11 +67,11 @@ for(const required of [
   'vision/database/migrations/0008_views_integrity.sql',
   'vision/database/migrations/0009_application_kernel.sql',
   'vision/database/migrations/0010_runtime_readiness.sql',
+  'vision/database/migrations/0011_event_inbox.sql',
   'vision/staging/auth.mjs',
   'vision/staging/provision.mjs',
   'vision/staging/cloud-e2e.mjs',
   '.github/workflows/vision-cloud-e2e.yml',
-  'vision/database/migrations/0010_runtime_readiness.sql',
   'vision/modules/views/manifest.json',
   'docs/architecture/TARGET-ARCHITECTURE-1.0.md'
 ]) assert.ok(exists(required),'missing assembly component '+required);
@@ -105,6 +105,9 @@ assert.equal(release.realStagingE2E.directRLSVerification,true);
 assert.equal(assembly.readiness.endpoint,'/readyz');
 assert.equal(assembly.readiness.serviceRoleRequired,false);
 assert.equal(release.runtimeReadiness.rpc,'public.vision_runtime_readiness()');
+assert.equal(release.eventReliability.deliveryModel,'at-least-once');
+assert.equal(release.eventReliability.deduplication,'tenant-consumer-event-id');
+assert.equal(assembly.reliability.globalExactlyOnce,false);
 
 const rootPkg=json('package.json');
 assert.ok(rootPkg.scripts?.['check:vision-assembly']);
