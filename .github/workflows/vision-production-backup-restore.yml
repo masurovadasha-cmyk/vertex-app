@@ -82,9 +82,12 @@ jobs:
           import fs from 'node:fs';
           const source=JSON.parse(fs.readFileSync('artifacts/production-backup/source-preflight.json','utf8'));
           const restore=JSON.parse(fs.readFileSync('artifacts/production-backup/restore-verification.json','utf8'));
+          const principal=JSON.parse(fs.readFileSync('artifacts/production-backup/principal.json','utf8'));
           const release=JSON.parse(fs.readFileSync('vision/release/0.1-RC1.json','utf8'));
           const backupSha=fs.readFileSync('artifacts/production-backup/backup-sha256.txt','utf8').trim();
           if(!/^[a-f0-9]{64}$/.test(backupSha))throw Error('Invalid backup digest');
+          if(principal.status!=='PASS'||principal.target!=='production'||principal.readOnlyPrincipal!==true||principal.productionChanged!==false)
+            throw Error('Backup principal verification mismatch');
           if(source.latestApplied!==restore.restoredLatestMigration)throw Error('Backup/restore migration version mismatch');
           if(restore.targetMigration!==release.databaseMigration)throw Error('Restore target migration mismatch');
           const report={
@@ -97,7 +100,7 @@ jobs:
             backupCreated:true,
             restoreVerified:true,
             migrationPrefixVerified:restore.migrationPrefixVerified===true,
-            readOnlyPrincipalVerified:true,
+            readOnlyPrincipalVerified:principal.readOnlyPrincipal===true,
             backupSha256:backupSha,
             productionChanged:false
           };
