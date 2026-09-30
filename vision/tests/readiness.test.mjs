@@ -12,13 +12,13 @@ const env={
 };
 const raw={
   ready:true,
-  latest_migration:'0010_runtime_readiness.sql',
-  migration_count:10,
+  latest_migration:'0011_event_inbox.sql',
+  migration_count:11,
   tables_ok:true,
   functions_ok:true,
   rls_ok:true,
   views_release_active:true,
-  architecture_version:'1.5'
+  architecture_version:'1.6'
 };
 
 test('runtime readiness proves migration level, RLS, required functions and Views release state',async t=>{
@@ -60,8 +60,8 @@ test('readyz uses publishable key only and returns an allowlisted readiness DTO'
   const ok=await handle(new Request('https://vision.example/readyz'),env,async()=>Response.json(raw));
   assert.equal(ok.status,200);
   assert.deepEqual(await ok.json(),{
-    ready:true,latestMigration:'0010_runtime_readiness.sql',migrationCount:10,
-    tablesOk:true,functionsOk:true,rlsOk:true,viewsReleaseActive:true,architectureVersion:'1.5'
+    ready:true,latestMigration:'0011_event_inbox.sql',migrationCount:11,
+    tablesOk:true,functionsOk:true,rlsOk:true,viewsReleaseActive:true,architectureVersion:'1.6'
   });
   assert.match(ok.headers.get('x-request-id')||'',/^[0-9a-f-]{36}$/i);
 });
