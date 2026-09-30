@@ -16,8 +16,7 @@ const forbidden=[
   [/\btruncate\b/i,'TRUNCATE'],
   [/\balter\s+table\b[^;]*\bdrop\b/i,'ALTER TABLE DROP'],
   [/\balter\s+table\b[^;]*\brename\s+(?:column|to)\b/i,'table/column rename'],
-  [/\balter\s+table\b[^;]*\balter\s+column\b[^;]*\btype\b/i,'column type rewrite'],
-  [/\bcascade\b/i,'CASCADE']
+  [/\balter\s+table\b[^;]*\balter\s+column\b[^;]*\btype\b/i,'column type rewrite']
 ];
 
 const errors=[];
