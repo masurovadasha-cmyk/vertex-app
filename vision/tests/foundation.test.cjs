@@ -1,0 +1,15 @@
+'use strict';
+const fs=require('fs'),assert=require('node:assert/strict'),test=require('node:test');
+const sql=fs.readFileSync('vision/database/migrations/0001_vision_foundation.sql','utf8');
+const events=JSON.parse(fs.readFileSync('vision/contracts/events-v1.json','utf8'));
+const sdk=JSON.parse(fs.readFileSync('vision/module-sdk/module-contract-v1.json','utf8'));
+const views=JSON.parse(fs.readFileSync('vision/modules/views/manifest.json','utf8'));
+const cleaning=JSON.parse(fs.readFileSync('vision/modules/cleaning/manifest.json','utf8'));
+test('foundation tables exist',()=>['vision_tenants','vision_organizations','vision_users','vision_memberships','vision_roles','vision_permissions','vision_customers','vision_services','vision_orders','vision_tasks','vision_audit_events','vision_outbox_events'].forEach(x=>assert.match(sql,new RegExp('create table if not exists '+x))));
+test('order has idempotency and optimistic version',()=>{assert.match(sql,/idempotency_key text not null/);assert.match(sql,/version bigint not null default 1/);assert.match(sql,/unique\(tenant_id,idempotency_key\)/)});
+test('audit and outbox carry correlation identifiers',()=>{assert.match(sql,/vision_audit_events[\s\S]*correlation_id uuid not null/);assert.match(sql,/vision_outbox_events[\s\S]*correlation_id uuid not null/)});
+test('RLS enabled on sensitive foundation tables',()=>['vision_users','vision_memberships','vision_customers','vision_orders','vision_tasks','vision_audit_events'].forEach(x=>assert.match(sql,new RegExp('alter table '+x+' enable row level security'))));
+test('event contract is versioned and correlated',()=>Object.values(events.events).forEach(e=>{assert.ok(e.required.includes('event_id'));assert.ok(e.required.includes('correlation_id'));assert.ok(e.required.includes('tenant_id'))}));
+test('module SDK requires boundaries',()=>['id','version','permissions','services','events','workflows'].forEach(x=>assert.ok(sdk.required.includes(x))));
+test('Views and Cleaning are independent modules',()=>{assert.equal(views.id,'views');assert.equal(cleaning.id,'cleaning');assert.ok(!views.dependencies?.includes('cleaning'));assert.ok(cleaning.permissions.every(x=>x.startsWith('cleaning.')))});
+test('seed contains no obvious credentials or door codes',()=>{const seed=fs.readFileSync('vision/database/seeds/0001_vertex_group_demo.sql','utf8');assert.doesNotMatch(seed,/password|secret|door.?code|passport|@gmail|@mail/i)});
