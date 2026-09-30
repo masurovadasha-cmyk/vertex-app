@@ -32,6 +32,12 @@ The Worker forwards authentication only to the pinned Supabase staging project w
 5. One allowed organization opens automatically; multiple allowed organizations require an explicit selection.
 6. The operations snapshot and all commands continue to rely on RLS and server-side permission checks.
 
+## Provisioning
+
+After creating three distinct synthetic Supabase Auth users, map their verified UUIDs with
+`provisionViewsAuth(db,{manager,cleaner,quality})`. The helper is idempotent, creates no
+Auth accounts/passwords, and grants separated Views Manager, Cleaner and Quality roles.
+
 ## Remaining cloud gate
 This source integration is not proof of a live Supabase project. Before claiming cloud staging:
 - create/connect a dedicated Supabase staging project,
