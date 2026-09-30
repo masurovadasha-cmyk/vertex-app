@@ -99,7 +99,7 @@ test("application service rejects cross-tenant access and emits events", async (
   await service.registerElevator({
     id:"e1", tenant_id:"tenant-1", organization_id:"org-engineers", project_id:"p1",
     status:"installed", manufacturer:"Reference Manufacturer", model:"Reference Model"
-  });
+  }, {...scope,event_id:"evt-a"});
 
   await service.createWorkOrder({
     id:"wo1", tenant_id:"tenant-1", organization_id:"org-engineers", asset_id:"e1",
@@ -110,6 +110,14 @@ test("application service rejects cross-tenant access and emits events", async (
     service.advanceProject("p1","survey","2026-10-02T00:00:00Z",{
       ...scope, tenant_id:"other-tenant", event_id:"evt-3"
     }),
+    /boundary violation/
+  );
+
+  await assert.rejects(
+    service.registerHvac({
+      id:"h-cross", tenant_id:"other-tenant", organization_id:"org-engineers", project_id:"p1",
+      category:"ventilation_ahu"
+    }, {...scope,tenant_id:"other-tenant",event_id:"evt-4"}),
     /boundary violation/
   );
 

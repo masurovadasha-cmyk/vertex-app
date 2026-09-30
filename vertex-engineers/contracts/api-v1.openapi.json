@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "VERTEX Engineers API",
-    "version": "0.1.0"
+    "version": "0.2.0"
   },
   "servers": [
     {
@@ -10,6 +10,16 @@
     }
   ],
   "paths": {
+    "/health": {
+      "get": {
+        "operationId": "getEngineersHealth",
+        "responses": {
+          "200": {
+            "description": "Module health"
+          }
+        }
+      }
+    },
     "/projects": {
       "get": {
         "operationId": "listEngineerProjects",
@@ -24,13 +34,16 @@
         "responses": {
           "201": {
             "description": "Created"
+          },
+          "400": {
+            "description": "Invalid input"
           }
         }
       }
     },
-    "/projects/{projectId}": {
-      "get": {
-        "operationId": "getEngineerProject",
+    "/projects/{projectId}/stage": {
+      "post": {
+        "operationId": "advanceEngineerProject",
         "parameters": [
           {
             "name": "projectId",
@@ -43,7 +56,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Project"
+            "description": "Updated"
+          },
+          "400": {
+            "description": "Invalid transition"
           },
           "404": {
             "description": "Not found"
@@ -61,6 +77,58 @@
         }
       }
     },
+    "/assets/elevators": {
+      "post": {
+        "operationId": "registerElevatorAsset",
+        "responses": {
+          "201": {
+            "description": "Elevator asset registered"
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/assets/hvac": {
+      "post": {
+        "operationId": "registerHvacAsset",
+        "responses": {
+          "201": {
+            "description": "HVAC/MEP asset registered"
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/assets/{assetId}/commission": {
+      "post": {
+        "operationId": "commissionEngineerAsset",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asset commissioned"
+          },
+          "400": {
+            "description": "Invalid lifecycle state"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
     "/work-orders": {
       "get": {
         "operationId": "listEngineerWorkOrders",
@@ -74,7 +142,36 @@
         "operationId": "createEngineerWorkOrder",
         "responses": {
           "201": {
-            "description": "Created"
+            "description": "Work order created"
+          },
+          "400": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    },
+    "/work-orders/{workOrderId}/transition": {
+      "post": {
+        "operationId": "transitionEngineerWorkOrder",
+        "parameters": [
+          {
+            "name": "workOrderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Work order updated"
+          },
+          "400": {
+            "description": "Invalid transition"
+          },
+          "404": {
+            "description": "Not found"
           }
         }
       }
@@ -84,20 +181,21 @@
         "operationId": "listProductReferences",
         "responses": {
           "200": {
-            "description": "Reference catalog"
-          }
-        }
-      }
-    },
-    "/compliance": {
-      "get": {
-        "operationId": "listComplianceItems",
-        "responses": {
-          "200": {
-            "description": "Compliance items"
+            "description": "Reference-only engineering product catalog"
           }
         }
       }
     }
+  },
+  "x-vertex-boundary": {
+    "scope_headers": [
+      "x-tenant-id",
+      "x-organization-id"
+    ],
+    "event_headers": [
+      "x-event-id",
+      "x-correlation-id"
+    ],
+    "integration": "standalone; future VERTEX Vision adapter only"
   }
 }

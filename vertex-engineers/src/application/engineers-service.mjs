@@ -15,9 +15,17 @@ export function createEngineersService({ repository, eventSink }) {
   if (!repository) throw new Error("repository is required");
   const emit = async (event) => eventSink?.publish?.(event);
 
+  async function requireProject(projectId, context) {
+    const project = await repository.projects.get(projectId);
+    if (!project) throw new Error("Project not found");
+    assertScope(context, project);
+    return project;
+  }
+
   return {
     async createProject(input, eventContext) {
       const project = createProject(input);
+      assertScope(eventContext, project);
       await repository.projects.put(project);
       await emit(buildEngineersEvent("engineers.project.created", eventContext, {
         project_id: project.id,
@@ -28,9 +36,7 @@ export function createEngineersService({ repository, eventSink }) {
     },
 
     async advanceProject(projectId, toStage, occurredAt, eventContext) {
-      const project = await repository.projects.get(projectId);
-      if (!project) throw new Error("Project not found");
-      assertScope(eventContext, project);
+      const project = await requireProject(projectId, eventContext);
       const updated = advanceProject(project, toStage, occurredAt);
       await repository.projects.put(updated);
       await emit(buildEngineersEvent("engineers.project.stage_changed", eventContext, {
@@ -41,14 +47,18 @@ export function createEngineersService({ repository, eventSink }) {
       return updated;
     },
 
-    async registerElevator(input) {
+    async registerElevator(input, eventContext) {
+      await requireProject(input.project_id, eventContext);
       const asset = createElevatorAsset(input);
+      assertScope(eventContext, asset);
       await repository.assets.put(asset);
       return asset;
     },
 
-    async registerHvac(input) {
+    async registerHvac(input, eventContext) {
+      await requireProject(input.project_id, eventContext);
       const asset = createHvacAsset(input);
+      assertScope(eventContext, asset);
       await repository.assets.put(asset);
       return asset;
     },
