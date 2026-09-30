@@ -27,6 +27,9 @@ jobs:
         working-directory: vertex-engineers
         run: node scripts/release-check.mjs
 
+      - name: Install root release-check dependency
+        run: npm install --ignore-scripts --no-audit --no-fund
+
       - name: Root release regression check
         run: |
           if [ -f scripts/check-release.cjs ]; then
