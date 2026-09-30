@@ -1,0 +1,117 @@
+name: VERTEX VISION Production Promotion Evidence
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'vision/production/**'
+      - 'vision/release/**'
+      - 'vision/assembly/**'
+      - '.github/workflows/vision-promotion-gate.yml'
+  push:
+    branches: ['vision-foundation-rc-*']
+    paths:
+      - 'vision/production/**'
+      - 'vision/release/**'
+      - 'vision/assembly/**'
+      - '.github/workflows/vision-promotion-gate.yml'
+  workflow_dispatch:
+    inputs:
+      assembly_run_id:
+        description: Integrated Assembly workflow run ID
+        required: true
+        type: string
+      rc2_run_id:
+        description: RC2 Production Safety workflow run ID
+        required: true
+        type: string
+      cloud_e2e_run_id:
+        description: Real Staging Auth E2E workflow run ID
+        required: true
+        type: string
+      production_backup_run_id:
+        description: Production Backup/Restore workflow run ID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: vision-promotion-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Prove promotion is blocked by default
+        run: node vision/production/evaluate-promotion.mjs --policy-only
+
+  evidence:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - name: Prepare evidence directories
+        run: mkdir -p evidence/assembly evidence/rc2 evidence/cloud evidence/backup artifacts/promotion
+      - uses: actions/download-artifact@v7
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.assembly_run_id }}
+          pattern: Vertex-Vision-Integrated-Assembly-*
+          merge-multiple: true
+          path: evidence/assembly
+      - uses: actions/download-artifact@v7
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.rc2_run_id }}
+          pattern: Vertex-Vision-RC2-Safety-*
+          merge-multiple: true
+          path: evidence/rc2
+      - uses: actions/download-artifact@v7
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.cloud_e2e_run_id }}
+          pattern: Vertex-Vision-Real-Staging-E2E-*
+          merge-multiple: true
+          path: evidence/cloud
+      - uses: actions/download-artifact@v7
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.production_backup_run_id }}
+          pattern: Vertex-Vision-Production-Backup-Restore-*
+          merge-multiple: true
+          path: evidence/backup
+      - name: Evaluate immutable promotion evidence
+        env:
+          VISION_PROMOTION_EVIDENCE_DIR: evidence
+        run: |
+          set -o pipefail
+          node vision/production/evaluate-promotion.mjs | tee artifacts/promotion/evaluation.json
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: Vertex-Vision-Promotion-Evaluation-${{ github.sha }}
+          path: artifacts/promotion/
+          retention-days: 30
+          if-no-files-found: error
