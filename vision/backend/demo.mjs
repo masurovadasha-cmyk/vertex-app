@@ -27,6 +27,8 @@ export async function provisionDemo(db, identities=Object.fromEntries(profiles.m
       await insert('users',{id:user,tenant_id:demo.tenant_id,display_name:p.name});
       if(!p.org){await insert('guest_links',{tenant_id:demo.tenant_id,user_id:user,customer_id:demo.customer_id,requester_organization_id:demo.views_id});continue;}
       const membership=id(100+index),role=id(200+index);
+      const existing=(await db.query('select user_id from public.vision_memberships where id=$1',[membership])).rows[0];
+      if(existing && existing.user_id!==user)throw new Error('Demo profile is already bound to another identity: '+p.key);
       await insert('memberships',{id:membership,tenant_id:demo.tenant_id,user_id:user,organization_id:p.org});
       await insert('roles',{id:role,tenant_id:demo.tenant_id,code:'demo-'+p.key,name:p.name});
       await insert('membership_roles',{tenant_id:demo.tenant_id,membership_id:membership,role_id:role});

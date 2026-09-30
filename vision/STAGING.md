@@ -29,7 +29,7 @@ Audit reads the immutable event trail. Staff see only their assigned orders.
 1. Create a dedicated free Supabase project `vertex-vision-staging`. Enable Data
    API and automatic RLS, disable automatic table grants. Keep the database
    password in the owner's password manager.
-2. Apply migrations `0001` through `0003` in order with the trusted database
+2. Apply migrations `0001` through `0004` in order with the trusted database
    owner (Supabase SQL editor or a secure migration job). Do not rerun applied
    files manually. `backend/migrate.mjs` provides checksum-tracked application
    for PostgreSQL adapters exposing `query` and `exec`.

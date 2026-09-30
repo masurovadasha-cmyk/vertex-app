@@ -87,6 +87,7 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
       assert.equal(rows.rows.length,n);
     }
     await denied(()=>as(guest,d=>d.query("update public.vision_orders set status='COMPLETED'")));
+    await denied(()=>as(guest,d=>d.query("select vision_private.permitted($1,$2,'cleaning.order.assign',$3)",[tenant,cleaning,dispatcher])));
     for(const table of ['memberships','membership_roles','role_permissions','guest_links','outbox_events','command_receipts'])
       await denied(()=>as(guest,d=>d.query(`select * from public.vision_${table}`)));
     await exec('set role anon');
