@@ -10,7 +10,7 @@
   document.querySelector('main').prepend(home);
   const dialog=element('dialog','vv-dialog');dialog.id='visionModuleDialog';document.body.append(dialog);
   let lastFocus=null,query='',domain='',activeModule=null;
-  const labels={catalog:['Каталог Views','Views catalog'],host:['Кабинет собственника','Host workspace'],trips:['Мои поездки','My trips'],journey:['План поездки','Journey plan'],packages:['Конструктор турпакета','Package builder'],taxi:['Заказать такси · демо','Request a taxi · demo'],transfer:['Рассчитать трансфер','Estimate a transfer'],concierge:['Консьерж · демо','Concierge · demo'],requests:['Заявки команды · демо','Team requests · demo'],'guest-guide':['Гид гостя','Guest guide'],'service-control':['Контроль сервиса · демо','Service control · demo'],'property-request':['Запрос по недвижимости','Property request'],'engineering-request':['Запрос мастеру','Maintenance request'],'ticket-request':['Запрос билетов','Ticket request'],'cleaning-request':['Запрос уборки','Cleaning request'],'laundry-request':['Запрос в прачечную','Laundry request'],'meal-request':['Запрос питания','Meal request'],'market-request':['Запрос в маркет','Market request'],'bar-request':['Запрос в бар','Bar request']};
+  const labels={catalog:['Каталог Views','Views catalog'],host:['Кабинет собственника','Host workspace'],trips:['Мои поездки','My trips'],journey:['План поездки','Journey plan'],packages:['Конструктор турпакета','Package builder'],taxi:['Открыть Vertex Taxi','Open Vertex Taxi'],transfer:['Рассчитать трансфер','Estimate a transfer'],concierge:['Консьерж · демо','Concierge · demo'],requests:['Заявки команды · демо','Team requests · demo'],'guest-guide':['Гид гостя','Guest guide'],'service-control':['Контроль сервиса · демо','Service control · demo'],'property-request':['Запрос по недвижимости','Property request'],'engineering-request':['Запрос мастеру','Maintenance request'],'ticket-request':['Запрос билетов','Ticket request'],'cleaning-request':['Запрос уборки','Cleaning request'],'laundry-request':['Запрос в прачечную','Laundry request'],'meal-request':['Запрос питания','Meal request'],'market-request':['Запрос в маркет','Market request'],'bar-request':['Запрос в бар','Bar request']};
   const groups={stays:['Проживание','Stays'],property:['Недвижимость','Property'],travel:['Путешествия','Travel'],mobility:['Транспорт','Mobility'],services:['Сервис','Services'],hospitality:['Питание и торговля','Food & retail'],technology:['Технологии','Technology'],capital:['Инвестиции','Investment'],education:['Обучение','Training']};
   const request=id=>{if(!root.VertexGroup?.request)throw new Error('module_unavailable');root.VertexGroup.request(id);};
   const call=(name,method,...args)=>{if(typeof root[name]?.[method]!=='function')throw new Error('module_unavailable');return root[name][method](...args);};
@@ -18,7 +18,8 @@
     catalog:()=>{document.getElementById('search').scrollIntoView({block:'start',behavior:'auto'});document.getElementById('destination').focus({preventScroll:true});},
     host:()=>call('VertexHostConsole','open','today'),trips:()=>call('VertexRentals','showTrips'),
     journey:()=>call('VertexJourney','open'),packages:()=>call('VertexGroup','builder'),
-    taxi:()=>call('VertexTaxi','open'),transfer:()=>call('VertexMobility','openQuote'),
+    taxi:()=>{if(root.VertexTaxiIntegration?.open)return root.VertexTaxiIntegration.open();return call('VertexTaxi','open');},
+    transfer:()=>call('VertexMobility','openQuote'),
     concierge:()=>call('VertexDemoConcierge','open'),requests:()=>call('VertexGroup','requests'),
     'guest-guide':()=>call('VertexGuestGuide','open'),'service-control':()=>call('VertexCare','dashboard'),
     'property-request':()=>request('propertyBuy'),'engineering-request':()=>request('electrician'),
@@ -26,7 +27,6 @@
     'meal-request':()=>request('meal'),'market-request':()=>request('market'),'bar-request':()=>request('bar')
   };
   function close(){dialog.close();activeModule=null;}
-  // Escape and native close() must clear state too; a queued close event must not reset a newly opened dialog.
   dialog.addEventListener('close',()=>{if(dialog.open)return;activeModule=null;if(!document.querySelector('dialog[open]')&&lastFocus?.isConnected)lastFocus.focus({preventScroll:true});});
   function navigate(id,action){
     if(!core.canLaunch(id,action)||!adapters[action])return false;
