@@ -4,29 +4,8 @@
   "platformVersion": "1.16-rc1",
   "api": "v1",
   "databaseMigration": "0009_application_kernel.sql",
-  "activeModules": [
-    "views"
-  ],
-  "comingSoonModules": [
-    "managing",
-    "real-estate",
-    "engineers",
-    "aura-design",
-    "travel",
-    "aviation",
-    "rent-car",
-    "taxi",
-    "concierge",
-    "cleaning",
-    "laundry",
-    "ditalia",
-    "market",
-    "bar",
-    "technologies",
-    "investment",
-    "ventures",
-    "training"
-  ],
+  "activeModules": ["views"],
+  "comingSoonModules": ["managing", "real-estate", "engineers", "aura-design", "travel", "aviation", "rent-car", "taxi", "concierge", "cleaning", "laundry", "ditalia", "market", "bar", "technologies", "investment", "ventures", "training"],
   "cloudStagingVerified": false,
   "productionApproved": false,
   "productionReady": false,
@@ -39,34 +18,19 @@
   "viewsOperations": {
     "status": "implemented-in-branch",
     "apiBase": "/api/v1/views",
-    "commands": [
-      "create_booking",
-      "confirm_booking",
-      "check_in",
-      "check_out",
-      "cancel_booking",
-      "cleaning_start",
-      "cleaning_submit",
-      "cleaning_verify"
-    ],
+    "commands": ["create_booking", "confirm_booking", "check_in", "check_out", "cancel_booking", "cleaning_start", "cleaning_submit", "cleaning_verify"],
     "cloudStagingVerified": false
   },
   "viewsUI": {
     "status": "implemented-in-branch",
     "primaryAction": "operations",
-    "tabs": [
-      "dashboard",
-      "calendar",
-      "bookings",
-      "units",
-      "cleaning"
-    ],
+    "tabs": ["dashboard", "calendar", "bookings", "units", "cleaning"],
     "dataPolicy": "real-staging-only-no-demo-fallback",
     "sessionPolicy": "server-authoritative-context-from-verified-jwt",
     "cloudStagingVerified": false
   },
-  "architectureVersion": "1.2",
-  "technicalStage": "application-kernel-0.1",
+  "architectureVersion": "1.4",
+  "technicalStage": "response-contract-trace-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -79,7 +43,8 @@
     "defaultLimit": 50,
     "maxLimit": 100,
     "cursorHeader": "X-Next-Cursor",
-    "projection": "allowlisted-fields"
+    "projection": "allowlisted-fields",
+    "organizationScope": "required"
   },
   "integratedAssembly": {
     "status": "implemented-in-branch",
@@ -94,7 +59,14 @@
     "sessionContext": "public.vision_session_context(uuid,uuid)",
     "contextEndpoint": "/api/v1/context",
     "permissionSource": "postgresql-rbac-only",
-    "clientPermissionClaimsTrusted": false
+    "clientPermissionClaimsTrusted": false,
+    "organizationScopeRequired": true,
+    "commandContract": "vision/modules/views/command-contract.mjs",
+    "commandValidation": "api-and-postgresql",
+    "commandSchemaVersion": "v1",
+    "responseContract": "vision/modules/views/response-contract.mjs",
+    "responseProjection": "allowlisted-command-dto",
+    "traceHeaders": ["X-Request-ID", "X-Correlation-ID"]
   },
   "design": {
     "id": "sand-luxury",

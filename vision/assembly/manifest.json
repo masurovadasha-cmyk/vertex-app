@@ -1,7 +1,7 @@
 {
   "product": "VERTEX Vision",
   "assembly": "0.1",
-  "architectureVersion": "1.2",
+  "architectureVersion": "1.4",
   "releaseManifest": "vision/release/0.1-RC1.json",
   "platformVersion": "1.16-rc1",
   "apiVersion": "v1",
@@ -11,54 +11,19 @@
     "sourceOfTruth": "PostgreSQL/Supabase",
     "productionApplied": false
   },
-  "modules": {
-    "active": [
-      "views"
-    ],
-    "comingSoonCount": 18,
-    "registryCount": 19
-  },
+  "modules": {"active": ["views"], "comingSoonCount": 18, "registryCount": 19},
   "views": {
-    "ui": [
-      "dashboard",
-      "calendar",
-      "bookings",
-      "units",
-      "cleaning"
-    ],
+    "ui": ["dashboard", "calendar", "bookings", "units", "cleaning"],
     "backend": "/api/v1/views",
-    "commands": [
-      "create_booking",
-      "confirm_booking",
-      "check_in",
-      "check_out",
-      "cancel_booking",
-      "cleaning_start",
-      "cleaning_submit",
-      "cleaning_verify"
-    ],
+    "commands": ["create_booking", "confirm_booking", "check_in", "check_out", "cancel_booking", "cleaning_start", "cleaning_submit", "cleaning_verify"],
     "authoritativeWrites": "database-rpc",
     "demoFallbackInOperations": false
   },
   "runtimes": {
-    "web": {
-      "source": "vision/platform",
-      "buildOutput": "vertex/dist"
-    },
-    "android": {
-      "packageId": "com.vertex.vision.demo",
-      "versionName": "1.16-rc1",
-      "versionCode": 20
-    },
-    "stagingWorker": {
-      "name": "vertex-vision-staging",
-      "config": "vision/wrangler.jsonc"
-    },
-    "productionWorker": {
-      "name": "vertex-app",
-      "config": "wrangler.jsonc",
-      "approved": false
-    }
+    "web": {"source": "vision/platform", "buildOutput": "vertex/dist"},
+    "android": {"packageId": "com.vertex.vision.demo", "versionName": "1.16-rc1", "versionCode": 20},
+    "stagingWorker": {"name": "vertex-vision-staging", "config": "vision/wrangler.jsonc"},
+    "productionWorker": {"name": "vertex-app", "config": "wrangler.jsonc", "approved": false}
   },
   "boundaries": {
     "jarvis": "separate-project-external-api-only",
@@ -69,6 +34,9 @@
   "gates": [
     "assembly-contract",
     "server-authoritative-session-context",
+    "typed-command-contract",
+    "typed-response-contract",
+    "request-correlation-trace",
     "unit-regression",
     "postgresql-rls",
     "views-vertical-flow",
@@ -81,7 +49,14 @@
     "routePolicy": "vision/backend/kernel.mjs",
     "contextEndpoint": "/api/v1/context",
     "permissionSource": "postgresql-rbac-only",
-    "clientPermissionClaimsTrusted": false
+    "clientPermissionClaimsTrusted": false,
+    "organizationScopeRequired": true,
+    "commandContract": "vision/modules/views/command-contract.mjs",
+    "commandSchemaVersion": "v1",
+    "commandValidationLayers": ["api-contract", "postgresql-domain"],
+    "responseContract": "vision/modules/views/response-contract.mjs",
+    "responseProjection": "allowlisted-command-dto",
+    "traceHeaders": ["X-Request-ID", "X-Correlation-ID"]
   },
   "design": {
     "id": "sand-luxury",

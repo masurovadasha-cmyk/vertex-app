@@ -93,9 +93,9 @@ Versioned staging routes:
 
 - `GET /api/v1/context?tenant_id=UUID&organization_id=UUID`: server-authoritative roles, permissions and Views capabilities.
 - `POST /api/v1/views/commands`
-- `GET /api/v1/views/bookings?tenant_id=UUID`
-- `GET /api/v1/views/units?tenant_id=UUID`
-- `GET /api/v1/views/cleaning?tenant_id=UUID`
+- `GET /api/v1/views/bookings?tenant_id=UUID&organization_id=UUID`
+- `GET /api/v1/views/units?tenant_id=UUID&organization_id=UUID`
+- `GET /api/v1/views/cleaning?tenant_id=UUID&organization_id=UUID`
 
 The required smoke sequence is:
 `create_booking → confirm_booking → check_in → check_out → cleaning_start → cleaning_submit → cleaning_verify`.
@@ -136,3 +136,27 @@ The UI connection contract is now:
 No `permissions` parameter is accepted or trusted. The staging Worker verifies the token,
 then calls the context RPC. A disabled Views installation, inactive actor, unrelated
 organization or identity with neither membership nor guest link fails closed.
+
+
+Views read endpoints require both tenant and organization scope. RLS remains the final
+security boundary, but the transport contract also prevents a multi-organization user
+from accidentally combining several authorized organizations into one screen.
+
+
+## Typed Views command contract
+
+`POST /api/v1/views/commands` accepts only the eight reviewed Views command types and
+their exact v1 field sets. Transport-invalid UUIDs, dates, versions, money, idempotency
+keys, unknown command names or extra privilege-like fields are rejected with
+`400 invalid_command` before the SQL RPC. PostgreSQL then independently re-checks
+authorization and domain state inside the transaction.
+
+
+## Response contract and tracing
+
+The staging Worker projects successful Views command results through an allowlisted v1 DTO.
+Unexpected fields or impossible lifecycle states fail closed as backend dependency errors.
+
+All API responses include `X-Request-ID`. Successful Views mutations additionally include
+`X-Correlation-ID`, which must match the command response `correlation_id`. Do not log
+bearer tokens or unrestricted request/response bodies when using these IDs for diagnostics.

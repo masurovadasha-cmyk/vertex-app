@@ -15,9 +15,10 @@ function validateCursor(value){
 export function readPlan(url){
   const resource=url.pathname.match(/^\/api\/v1\/views\/(bookings|units|cleaning)$/)?.[1];
   if(!resource)return null;
-  const tenant=url.searchParams.get('tenant_id');
+  const tenant=url.searchParams.get('tenant_id'),organization=url.searchParams.get('organization_id');
   if(!uuid.test(tenant||''))throw new Error('tenant_id_required');
-  for(const name of ['tenant_id','limit','cursor'])if(url.searchParams.getAll(name).length>1)fail();
+  if(!uuid.test(organization||''))throw new Error('organization_id_required');
+  for(const name of ['tenant_id','organization_id','limit','cursor'])if(url.searchParams.getAll(name).length>1)fail();
   const raw=url.searchParams.get('limit')??'50';
   if(!/^[1-9]\d{0,2}$/.test(raw)||Number(raw)>100)fail();
   const limit=Number(raw),encoded=url.searchParams.get('cursor');let cursor=null;
@@ -26,9 +27,9 @@ export function readPlan(url){
     try{cursor=validateCursor(JSON.parse(atob(encoded.replaceAll('-','+').replaceAll('_','/'))));}catch{fail();}
   }
   const select=fields[resource].join(',');
-  const params=new URLSearchParams({tenant_id:'eq.'+tenant,select,limit:String(limit+1),order:'created_at.desc,id.desc'});
+  const params=new URLSearchParams({tenant_id:'eq.'+tenant,organization_id:'eq.'+organization,select,limit:String(limit+1),order:'created_at.desc,id.desc'});
   if(cursor)params.set('or',`(created_at.lt.${cursor[0]},and(created_at.eq.${cursor[0]},id.lt.${cursor[1]}))`);
-  return Object.freeze({resource,table:tables[resource],fields:Object.freeze([...fields[resource]]),tenant,limit,cursor,params});
+  return Object.freeze({resource,table:tables[resource],fields:Object.freeze([...fields[resource]]),tenant,organization,limit,cursor,params});
 }
 export function readPage(body,plan){
   if(!Array.isArray(body)||body.length>plan.limit+1)throw new Error('upstream_invalid_response');

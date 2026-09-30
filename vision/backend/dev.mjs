@@ -4,6 +4,8 @@ import {fileURLToPath,pathToFileURL} from 'node:url';
 import {PGlite} from '@electric-sql/pglite';
 import {migrate} from './migrate.mjs';
 import {demo,profiles,organizations,provisionDemo} from './demo.mjs';
+import {validateViewsCommand} from '../modules/views/command-contract.mjs';
+import {projectViewsCommandResponse} from '../modules/views/response-contract.mjs';
 
 export async function startDev({port=8790,dataDir}={}) {
   const db=new PGlite(dataDir);
@@ -30,7 +32,7 @@ export async function startDev({port=8790,dataDir}={}) {
       if(['/api/commands','/api/v1/views/commands'].includes(path)&&req.method==='POST'){
         if(req.headers['content-type']!=='application/json')return send(415,{error:'json_required'});
         let body='';for await(const chunk of req){body+=chunk.toString();if(body.length>8192)return send(413,{error:'too_large'});}
-        try{command=JSON.parse(body);}catch{return send(400,{error:'invalid_json'});}
+        try{command=JSON.parse(body);if(path==='/api/v1/views/commands')command=validateViewsCommand(command);}catch(e){return send(400,{error:e.message==='invalid_command'?'invalid_command':'invalid_json'});}
       }else if(!(req.method==='GET'&&['/api/orders','/api/audit'].includes(path)))return send(404,{error:'not_found'});
       const result=await transact(async()=>{
         await db.query('begin');
@@ -40,7 +42,9 @@ export async function startDev({port=8790,dataDir}={}) {
           const rpc=path==='/api/v1/views/commands'?'vision_views_command':'vision_command';
           const r=command?await db.query('select public.'+rpc+'($1::jsonb) result',[JSON.stringify(command)]):
             await db.query(`select * from public.${path==='/api/audit'?'vision_audit_events':'vision_orders'} order by created_at desc limit 50`);
-          await db.query('commit');return command?r.rows[0].result:r.rows;
+          await db.query('commit');
+          if(command&&path==='/api/v1/views/commands')return projectViewsCommandResponse(command.type,r.rows[0].result);
+          return command?r.rows[0].result:r.rows;
         }catch(e){await db.query('rollback');throw e;}
       });
       send(200,result);

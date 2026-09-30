@@ -3,20 +3,21 @@ import assert from 'node:assert/strict';
 import {readPlan,readPage} from '../modules/views/read-contract.mjs';
 import {handle} from '../backend/worker.mjs';
 const uid='11111111-1111-4111-8111-111111111111';
+const org='22222222-2222-4222-8222-222222222222';
 const env={VISION_ENV:'staging',SUPABASE_STAGING_REF:'abcdefghijklmnopqrst',SUPABASE_URL:'https://abcdefghijklmnopqrst.supabase.co',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test'};
-const url=(extra='',resource='bookings')=>new URL('https://vision.example/api/v1/views/'+resource+'?tenant_id='+uid+extra);
+const url=(extra='',resource='bookings')=>new URL('https://vision.example/api/v1/views/'+resource+'?tenant_id='+uid+'&organization_id='+org+extra);
 const row=(n)=>({id:uid.slice(0,-1)+n,created_at:'2026-09-30T12:00:00.123456+00:00',status:'PENDING',private_note:'do not expose',jwt:'never expose'});
 const request=(u)=>new Request(u,{headers:{authorization:'Bearer test.jwt.token'}});
 test('Views read contracts allow only reviewed tables and columns',()=>{
  for(const resource of ['bookings','units','cleaning']){
   const p=readPlan(url('&select=passport&order=private&table=users',resource));
-  assert.equal(p.resource,resource);assert.equal(p.params.get('tenant_id'),'eq.'+uid);
+  assert.equal(p.resource,resource);assert.equal(p.params.get('tenant_id'),'eq.'+uid);assert.equal(p.params.get('organization_id'),'eq.'+org);
   assert.equal(p.params.get('limit'),'51');assert.ok(!p.params.get('select').includes('*'));assert.ok(!p.params.get('select').includes('passport'));assert.equal(p.params.get('table'),null);
  }
  assert.equal(readPlan(new URL('https://vision.example/api/private')),null);
 });
 test('invalid bounds, duplicate parameters and arbitrary cursor filters are rejected',()=>{
- for(const extra of ['&limit=0','&limit=101','&limit=-2','&limit=1e2','&limit=01','&limit=','&limit=2&limit=3','&tenant_id='+uid,'&cursor=', '&cursor='+btoa(JSON.stringify(['now()),id.gt.0',uid])), '&cursor='+btoa(JSON.stringify(['2026-09-30T12:00:00Z','bad-id']))])assert.throws(()=>readPlan(url(extra)),/invalid_page_query/);
+ for(const extra of ['&limit=0','&limit=101','&limit=-2','&limit=1e2','&limit=01','&limit=','&limit=2&limit=3','&tenant_id='+uid,'&organization_id='+org,'&cursor=', '&cursor='+btoa(JSON.stringify(['now()),id.gt.0',uid])), '&cursor='+btoa(JSON.stringify(['2026-09-30T12:00:00Z','bad-id']))])assert.throws(()=>readPlan(url(extra)),/invalid_page_query/);
  assert.equal(readPlan(url('&limit=100')).limit,100);
 });
 test('page retains array compatibility, strips unexpected fields and preserves microsecond cursor',()=>{
@@ -42,7 +43,7 @@ test('malformed Views upstream is sanitized as unavailability, not a caller erro
 });
 test('health reports source and requirements, never claims authenticated database verification',async()=>{
  const r=await handle(new Request('https://vision.example/health'),{...env,VISION_SOURCE_COMMIT:'a'.repeat(40)});
- const body=await r.json();assert.equal(body.sourceCommit,'a'.repeat(40));assert.equal(body.probe,'liveness-config-only');assert.equal(body.requiredMigration,'0008_views_integrity.sql');
+ const body=await r.json();assert.equal(body.sourceCommit,'a'.repeat(40));assert.equal(body.probe,'liveness-config-only');assert.equal(body.requiredMigration,'0009_application_kernel.sql');assert.equal(body.architectureVersion,'1.4');
  const bad=await handle(new Request('https://vision.example/health'),{...env,VISION_SOURCE_COMMIT:'secret-shaped-value'});
  assert.equal((await bad.json()).sourceCommit,null);
 });

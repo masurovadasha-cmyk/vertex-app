@@ -36,7 +36,7 @@
   }
   async function read(path){
     const join=path.includes('?')?'&':'?';
-    return api(path+join+'tenant_id='+encodeURIComponent(state.session.tenantId));
+    return api(path+join+'tenant_id='+encodeURIComponent(state.session.tenantId)+'&organization_id='+encodeURIComponent(state.session.organizationId));
   }
   async function refresh(){
     if(!configured()){state.error=null;render();return;}
