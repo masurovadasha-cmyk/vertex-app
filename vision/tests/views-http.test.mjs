@@ -21,7 +21,7 @@ test('loopback Views HTTP flow persists one checkout and requires a separate qua
  }
  assert.equal(b.booking_status,'CHECKED_OUT');assert.equal(b.cleaning_status,'REQUIRED');
  for(const type of ['cleaning_start','cleaning_submit']){
-  r=await command({...base(type),cleaning_job_id:b.cleaning_job_id,expected_version:b.cleaning_version});assert.equal(r.status,200);b=r.body;
+  r=await command({...base(type),cleaning_job_id:b.cleaning_job_id,expected_version:b.cleaning_version},'staff');assert.equal(r.status,200);b=r.body;
  }
  const verify={...base('cleaning_verify'),cleaning_job_id:b.cleaning_job_id,expected_version:b.cleaning_version};
  assert.equal((await command(verify)).status,403);
