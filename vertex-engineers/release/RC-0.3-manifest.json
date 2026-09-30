@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "product": "VERTEX Engineers",
+  "version": "0.3.0-rc.1",
+  "status": "release_candidate",
+  "branch": "vertex-engineers-rc-0.3",
+  "included": [
+    "simple six-area UI",
+    "scoped API client",
+    "domain core",
+    "PostgreSQL repository adapter",
+    "persistent E2E",
+    "database and RLS contracts",
+    "VISION staging contracts",
+    "Cursor handoff",
+    "Canva design manifest"
+  ],
+  "production": {
+    "merged_to_master": false,
+    "deployed": false,
+    "vision_enabled": false
+  }
+}
