@@ -18,7 +18,7 @@ for(const feature of ['VERTEX VISION primary platform','19 registered child modu
 for(const boundary of ['Shared cloud database and real authentication are not connected','Registration does not enable a module or imply completed workflows','JARVIS is a separate project','The existing hosted APK link is the previous Vertex 1.14 release, not VISION 1.15','Vertex Taxi private state remains outside VISION; integration is API/events only'])if(!release.boundaries.includes(boundary))release.boundaries.push(boundary);
 put('release.json',JSON.stringify(release,null,2)+'\n');
 const manifest=JSON.parse(read('manifest.webmanifest'));Object.assign(manifest,{name:'VERTEX VISION — Vertex Group',short_name:'VISION',description:'Views и направления Vertex Group в одной платформе. Демонстрационная версия.'});put('manifest.webmanifest',JSON.stringify(manifest,null,2)+'\n');
-let sw=read('sw.js').replace(/const CACHE='[^']+'/ ,"const CACHE='vertex-demo-v115-vision-taxi-integration1'");
+let sw=read('sw.js').replace(/const CACHE='[^']+'/ ,"const CACHE='vertex-demo-v115-vision-unified1'");
 for(const file of ['vision-core.js','vision-taxi-adapter.js','vision-shell.js','vision-shell.css','vision-compact.css'])if(!sw.includes("'./"+file+"'"))sw=sw.replace('const ASSETS=[',"const ASSETS=['./"+file+"',");put('sw.js',sw);
 put('design-shell.js',read('design-shell.js').replaceAll('1.14-demo',core.version));
 let mobile=read('mobile.js').replaceAll('Android APK · 1.15-demo ↓','Android APK · 1.14-demo ↓');
