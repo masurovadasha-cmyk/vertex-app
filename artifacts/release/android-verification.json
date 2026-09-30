@@ -1,0 +1,10 @@
+{
+  "signatureVerified": true,
+  "versionCode": 18,
+  "apkSha256": "6922325b8ae3a21d57e5a9b36417aef74c0eab4b6f2e3307e1c567fe4065704c",
+  "assetsChecked": 69,
+  "signingCertificate": "4c500d0a57c6fdacf73dd6b7a27640c09bedf026f7af3dd1c3dfefcdcaee79a9",
+  "packageVerified": true,
+  "physicalDeviceTested": false,
+  "version": "1.14-demo"
+}

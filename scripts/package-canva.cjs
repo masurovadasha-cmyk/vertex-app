@@ -96,7 +96,7 @@ function main() {
   const annotation = `<style id="vertex-artifact-style">#installButton,#profileInstall{display:none!important}#vertexArtifactNotice{font:12px/1.6 Arial,sans-serif;text-align:center;color:#596477;margin:20px auto;padding:0 20px 20px;max-width:900px}</style>`;
   html = html.replace(/<head\b[^>]*>/i, opening => `${opening}\n<!-- Standalone Vertex demonstration; fresh in-memory data on every reload. -->\n<script>${memory}</script>\n`);
   html = html.replace(/<\/head\s*>/i, `${annotation}</head>`);
-  html = html.replace(/<\/body\s*>/i, '<p id="vertexArtifactNotice">Интерактивный прототип · изменения сбрасываются после обновления. Карта и внешние ссылки требуют интернета.<br>Interactive prototype · changes reset on reload. Maps and external links require internet.</p></body>');
+  html = html.replace(/<\/body\s*>/i, '<p id="vertexArtifactNotice">Интерактивный прототип · изменения сбрасываются после обновления. Оплаты и заявки демонстрационные.<br>Interactive prototype · changes reset on reload. Payments and requests are demonstrations.</p></body>');
   // Compile the combined classic scripts to catch cross-file declaration clashes.
   new vm.Script([memory,...scripts].join('\n;\n'), { filename:'Vertex-Canva-Latest.html' });
   if (/\blocalStorage\b|serviceWorker\s*\.\s*register\s*\(/.test(html)) throw new Error('Persistent storage or service worker registration remained in the artifact.');

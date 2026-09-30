@@ -20,8 +20,8 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         speech = new TextToSpeech(this, status -> speechReady = status == TextToSpeech.SUCCESS);
-        getWindow().setStatusBarColor(0xff4255ff);
-        getWindow().setNavigationBarColor(0xff4255ff);
+        getWindow().setStatusBarColor(0xffe51d57);
+        getWindow().setNavigationBarColor(0xffe51d57);
         web = new WebView(this);
         web.setBackgroundColor(0xfff7f8fc);
         web.setOnApplyWindowInsetsListener((v, insets) -> {
