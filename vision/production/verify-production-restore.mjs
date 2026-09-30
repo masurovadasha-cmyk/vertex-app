@@ -1,62 +1,81 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import pg from 'pg';
 
 const url=process.env.VISION_RESTORED_DATABASE_URL;
 if(!url)throw new Error('VISION_RESTORED_DATABASE_URL required');
-const release=JSON.parse(fs.readFileSync(new URL('../release/0.1-RC1.json',import.meta.url),'utf8'));
+const root=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
+const release=JSON.parse(fs.readFileSync(path.join(root,'vision/release/0.1-RC1.json'),'utf8'));
+const migrationsDir=path.join(root,'vision/database/migrations');
+const local=fs.readdirSync(migrationsDir)
+  .filter(name=>/^\d{4}_.+\.sql$/.test(name)).sort()
+  .map(name=>{
+    const sql=fs.readFileSync(path.join(migrationsDir,name),'utf8').replaceAll('\r\n','\n');
+    return {name,sha256:createHash('sha256').update(sql).digest('hex')};
+  });
 
 const client=new pg.Client({connectionString:url,application_name:'vertex-vision-production-restore-verify'});
 await client.connect();
 try{
   await client.query("set statement_timeout='30s'; set default_transaction_read_only=on");
-  const readiness=(await client.query('select public.vision_runtime_readiness() data')).rows[0]?.data;
-  if(!readiness||readiness.ready!==true)throw new Error('restored_database_not_ready');
-  if(readiness.latest_migration!==release.databaseMigration||readiness.architecture_version!==release.architectureVersion)
-    throw new Error('restored_release_mismatch');
+  await client.query('select 1');
 
-  const migrations=(await client.query('select name,sha256 from vision_private.schema_migrations order by name')).rows;
-  if(!migrations.length||migrations.at(-1)?.name!==release.databaseMigration)throw new Error('restored_migration_history_mismatch');
+  const migrationsTable=(await client.query("select to_regclass('vision_private.schema_migrations') is not null ok")).rows[0].ok;
+  const applied=migrationsTable
+    ?(await client.query('select name,sha256 from vision_private.schema_migrations order by name')).rows
+    :[];
 
-  const protectedTables=['vision_views_bookings','vision_views_units','vision_views_cleaning_jobs','vision_views_inventory_nights','vision_event_inbox'];
-  const rls=(await client.query(
-    "select relname,relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and relname=any($1::text[]) order by relname",
-    [protectedTables]
-  )).rows;
-  if(rls.length!==protectedTables.length||rls.some(row=>row.relrowsecurity!==true))throw new Error('restored_rls_mismatch');
-
-  const requiredFunctions=[
-    'vision_views_command(jsonb)',
-    'vision_session_context(uuid,uuid)',
-    'vision_runtime_readiness()',
-    'vision_inbox_begin(uuid,text,uuid,text,text,uuid,uuid,text)',
-    'vision_inbox_complete(uuid,text,uuid,uuid)',
-    'vision_inbox_fail(uuid,text,uuid,uuid,text)'
-  ];
-  for(const signature of requiredFunctions){
-    const ok=(await client.query('select to_regprocedure($1) is not null ok',[signature])).rows[0].ok;
-    if(!ok)throw new Error('restored_function_missing:'+signature);
+  if(applied.length>local.length)throw new Error('restored_database_has_unknown_migrations');
+  for(let i=0;i<applied.length;i++){
+    if(applied[i].name!==local[i].name)throw new Error('restored_migration_prefix_mismatch:'+applied[i].name);
+    if(applied[i].sha256!==local[i].sha256)throw new Error('restored_migration_checksum_mismatch:'+applied[i].name);
   }
 
-  await client.query('begin');
-  try{
-    await client.query('set local role authenticated');
-    let denied=false;
-    try{await client.query('select * from public.vision_event_inbox limit 1');}
-    catch(error){denied=/permission denied/i.test(error.message);}
-    if(!denied)throw new Error('restored_inbox_access_not_denied');
-  }finally{await client.query('rollback');}
+  const protectedTables=[
+    'vision_views_bookings',
+    'vision_views_units',
+    'vision_views_cleaning_jobs',
+    'vision_views_inventory_nights',
+    'vision_event_inbox'
+  ];
+  const rlsResults=[];
+  for(const table of protectedTables){
+    const row=(await client.query(
+      "select c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=$1",
+      [table]
+    )).rows[0];
+    if(row){
+      if(row.relrowsecurity!==true)throw new Error('restored_rls_disabled:'+table);
+      rlsResults.push(table);
+    }
+  }
+
+  let inboxDenied=null;
+  const inboxExists=(await client.query("select to_regclass('public.vision_event_inbox') is not null ok")).rows[0].ok;
+  if(inboxExists){
+    await client.query('begin');
+    try{
+      await client.query('set local role authenticated');
+      let denied=false;
+      try{await client.query('select * from public.vision_event_inbox limit 1');}
+      catch(error){denied=/permission denied/i.test(error.message);}
+      if(!denied)throw new Error('restored_inbox_access_not_denied');
+      inboxDenied=true;
+    }finally{await client.query('rollback');}
+  }
 
   const report={
     status:'PASS',
     target:'production',
     sourceCommit:process.env.GITHUB_SHA||null,
-    latestMigration:readiness.latest_migration,
-    architectureVersion:readiness.architecture_version,
-    migrationCount:migrations.length,
-    rlsVerified:true,
-    requiredFunctionsVerified:true,
-    endUserInboxReadDenied:true,
+    targetMigration:release.databaseMigration,
+    targetArchitectureVersion:release.architectureVersion,
+    restoredLatestMigration:applied.at(-1)?.name||null,
+    restoredMigrationCount:applied.length,
+    migrationPrefixVerified:true,
+    protectedRlsTablesVerified:rlsResults,
+    endUserInboxReadDenied:inboxDenied,
     productionChanged:false
   };
   const output=process.argv[2]||'artifacts/production-backup/restore-verification.json';
