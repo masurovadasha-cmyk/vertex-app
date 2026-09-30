@@ -1,6 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 
 test('promotion policy remains blocked until external evidence and owner approval exist',()=>{
@@ -34,4 +36,29 @@ test('promotion policy forbids deployment side effects and requires same-source 
   assert.deepEqual(policy.requiredEvidence.map(x=>x.id),[
     'integrated-assembly','rc2-safety','real-staging-auth-e2e','production-backup-restore'
   ]);
+});
+
+
+test('trusted promotion evaluator reads candidate release from an isolated checkout',()=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'vision-candidate-'));
+  try{
+    fs.mkdirSync(path.join(dir,'vision/release'),{recursive:true});
+    const release=JSON.parse(fs.readFileSync('vision/release/0.1-RC1.json','utf8'));
+    release.productionReady=true;
+    fs.writeFileSync(path.join(dir,'vision/release/0.1-RC1.json'),JSON.stringify(release));
+    const run=spawnSync(process.execPath,['vision/production/evaluate-promotion.mjs','--policy-only'],{
+      encoding:'utf8',env:{...process.env,VISION_PROMOTION_CANDIDATE_ROOT:dir}
+    });
+    assert.notEqual(run.status,0);
+    assert.match(run.stderr+run.stdout,/release_flag_must_remain_false:productionReady=true/);
+  }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('manual promotion uses protected master as controller and separate immutable candidate checkout',()=>{
+  const workflow=fs.readFileSync('.github/workflows/vision-promotion-gate.yml','utf8');
+  assert.match(workflow,/Require protected master release controller/);
+  assert.match(workflow,/test "\$GITHUB_REF" = "refs\/heads\/master"/);
+  assert.match(workflow,/Checkout immutable candidate separately[\s\S]*ref: \$\{\{ inputs\.candidate_sha \}\}[\s\S]*path: candidate/);
+  assert.match(workflow,/VISION_PROMOTION_CANDIDATE_ROOT: candidate/);
+  assert.match(workflow,/Verify evidence workflow identities before downloading artifacts/);
 });
