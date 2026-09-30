@@ -8,6 +8,8 @@ const fixturePath=process.env.VISION_FIXTURE_FILE||process.argv[2];
 if(!fixturePath)throw new Error('VISION_FIXTURE_FILE required');
 const fixture=JSON.parse(fs.readFileSync(fixturePath,'utf8'));
 const release=JSON.parse(fs.readFileSync(new URL('../release/0.1-RC1.json',import.meta.url),'utf8'));
+const migrationDir=new URL('../database/migrations/',import.meta.url);
+const expectedMigrationCount=fs.readdirSync(migrationDir).filter(name=>/^\\d{4}_.+\\.sql$/.test(name)).length;
 
 const client=new pg.Client({connectionString:url,application_name:'vertex-vision-rc2-restore-verify'});
 await client.connect();
@@ -39,7 +41,7 @@ try{
   if(audits<2||outbox<2)throw new Error('restored_audit_or_outbox_incomplete');
 
   const migrations=(await client.query('select name,sha256 from vision_private.schema_migrations order by name')).rows;
-  if(migrations.length!==11||migrations.at(-1)?.name!==release.databaseMigration)throw new Error('restored_migration_history_mismatch');
+  if(migrations.length!==expectedMigrationCount||migrations.at(-1)?.name!==release.databaseMigration)throw new Error('restored_migration_history_mismatch');
 
   const rlsSql="select relname,relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and relname=any($1::text[]) order by relname";
   const rls=(await client.query(rlsSql,[['vision_views_bookings','vision_views_units','vision_views_cleaning_jobs','vision_views_inventory_nights','vision_event_inbox']])).rows;
