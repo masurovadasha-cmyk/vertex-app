@@ -1,0 +1,79 @@
+{
+  "product": "VERTEX Vision",
+  "assembly": "0.1",
+  "architectureVersion": "1.1",
+  "releaseManifest": "vision/release/0.1-RC1.json",
+  "platformVersion": "1.16-rc1",
+  "apiVersion": "v1",
+  "database": {
+    "latestMigration": "0008_views_integrity.sql",
+    "migrationsExpected": 8,
+    "sourceOfTruth": "PostgreSQL/Supabase",
+    "productionApplied": false
+  },
+  "modules": {
+    "active": [
+      "views"
+    ],
+    "comingSoonCount": 18,
+    "registryCount": 19
+  },
+  "views": {
+    "ui": [
+      "dashboard",
+      "calendar",
+      "bookings",
+      "units",
+      "cleaning"
+    ],
+    "backend": "/api/v1/views",
+    "commands": [
+      "create_booking",
+      "confirm_booking",
+      "check_in",
+      "check_out",
+      "cancel_booking",
+      "cleaning_start",
+      "cleaning_submit",
+      "cleaning_verify"
+    ],
+    "authoritativeWrites": "database-rpc",
+    "demoFallbackInOperations": false
+  },
+  "runtimes": {
+    "web": {
+      "source": "vision/platform",
+      "buildOutput": "vertex/dist"
+    },
+    "android": {
+      "packageId": "com.vertex.vision.demo",
+      "versionName": "1.16-rc1",
+      "versionCode": 20
+    },
+    "stagingWorker": {
+      "name": "vertex-vision-staging",
+      "config": "vision/wrangler.jsonc"
+    },
+    "productionWorker": {
+      "name": "vertex-app",
+      "config": "wrangler.jsonc",
+      "approved": false
+    }
+  },
+  "boundaries": {
+    "jarvis": "separate-project-external-api-only",
+    "productionMerge": false,
+    "productionDeploy": false,
+    "cloudDatabaseMigration": false
+  },
+  "gates": [
+    "assembly-contract",
+    "unit-regression",
+    "postgresql-rls",
+    "views-vertical-flow",
+    "browser-desktop-mobile",
+    "android-build-signature-assets",
+    "cloudflare-production-dry-run",
+    "cloudflare-staging-dry-run"
+  ]
+}
