@@ -85,7 +85,7 @@ export async function handle(request,env,fetcher=fetch){
     if(plan.kind==='context')return json(projectSessionContext(body));
     return json(body);
   }catch(error){
-    if(['invalid_page_query','tenant_id_required','invalid_context_query'].includes(error.message))return json({error:error.message},400);
+    if(['invalid_page_query','tenant_id_required','organization_id_required','invalid_context_query'].includes(error.message))return json({error:error.message},400);
     if(error.message==='body_too_large')return json({error:'body_too_large'},413);
     if(error.message==='invalid_json')return json({error:'invalid_json'},400);
     return json({error:'backend_unavailable'},503);
