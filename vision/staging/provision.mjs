@@ -6,6 +6,7 @@ import {migrate} from '../backend/migrate.mjs';
 import {provisionDemo,profiles,demo} from '../backend/demo.mjs';
 import {validateSupabaseStaging,validateStagingDatabaseURL,signInSynthetic} from './auth.mjs';
 
+const release=JSON.parse(fs.readFileSync(new URL('../release/0.1-RC1.json',import.meta.url),'utf8'));
 const requiredProfiles=Object.freeze(['guest','views','dispatcher','staff','quality','audit']);
 const envName=key=>'VISION_E2E_'+key.toUpperCase()+'_';
 const required=(name)=>{
@@ -40,7 +41,7 @@ try{
     [e2eUnitId,demo.tenant_id,demo.views_id,demo.property_id,'E2E-'+runLabel,'synthetic-e2e','READY']
   );
   const readiness=(await client.query('select public.vision_runtime_readiness() result')).rows[0]?.result;
-  if(!readiness||readiness.ready!==true||readiness.latest_migration!=='0010_runtime_readiness.sql')throw new Error('staging_database_not_ready');
+  if(!readiness||readiness.ready!==true||readiness.latest_migration!==release.databaseMigration||readiness.architecture_version!==release.architectureVersion)throw new Error('staging_database_not_ready');
   const userCount=(await client.query('select count(*)::int n from public.vision_users where tenant_id=$1 and id=any($2::uuid[])',[demo.tenant_id,Object.values(identities)])).rows[0].n;
   if(userCount!==requiredProfiles.length)throw new Error('staging_identity_mapping_incomplete');
 
