@@ -78,6 +78,14 @@ def run(live=False):
                                 }));return
                             if parsed.path == '/api/v1/notifications/commands':
                                 route.fulfill(status=200,content_type='application/json',body=json.dumps({'entityType':'notification','notificationId':'12121212-1212-4121-8121-121212121212','status':'READ','version':2,'correlationId':'dddddddd-dddd-4ddd-8ddd-dddddddddddd'}));return
+                            if parsed.path=='/system-status':
+                                route.fulfill(status=200,content_type='application/json',body=json.dumps({
+                                    'service':'VERTEX VISION','environment':'staging','sourceCommit':None,
+                                    'architectureVersion':'2.0','requiredMigration':'0015_background_runtime.sql',
+                                    'backendConfigured':False,'backgroundConsumerConnected':False,
+                                    'escalationSchedulerConnected':False,'readinessChecked':False,
+                                    'databaseReady':None,'latestMigration':None,'migrationCount':None,'viewsReleaseActive':None
+                                }));return
                             if parsed.path.startswith('/api/v1/views/'):
                                 if parsed.path.endswith('/units'):
                                     route.fulfill(status=200,content_type='application/json',body=json.dumps([{'id':'22222222-2222-4222-8222-222222222222','unit_number':'TEST-235','unit_type':'apartment','status':'READY'}]));return
@@ -98,7 +106,7 @@ def run(live=False):
                     page.wait_for_function("document.documentElement.dataset.visionReady==='true'")
                     check(str(width)+': VISION is the first section',page.locator('main > section').first.get_attribute('id')=='visionHome')
                     check(str(width)+': 19 visible child module cards',page.locator('[data-vv-open]').count()==19)
-                    check(str(width)+': Interface System 8 runtime',page.evaluate("document.documentElement.dataset.visionUi==='8.0'"))
+                    check(str(width)+': Interface System 10 runtime',page.evaluate("document.documentElement.dataset.visionUi==='10.0'"))
                     check(str(width)+': five grouped module categories',page.locator('[data-vv-category]').count()==5)
                     check(str(width)+': every module uses a line SVG icon',page.locator('.vv-card-icon svg').count()==19)
                     check(str(width)+': Today context rail is visible',page.locator('#visionHome .vv-today').is_visible())
@@ -136,6 +144,12 @@ def run(live=False):
                     check(str(width)+': public Notification Center is honestly disconnected','not connected' in page.locator('#visionNotifications').inner_text().lower() or 'не подключ' in page.locator('#visionNotifications').inner_text().lower())
                     check(str(width)+': disconnected notification state exposes no mutation actions',page.locator('#visionNotifications [data-vvn-action]').count()==0)
                     check(str(width)+': notification badge remains dash without session',page.locator('#visionNotificationCount').inner_text()=='—')
+                    page.keyboard.press('Escape')
+                    check(str(width)+': System Status opens from Hub',page.evaluate("VertexVisionSystemStatus.open()"))
+                    check(str(width)+': System Status Center is visible',page.locator('#visionSystemStatus').is_visible())
+                    check(str(width)+': System Status renders six factual signals',page.locator('#visionSystemStatus .vvs-card').count()==6)
+                    check(str(width)+': System Status exposes architecture and required migration','2.0' in page.locator('#visionSystemStatus').inner_text() and '0015_background_runtime.sql' in page.locator('#visionSystemStatus').inner_text())
+                    check(str(width)+': disconnected System Status contains no secret-shaped values','sb_publishable_' not in page.locator('#visionSystemStatus').inner_text() and 'postgres://' not in page.locator('#visionSystemStatus').inner_text())
                     page.keyboard.press('Escape')
                     page.screenshot(path=str(OUT/f'vision-home-{width}.png'))
                     page.locator('#visionSearch').fill('laundry');check(str(width)+': module search',page.locator('[data-vv-open]').count()==1)
