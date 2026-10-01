@@ -59,12 +59,16 @@ def run(live=False):
                             if parsed.path == '/api/v1/work-feed':
                                 route.fulfill(status=200,content_type='application/json',body=json.dumps({
                                     'generatedAt':'2026-10-01T01:00:00.000Z',
-                                    'tasks':[{'id':'55555555-5555-4555-8555-555555555555','type':'task','source':'core.task','title':'Prepare TEST-235','status':'IN_PROGRESS','priority':'HIGH','dueAt':'2026-10-01T02:00:00.000Z','assignedToMe':True,'sourceId':'66666666-6666-4666-8666-666666666666','createdAt':'2026-10-01T00:00:00.000Z','updatedAt':'2026-10-01T00:30:00.000Z'}],
-                                    'approvals':[{'id':'77777777-7777-4777-8777-777777777777','type':'approval','source':'vision.approval','kind':'maintenance.spend','title':'Approve repair','status':'PENDING','priority':'NORMAL','dueAt':None,'assignedToMe':True,'sourceId':None,'createdAt':'2026-10-01T00:00:00.000Z','updatedAt':'2026-10-01T00:00:00.000Z','entityType':'unit','entityId':'22222222-2222-4222-8222-222222222222'}],
-                                    'attention':[{'id':'88888888-8888-4888-8888-888888888888','type':'attention','source':'core.order','title':'Order TEST-HIGH','status':'IN_PROGRESS','priority':'HIGH','reason':'HIGH_PRIORITY_REQUEST','dueAt':None,'assignedToMe':None,'sourceId':'88888888-8888-4888-8888-888888888888','createdAt':'2026-10-01T00:00:00.000Z','updatedAt':None}],
-                                    'requests':[{'id':'99999999-9999-4999-8999-999999999999','type':'request','source':'core.order','title':'Order TEST-REQ','status':'NEW','priority':'NORMAL','dueAt':None,'assignedToMe':None,'sourceId':'99999999-9999-4999-8999-999999999999','createdAt':'2026-10-01T00:00:00.000Z','updatedAt':'2026-10-01T00:00:00.000Z'}],
+                                    'tasks':[{'id':'55555555-5555-4555-8555-555555555555','type':'task','source':'core.task','title':'Prepare TEST-235','status':'NEW','priority':'HIGH','dueAt':'2026-10-01T00:30:00.000Z','assignedToMe':False,'sourceId':'66666666-6666-4666-8666-666666666666','createdAt':'2026-10-01T00:00:00.000Z','updatedAt':'2026-10-01T00:30:00.000Z','version':1,'orderVersion':1,'assignedUserId':None,'slaState':'BREACHED','actions':['task_assign']}],
+                                    'approvals':[{'id':'77777777-7777-4777-8777-777777777777','type':'approval','source':'vision.approval','kind':'maintenance.spend','title':'Approve repair','status':'PENDING','priority':'NORMAL','dueAt':None,'assignedToMe':True,'sourceId':None,'createdAt':'2026-10-01T00:00:00.000Z','updatedAt':'2026-10-01T00:00:00.000Z','version':1,'orderVersion':None,'assignedUserId':'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','slaState':'NONE','actions':['approval_approve','approval_reject'],'entityType':'unit','entityId':'22222222-2222-4222-8222-222222222222','requestedBy':'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'}],
+                                    'attention':[{'id':'88888888-8888-4888-8888-888888888888','type':'attention','source':'core.order','title':'Order TEST-HIGH','status':'IN_PROGRESS','priority':'HIGH','reason':'HIGH_PRIORITY_REQUEST','dueAt':None,'assignedToMe':None,'sourceId':'88888888-8888-4888-8888-888888888888','createdAt':'2026-10-01T00:00:00.000Z','updatedAt':None,'version':None,'orderVersion':None,'assignedUserId':None,'slaState':None,'actions':[]}],
+                                    'requests':[{'id':'99999999-9999-4999-8999-999999999999','type':'request','source':'core.order','title':'Order TEST-REQ','status':'NEW','priority':'NORMAL','dueAt':None,'assignedToMe':None,'sourceId':'99999999-9999-4999-8999-999999999999','createdAt':'2026-10-01T00:00:00.000Z','updatedAt':'2026-10-01T00:00:00.000Z','version':None,'orderVersion':None,'assignedUserId':None,'slaState':None,'actions':[]}],
                                     'counts':{'tasks':1,'approvals':1,'attention':1,'requests':1}
                                 }));return
+                            if parsed.path == '/api/v1/work-assignees':
+                                route.fulfill(status=200,content_type='application/json',body=json.dumps([{'id':'cccccccc-cccc-4ccc-8ccc-cccccccccccc','displayName':'Synthetic Cleaner'}]));return
+                            if parsed.path == '/api/v1/work/commands':
+                                route.fulfill(status=200,content_type='application/json',body=json.dumps({'entityType':'task','taskId':'55555555-5555-4555-8555-555555555555','taskStatus':'ASSIGNED','taskVersion':2,'orderId':'66666666-6666-4666-8666-666666666666','orderStatus':'ACCEPTED','orderVersion':2,'correlationId':'dddddddd-dddd-4ddd-8ddd-dddddddddddd'}));return
                             if parsed.path.startswith('/api/v1/views/'):
                                 if parsed.path.endswith('/units'):
                                     route.fulfill(status=200,content_type='application/json',body=json.dumps([{'id':'22222222-2222-4222-8222-222222222222','unit_number':'TEST-235','unit_type':'apartment','status':'READY'}]));return
@@ -85,7 +89,7 @@ def run(live=False):
                     page.wait_for_function("document.documentElement.dataset.visionReady==='true'")
                     check(str(width)+': VISION is the first section',page.locator('main > section').first.get_attribute('id')=='visionHome')
                     check(str(width)+': 19 visible child module cards',page.locator('[data-vv-open]').count()==19)
-                    check(str(width)+': Interface System 6 runtime',page.evaluate("document.documentElement.dataset.visionUi==='6.0'"))
+                    check(str(width)+': Interface System 7 runtime',page.evaluate("document.documentElement.dataset.visionUi==='7.0'"))
                     check(str(width)+': five grouped module categories',page.locator('[data-vv-category]').count()==5)
                     check(str(width)+': every module uses a line SVG icon',page.locator('.vv-card-icon svg').count()==19)
                     check(str(width)+': Today context rail is visible',page.locator('#visionHome .vv-today').is_visible())
@@ -145,10 +149,16 @@ def run(live=False):
                         page.wait_for_function("VertexVisionWorkCenter.status().workFeedConnected===true")
                         check(str(width)+': Unified Work Feed is connected',page.evaluate("VertexVisionWorkCenter.status().workFeedConnected===true"))
                         check(str(width)+': Work Feed counts are authoritative fixtures',page.evaluate("VertexVisionWorkCenter.status().counts.tasks===1 && VertexVisionWorkCenter.status().counts.approvals===1 && VertexVisionWorkCenter.status().counts.attention===1 && VertexVisionWorkCenter.status().counts.requests===1"))
+                        check(str(width)+': Work Center uses polling not fake push realtime',page.evaluate("VertexVisionWorkCenter.status().refreshMode==='polling-30s'"))
                         page.locator('#visionWorkCenter [data-vvw-tab="tasks"]').click()
                         check(str(width)+': server task appears in My Day',page.locator('#visionWorkCenter').get_by_text('Prepare TEST-235').count()>0)
+                        check(str(width)+': SLA breach is visible',page.locator('#visionWorkCenter .vvw-sla-breached').count()==1)
+                        check(str(width)+': server-approved assignment action renders',page.locator('#visionWorkCenter [data-vvw-action="task_assign"]').count()==1)
+                        check(str(width)+': eligible assignee selector renders',page.locator('#visionWorkCenter [data-vvw-assignee]').count()==1)
                         page.locator('#visionWorkCenter [data-vvw-tab="approvals"]').click()
-                        check(str(width)+': read-only approval appears',page.locator('#visionWorkCenter').get_by_text('Approve repair').count()>0)
+                        check(str(width)+': approval appears',page.locator('#visionWorkCenter').get_by_text('Approve repair').count()>0)
+                        check(str(width)+': approval actions come from server action list',page.locator('#visionWorkCenter [data-vvw-action="approval_approve"]').count()==1 and page.locator('#visionWorkCenter [data-vvw-action="approval_reject"]').count()==1)
+                        check(str(width)+': approval decisions flag is server-derived',page.evaluate("VertexVisionWorkCenter.status().approvalDecisionsEnabled===true"))
                         page.locator('#visionWorkCenter [data-vvw-tab="operations"]').click()
                         check(str(width)+': Work Center renders authoritative Views counts',page.locator('#visionWorkCenter .vvw-stat').count()==4)
                         page.locator('#visionWorkCenter [data-vvw-views="calendar"]').click()
