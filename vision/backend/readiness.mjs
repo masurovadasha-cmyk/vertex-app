@@ -8,7 +8,7 @@ export function projectRuntimeReadiness(body){
   if(typeof body.ready!=='boolean'||typeof body.tables_ok!=='boolean'||typeof body.functions_ok!=='boolean'||typeof body.rls_ok!=='boolean'||typeof body.views_release_active!=='boolean')throw new Error('upstream_invalid_response');
   if(typeof body.latest_migration!=='string'||!migration.test(body.latest_migration))throw new Error('upstream_invalid_response');
   if(!Number.isSafeInteger(body.migration_count)||body.migration_count<0||body.migration_count>10000)throw new Error('upstream_invalid_response');
-  if(body.architecture_version!=='1.9')throw new Error('upstream_invalid_response');
+  if(body.architecture_version!=='2.0')throw new Error('upstream_invalid_response');
   return Object.freeze({
     ready:body.ready,
     latestMigration:body.latest_migration,
