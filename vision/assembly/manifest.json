@@ -93,6 +93,7 @@
     "cloudflare-production-dry-run",
     "cloudflare-staging-dry-run",
     "real-supabase-auth-e2e",
+    "background-staging-smoke",
     "expand-only-migration-policy",
     "read-only-release-preflight",
     "backup-restore-drill",
@@ -211,7 +212,15 @@
       "evidenceWorkflowMetadataVerified": true,
       "firstPartyActionsPinnedByCommit": true,
       "productionMutationAllowed": false
-    }
+    },
+    "requiredEvidence": [
+      "integrated-assembly",
+      "rc2-safety",
+      "real-staging-auth-e2e",
+      "background-staging-smoke",
+      "production-backup-restore"
+    ],
+    "backgroundSmokeWorkflow": ".github/workflows/vision-background-staging-smoke.yml"
   },
   "designSystem": {
     "name": "VERTEX VISION Interface System",
