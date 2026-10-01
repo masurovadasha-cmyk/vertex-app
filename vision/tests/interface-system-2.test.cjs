@@ -40,3 +40,13 @@ test('VISION shell declares Interface 2.0 and preserves Views-only activation',(
   assert.match(read('vision/platform/build.cjs'),/UI_CACHE_SUFFIX='interface-2'/);
   assert.match(registry,/const status=id==='views'\?'active':'coming-soon'/);
 });
+
+test('Cloudflare Worker Previews are configured without changing production routing',()=>{
+  const cfg=JSON.parse(read('wrangler.jsonc'));
+  assert.equal(cfg.name,'vertex-app');
+  assert.equal(cfg.preview_urls,true);
+  assert.deepEqual(cfg.previews,{});
+  assert.equal(cfg.assets.binding,'ASSETS');
+  assert.ok(cfg.assets.run_worker_first.includes('/health'));
+  assert.equal(Object.prototype.hasOwnProperty.call(cfg,'routes'),false);
+});

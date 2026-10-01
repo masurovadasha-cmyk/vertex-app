@@ -17,3 +17,14 @@ This increment translates the approved Tech Sand visual system into the existing
 Views remains the only ACTIVE RC module. This design work does not activate Real Estate, Engineers, Taxi, Travel or any other future direction. JARVIS, Vertex Taxi and Vertex Engineers remain separate products/codebases and may only integrate through defined contracts.
 
 No production/master mutation, production deployment, cloud database migration or claim of live external provider connectivity is part of this increment.
+
+## Cloudflare preview delivery
+
+This branch uses Cloudflare Worker Previews through the existing `vertex-app` Workers Builds Git integration. The production Worker remains unchanged.
+
+- Production Worker name remains `vertex-app`.
+- Non-production branch delivery uses Cloudflare Worker Preview isolation.
+- `wrangler.jsonc` explicitly enables `preview_urls` and declares a required `previews` block.
+- No production routes, Cron triggers, database bindings, production variables or production secrets are added for the Preview.
+- The Preview keeps honest RC behavior: backend-dependent operations remain unavailable until a real staging backend is connected.
+- The separate `vertex-vision-staging` GitHub workflow is retained as a manual fallback only; automatic branch delivery uses the already-authorized Cloudflare Workers Builds integration.
