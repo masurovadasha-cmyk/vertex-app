@@ -16,6 +16,18 @@ test('module registry and organization installations preserve tenant boundaries'
  const as=async(work)=>{await db.exec('begin;set local role authenticated;');try{await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:user})]);const value=await work();await db.exec('commit');return value;}catch(e){await db.exec('rollback');throw e;}};
  await t.test('SQL definitions exactly match the canonical product registry',async()=>{const rows=(await db.query('select id from public.vision_module_definitions order by id')).rows;assert.deepEqual(rows.map(r=>r.id),core.modules.map(m=>m.id).sort());});
  await t.test('registration does not enable modules',async()=>{const rows=(await db.query('select state from public.vision_module_installations')).rows;assert.ok(rows.every(r=>r.state==='REGISTERED'));});
+ await t.test('external module delegation requires active same-tenant membership and a registered module',async()=>{
+  const allowed=await as(()=>db.query("select public.vision_external_module_context_allowed($1,$2,'taxi') allowed",[a,orgA]));
+  assert.equal(allowed.rows[0].allowed,true);
+  const crossTenant=await as(()=>db.query("select public.vision_external_module_context_allowed($1,$2,'taxi') allowed",[b,orgB]));
+  assert.equal(crossTenant.rows[0].allowed,false);
+  const unknown=await as(()=>db.query("select public.vision_external_module_context_allowed($1,$2,'not-a-module') allowed",[a,orgA]));
+  assert.equal(unknown.rows[0].allowed,false);
+  await db.query("update public.vision_memberships set status='SUSPENDED' where id=$1",[membership]);
+  const suspended=await as(()=>db.query("select public.vision_external_module_context_allowed($1,$2,'taxi') allowed",[a,orgA]));
+  assert.equal(suspended.rows[0].allowed,false);
+  await db.query("update public.vision_memberships set status='ACTIVE' where id=$1",[membership]);
+ });
  await t.test('membership alone does not grant installation visibility',async()=>assert.equal((await as(()=>db.query('select * from public.vision_module_installations'))).rows.length,0));
  // UUID identity and textual role metadata must not share an inferred SQL parameter type.
  await db.query("insert into public.vision_roles(id,tenant_id,code,name) values($1,$2,'module-reader','Synthetic module reader')",[role,a]);
