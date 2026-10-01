@@ -55,7 +55,7 @@ grant execute on function public.vision_work_assignees(uuid,uuid) to authenticat
 create function public.vision_work_command(command jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $work_command$
 declare
- actor uuid:=vision_private.actor(); tenant uuid; kind text; idem text; reason text;
+ actor uuid:=vision_private.actor(); tenant uuid; command_type text; idem text; reason text;
  task_id uuid; approval_id uuid; assignee uuid; expected bigint; expected_order bigint;
  t public.vision_tasks; o public.vision_orders; a public.vision_approval_requests;
  receipt public.vision_command_receipts;
@@ -70,26 +70,26 @@ begin
  ) then raise exception 'invalid_command' using errcode='22023'; end if;
 
  tenant:=(command->>'tenant_id')::uuid;
- kind:=command->>'type';
+ command_type:=command->>'type';
  idem:=command->>'idempotency_key';
  reason:=nullif(btrim(command->>'reason'),'');
  if actor is null or tenant is null or not vision_private.active_actor(tenant) then
    raise exception 'forbidden' using errcode='42501';
  end if;
- if idem is null or length(idem) not between 1 and 128 or kind is null then
+ if idem is null or length(idem) not between 1 and 128 or command_type is null then
    raise exception 'invalid_command' using errcode='22023';
  end if;
  if reason is not null and length(reason)>500 then raise exception 'invalid_command' using errcode='22023'; end if;
 
  perform pg_advisory_xact_lock(hashtextextended(tenant::text||actor::text||idem,0));
 
- if kind in ('task_assign','task_accept','task_wait','task_resume','task_submit','quality_pass','quality_reject') then
+ if command_type in ('task_assign','task_accept','task_wait','task_resume','task_submit','quality_pass','quality_reject') then
    task_id:=(command->>'task_id')::uuid;
    select * into t from public.vision_tasks where id=task_id and tenant_id=tenant for update;
    if not found then raise exception 'forbidden' using errcode='42501'; end if;
    select * into o from public.vision_orders where id=t.order_id and tenant_id=tenant for update;
    if not found then raise exception 'forbidden' using errcode='42501'; end if;
-   allowed:=case kind
+   allowed:=case command_type
      when 'task_assign' then vision_private.permitted(tenant,t.organization_id,'cleaning.order.assign')
      when 'task_accept' then t.assigned_user_id=actor and vision_private.permitted(tenant,t.organization_id,'cleaning.task.update_assigned')
      when 'task_wait' then t.assigned_user_id=actor and vision_private.permitted(tenant,t.organization_id,'cleaning.task.update_assigned')
@@ -98,7 +98,7 @@ begin
      when 'quality_pass' then actor<>t.assigned_user_id and vision_private.permitted(tenant,t.organization_id,'cleaning.quality.review')
      when 'quality_reject' then actor<>t.assigned_user_id and vision_private.permitted(tenant,t.organization_id,'cleaning.quality.review')
      else false end;
- elsif kind in ('approval_approve','approval_reject') then
+ elsif command_type in ('approval_approve','approval_reject') then
    approval_id:=(command->>'approval_id')::uuid;
    select * into a from public.vision_approval_requests where id=approval_id and tenant_id=tenant for update;
    if not found then raise exception 'forbidden' using errcode='42501'; end if;
@@ -118,14 +118,14 @@ begin
  end if;
 
  expected:=(command->>'expected_version')::bigint;
- if kind like 'task_%' or kind like 'quality_%' then
+ if command_type like 'task_%' or command_type like 'quality_%' then
    expected_order:=(command->>'expected_order_version')::bigint;
    if expected is distinct from t.version or expected_order is distinct from o.version then
      raise exception 'version_conflict' using errcode='40001';
    end if;
    old_order_status:=o.status; old_task_status:=t.status; correlation:=o.correlation_id;
 
-   if kind='task_assign' and t.status='NEW' and o.status='NEW' then
+   if command_type='task_assign' and t.status='NEW' and o.status='NEW' then
      assignee:=(command->>'assignee_user_id')::uuid;
      if assignee is null
        or not vision_private.permitted(tenant,t.organization_id,'cleaning.task.read_assigned',assignee)
@@ -137,36 +137,36 @@ begin
        where id=t.id returning * into t;
      event_name:='order.assigned';
 
-   elsif kind='task_accept' and t.status='ASSIGNED' and o.status='ACCEPTED' then
+   elsif command_type='task_accept' and t.status='ASSIGNED' and o.status='ACCEPTED' then
      update public.vision_orders set status='IN_PROGRESS',version=version+1,updated_at=now() where id=o.id returning * into o;
      update public.vision_tasks set status='IN_PROGRESS',accepted_at=coalesce(accepted_at,now()),waiting_reason=null,version=version+1,updated_at=now()
        where id=t.id returning * into t;
      event_name:='task.started';
 
-   elsif kind='task_wait' and t.status='IN_PROGRESS' and o.status='IN_PROGRESS' then
+   elsif command_type='task_wait' and t.status='IN_PROGRESS' and o.status='IN_PROGRESS' then
      if reason is null then raise exception 'reason_required' using errcode='22023'; end if;
      update public.vision_tasks set status='WAITING',waiting_reason=reason,version=version+1,updated_at=now()
        where id=t.id returning * into t;
      event_name:='task.waiting';
 
-   elsif kind='task_resume' and t.status='WAITING' and o.status='IN_PROGRESS' then
+   elsif command_type='task_resume' and t.status='WAITING' and o.status='IN_PROGRESS' then
      update public.vision_tasks set status='IN_PROGRESS',waiting_reason=null,version=version+1,updated_at=now()
        where id=t.id returning * into t;
      event_name:='task.resumed';
 
-   elsif kind='task_submit' and t.status='IN_PROGRESS' and o.status='IN_PROGRESS' then
+   elsif command_type='task_submit' and t.status='IN_PROGRESS' and o.status='IN_PROGRESS' then
      update public.vision_orders set status='QUALITY',version=version+1,updated_at=now() where id=o.id returning * into o;
      update public.vision_tasks set status='QUALITY',submitted_at=now(),waiting_reason=null,version=version+1,updated_at=now()
        where id=t.id returning * into t;
      event_name:='task.completed';
 
-   elsif kind='quality_pass' and t.status='QUALITY' and o.status='QUALITY' then
+   elsif command_type='quality_pass' and t.status='QUALITY' and o.status='QUALITY' then
      update public.vision_orders set status='COMPLETED',version=version+1,updated_at=now() where id=o.id returning * into o;
      update public.vision_tasks set status='COMPLETED',completed_at=now(),version=version+1,updated_at=now()
        where id=t.id returning * into t;
      event_name:='quality.passed';
 
-   elsif kind='quality_reject' and t.status='QUALITY' and o.status='QUALITY' then
+   elsif command_type='quality_reject' and t.status='QUALITY' and o.status='QUALITY' then
      if reason is null then raise exception 'reason_required' using errcode='22023'; end if;
      update public.vision_orders set status='IN_PROGRESS',version=version+1,updated_at=now() where id=o.id returning * into o;
      update public.vision_tasks set status='IN_PROGRESS',submitted_at=null,version=version+1,updated_at=now()
@@ -203,13 +203,13 @@ begin
    correlation:=a.correlation_id;
    if expected is distinct from a.version then raise exception 'version_conflict' using errcode='40001'; end if;
    if a.status<>'PENDING' then raise exception 'invalid_transition' using errcode='22023'; end if;
-   if kind='approval_reject' and reason is null then raise exception 'reason_required' using errcode='22023'; end if;
+   if command_type='approval_reject' and reason is null then raise exception 'reason_required' using errcode='22023'; end if;
 
    update public.vision_approval_requests set
-     status=case when kind='approval_approve' then 'APPROVED' else 'REJECTED' end,
+     status=case when command_type='approval_approve' then 'APPROVED' else 'REJECTED' end,
      decided_by=actor,decided_at=now(),decision_reason=reason,version=version+1,updated_at=now()
    where id=a.id returning * into a;
-   event_name:=case when kind='approval_approve' then 'approval.approved' else 'approval.rejected' end;
+   event_name:=case when command_type='approval_approve' then 'approval.approved' else 'approval.rejected' end;
 
    payload:=jsonb_build_object(
      'event_id',event_id,'tenant_id',tenant,'organization_id',a.organization_id,
