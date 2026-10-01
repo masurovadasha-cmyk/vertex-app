@@ -298,3 +298,28 @@ candidate SHA, verifies the background principal name, runs the isolated backgro
 then executes one bounded notification/escalation cycle. A successful local or ordinary CI
 run does not mark cloud staging verified; only a successful staging smoke run may provide
 that evidence.
+
+
+## Staging Session Activation 0.1
+
+Interface System 11 adds the real staging sign-in path used by the VISION UI.
+
+- `GET /auth-config` returns only client-safe Supabase staging metadata: project URL,
+  publishable key, provider, environment and the explicit `memory-only` persistence policy.
+- The browser submits email/password directly to Supabase Auth. VISION does not persist
+  the password, access token or refresh token in localStorage or sessionStorage.
+- After Auth, `GET /api/v1/session-scopes` verifies the bearer token and calls
+  `public.vision_session_scopes()`.
+- Scope discovery is server-authoritative: an organization is returned only when Views is
+  enabled and the verified actor has active RBAC permissions there or an active guest link.
+- The chosen scope is passed to the existing `VertexVisionViews.configure()`, which then
+  resolves roles, permissions and capabilities from PostgreSQL through
+  `GET /api/v1/context`.
+- A single available scope may activate automatically; multiple scopes require an explicit
+  user choice.
+- Public Preview must fail honestly when staging Auth is not configured; there is no demo
+  sign-in fallback.
+
+Real cloud verification remains gated by `VERTEX VISION Real Staging Auth E2E`. That
+workflow now checks public auth config, authenticated scope discovery, server context,
+Views lifecycle and direct RLS isolation before any production promotion can be considered.
