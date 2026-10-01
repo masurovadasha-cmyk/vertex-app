@@ -7,12 +7,5 @@
   "workers_dev": true,
   "preview_urls": false,
   "vars": {"VISION_ENV": "staging"},
-  "observability": {"enabled": true, "head_sampling_rate": 1},
-  "services": [
-    {
-      "binding": "VERTEX_TAXI_CORE",
-      "service": "vertex-taxi-core-staging"
-    }
-  ]
+  "observability": {"enabled": true, "head_sampling_rate": 1}
 }
-
