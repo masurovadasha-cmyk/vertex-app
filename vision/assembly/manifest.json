@@ -3,7 +3,7 @@
   "assembly": "0.1",
   "architectureVersion": "2.0",
   "releaseManifest": "vision/release/0.1-RC1.json",
-  "platformVersion": "1.16-rc1",
+  "platformVersion": "1.17-rc1",
   "apiVersion": "v1",
   "database": {
     "latestMigration": "0015_background_runtime.sql",
@@ -47,8 +47,8 @@
     },
     "android": {
       "packageId": "com.vertex.vision.demo",
-      "versionName": "1.16-rc1",
-      "versionCode": 20
+      "versionName": "1.17-rc1",
+      "versionCode": 21
     },
     "stagingWorker": {
       "name": "vertex-vision-staging",
@@ -132,7 +132,8 @@
     "notificationFeedEndpoint": "/api/v1/notifications",
     "notificationFeedContract": "vision/contracts/notification-feed.mjs",
     "notificationCommandEndpoint": "/api/v1/notifications/commands",
-    "notificationCommandContract": "vision/contracts/notification-command.mjs"
+    "notificationCommandContract": "vision/contracts/notification-command.mjs",
+    "systemStatusEndpoint": "/system-status"
   },
   "readiness": {
     "endpoint": "/readyz",
@@ -226,7 +227,7 @@
     "activeRuntimeModule": "views",
     "inactiveModules": "coming-soon",
     "integratedAt": "2026-10-01",
-    "experienceIteration": "9.0",
+    "experienceIteration": "10.0",
     "experienceStyle": "Dark Premium Tech Sand",
     "visualReference": "VERTEX VISION dark control-center boards",
     "runtimeEnhancements": [
@@ -255,7 +256,8 @@
       "event-driven-notification-projection",
       "notification-inbox",
       "notification-actions",
-      "escalation-ack"
+      "escalation-ack",
+      "system-status-center"
     ],
     "navigationIntelligence": {
       "commandPalette": true,
@@ -295,6 +297,13 @@
       "escalationSchedulerConnected": false,
       "refreshMode": "polling-30s-not-push",
       "fabricatedEvents": false
+    },
+    "systemStatus": {
+      "enabled": true,
+      "endpoint": "/system-status",
+      "fabricatedFallback": false,
+      "secretsExposed": false,
+      "backgroundFlags": "runtime-config-only"
     }
   }
 }
