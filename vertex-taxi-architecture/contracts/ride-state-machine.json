@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "terminal": ["SETTLED", "CANCELLED"],
+  "states": ["QUOTE_CREATED","REQUESTED","SEARCHING","DRIVER_ASSIGNED","DRIVER_EN_ROUTE","ARRIVED","WAITING","PIN_VERIFIED","IN_PROGRESS","COMPLETED","SETTLED","CANCELLED"],
+  "transitions": [
+    {"from":"QUOTE_CREATED","command":"REQUEST","to":"REQUESTED"},
+    {"from":"REQUESTED","command":"START_SEARCH","to":"SEARCHING"},
+    {"from":"REQUESTED","command":"CANCEL","to":"CANCELLED"},
+    {"from":"SEARCHING","command":"ASSIGN_DRIVER","to":"DRIVER_ASSIGNED"},
+    {"from":"SEARCHING","command":"CANCEL","to":"CANCELLED"},
+    {"from":"DRIVER_ASSIGNED","command":"DRIVER_EN_ROUTE","to":"DRIVER_EN_ROUTE"},
+    {"from":"DRIVER_ASSIGNED","command":"CANCEL","to":"CANCELLED"},
+    {"from":"DRIVER_EN_ROUTE","command":"ARRIVE","to":"ARRIVED"},
+    {"from":"DRIVER_EN_ROUTE","command":"CANCEL","to":"CANCELLED"},
+    {"from":"ARRIVED","command":"START_WAIT","to":"WAITING"},
+    {"from":"ARRIVED","command":"CANCEL","to":"CANCELLED"},
+    {"from":"WAITING","command":"VERIFY_PIN","to":"PIN_VERIFIED"},
+    {"from":"WAITING","command":"CANCEL","to":"CANCELLED"},
+    {"from":"PIN_VERIFIED","command":"START_TRIP","to":"IN_PROGRESS"},
+    {"from":"IN_PROGRESS","command":"COMPLETE","to":"COMPLETED"},
+    {"from":"IN_PROGRESS","command":"CANCEL","to":"CANCELLED"},
+    {"from":"COMPLETED","command":"SETTLE","to":"SETTLED"}
+  ],
+  "mutationRequirements": {"idempotency":true,"optimisticConcurrency":true,"audit":true,"outboxSameTransaction":true}
+}
