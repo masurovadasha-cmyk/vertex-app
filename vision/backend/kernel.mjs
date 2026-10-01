@@ -21,6 +21,10 @@ export function routePlan(url,method){
   const key=String(method||'').toUpperCase()+' '+url.pathname;
   if(key==='POST /api/commands')return Object.freeze({kind:'command',rpc:'vision_command',bodyLimit:8192,module:'core'});
   if(key==='POST /api/v1/views/commands')return Object.freeze({kind:'command',rpc:'vision_views_command',bodyLimit:8192,module:'views'});
+  if(key==='GET /api/v1/session-scopes'){
+    if(url.searchParams.size!==0)throw new Error('invalid_session_scopes_query');
+    return Object.freeze({kind:'session-scopes',rpc:'vision_session_scopes',module:'views'});
+  }
   if(key==='GET /api/v1/context'){
     const tenant=url.searchParams.get('tenant_id'),organization=url.searchParams.get('organization_id');
     if(url.searchParams.size!==2||url.searchParams.getAll('tenant_id').length!==1||url.searchParams.getAll('organization_id').length!==1||!uuid.test(tenant||'')||!uuid.test(organization||''))throw new Error('invalid_context_query');
