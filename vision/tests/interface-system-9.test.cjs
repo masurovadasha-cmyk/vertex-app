@@ -14,12 +14,12 @@ test('Interface System 9 advances background runtime without connecting producti
   assert.equal(design.runtime.productionConnected,false);
   assert.equal(design.runtime.notificationConsumer,'prepared-not-connected');
   assert.equal(design.runtime.escalationScheduler,'prepared-not-connected');
-  assert.equal(assembly.architectureVersion,'2.1');
-  assert.equal(assembly.database.latestMigration,'0016_staging_session_activation.sql');
-  assert.equal(assembly.database.migrationsExpected,16);
+  assert.equal(assembly.architectureVersion,'2.2');
+  assert.equal(assembly.database.latestMigration,'0018_engineers_readiness.sql');
+  assert.equal(assembly.database.migrationsExpected,18);
   assert.equal(assembly.designSystem.experienceIteration,'11.0');
-  assert.equal(release.databaseMigration,'0016_staging_session_activation.sql');
-  assert.equal(release.architectureVersion,'2.1');
+  assert.equal(release.databaseMigration,'0018_engineers_readiness.sql');
+  assert.equal(release.architectureVersion,'2.2');
   assert.equal(release.productionApproved,false);
   assert.equal(release.productionReady,false);
 });
