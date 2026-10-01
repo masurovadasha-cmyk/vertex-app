@@ -164,3 +164,42 @@ header .brand .vv-wordmark{font:820 13px/1.2 system-ui,sans-serif;letter-spacing
   #visionHome .vv-today{grid-template-columns:1fr}
   .vv-capabilities{grid-template-columns:1fr}
 }
+
+
+/* Interface System 4.0 — navigation intelligence: command palette, recents and favorites. */
+#visionHome .vv-card.is-favorite{box-shadow:inset 0 0 0 1px rgba(224,197,138,.22),0 12px 30px rgba(0,0,0,.16)}
+#visionHome .vv-card.is-favorite::before{content:"★";position:absolute;top:12px;right:12px;color:#e7ca88;font-size:11px;line-height:1}
+#visionHome .vv-card{position:relative}
+.vv-favorite-button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;margin-top:2px;padding:9px 12px;border:1px solid rgba(224,197,138,.20);border-radius:11px;background:rgba(205,178,118,.06);color:#e8cf97;font:750 12px/1.35 system-ui,sans-serif;cursor:pointer}
+.vv-favorite-button:hover{background:rgba(205,178,118,.12);border-color:rgba(224,197,138,.44)}
+#visionHome .vv-today-dynamic{align-content:start}
+#visionHome .vv-mini-list{display:grid;gap:6px;margin-top:2px}
+#visionHome .vv-mini-link{width:100%;min-height:34px;padding:7px 8px;border:1px solid rgba(255,255,255,.055);border-radius:8px;background:rgba(255,255,255,.02);color:#d9ded9;text-align:left;font:650 10px/1.35 system-ui,sans-serif;cursor:pointer;white-space:normal}
+#visionHome .vv-mini-link:hover{border-color:rgba(224,197,138,.25);background:rgba(205,178,118,.06);color:#f2dfb7}
+.vv-palette{width:min(720px,calc(100% - 28px));max-height:min(720px,calc(100dvh - 40px));padding:0;border:1px solid rgba(224,197,138,.24);border-radius:20px;background:#111713;color:#f5f1e9;box-shadow:0 32px 110px rgba(0,0,0,.58);overflow:hidden;font-family:system-ui,sans-serif}
+.vv-palette::backdrop{background:#060908cc;backdrop-filter:blur(9px)}
+.vv-palette-shell{display:grid;grid-template-rows:auto auto minmax(0,1fr);max-height:min(720px,calc(100dvh - 40px))}
+.vv-palette-head{display:flex;align-items:center;gap:12px;padding:18px 18px 13px;border-bottom:1px solid rgba(255,255,255,.07)}
+.vv-palette-mark{display:grid;place-items:center;width:38px;height:38px;border:1px solid rgba(224,197,138,.30);border-radius:11px;background:rgba(205,178,118,.08);color:#e8cb87;font:850 15px/1 system-ui,sans-serif}
+.vv-palette-head>div{display:grid;gap:3px}
+.vv-palette-head strong{font:760 14px/1.35 system-ui,sans-serif}
+.vv-palette-head small{color:#86918a;font:10px/1.4 system-ui,sans-serif}
+.vv-palette-input{height:50px;margin:14px 14px 10px;padding:0 15px;border:1px solid rgba(224,197,138,.16);border-radius:12px;background:#171e1a;color:#fff;font:650 14px/1 system-ui,sans-serif;outline:none}
+.vv-palette-input:focus{border-color:#d9bd7a;box-shadow:0 0 0 3px rgba(217,189,122,.13)}
+.vv-palette-input::placeholder{color:#6f7a73}
+.vv-palette-results{overflow:auto;padding:0 10px 12px}
+.vv-palette-row{width:100%;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:11px;min-height:60px;padding:9px 10px;border:1px solid transparent;border-radius:11px;background:transparent;color:#ece8df;text-align:left;cursor:pointer}
+.vv-palette-row:hover,.vv-palette-row:focus-visible{background:rgba(205,178,118,.07);border-color:rgba(224,197,138,.18);outline:none}
+.vv-palette-icon{display:grid;place-items:center;width:40px;height:40px;border:1px solid rgba(224,197,138,.17);border-radius:11px;background:rgba(205,178,118,.045);color:#e2c27d}
+.vv-palette-icon svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+.vv-palette-copy{display:grid;gap:3px;min-width:0}
+.vv-palette-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:730 12px/1.35 system-ui,sans-serif}
+.vv-palette-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#88948d;font:10px/1.35 system-ui,sans-serif}
+.vv-palette-arrow{color:#9c8960;font-size:15px}
+.vv-palette-empty{margin:16px;padding:18px;border:1px dashed rgba(255,255,255,.10);border-radius:11px;color:#8e9891;text-align:center;font-size:12px}
+.vv-palette button:focus-visible,.vv-favorite-button:focus-visible,#visionHome .vv-mini-link:focus-visible{outline:3px solid #dfc17d;outline-offset:2px}
+@media(max-width:620px){
+  .vv-palette{width:calc(100% - 16px);max-height:calc(100dvh - 16px);border-radius:16px}
+  .vv-palette-shell{max-height:calc(100dvh - 16px)}
+  .vv-palette-row{min-height:64px}
+}
