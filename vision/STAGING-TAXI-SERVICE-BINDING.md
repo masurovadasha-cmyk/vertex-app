@@ -28,6 +28,7 @@ No Taxi credentials or private signing keys are committed to Git. The HTTP fallb
 
 Deploy VISION with `vision/wrangler.jsonc`, then configure:
 - `TAXI_INTEGRATION_URL` as a non-secret staging variable containing only the HTTPS origin (no path, query, credentials or fragment);
+- `TAXI_INTEGRATION_PATH_PREFIX` as `/_api` when the external Taxi runtime is Floot; omit it for a native `/integration/v1` runtime;
 - `TAXI_INTEGRATION_KEY_ID` as a non-secret key identifier;
 - `TAXI_INTEGRATION_PRIVATE_JWK` as a Worker secret.
 
@@ -47,3 +48,16 @@ The request gateway does not by itself complete the reverse event path. The agre
 ## Cross-account staging transport
 
 When Taxi Core is temporarily hosted outside the VISION Cloudflare account, use the HTTPS fallback with the same `/integration/v1` contract. The request signature covers method, path/query, timestamp, tenant, organization, verified user id, caller, the authorization-token hash and body hash. The timestamp window is five minutes. Moving Taxi Core into the same Cloudflare account later changes only the transport to Service Binding; the API and delegated identity contract stay unchanged.
+
+## Floot staging adapter
+
+The current standalone staging runtime is published at `https://vertex-taxi-core-staging.floot.app`.
+Floot exposes server endpoints under `/_api` and does not support dynamic backend route params. When `TAXI_INTEGRATION_PATH_PREFIX=/_api`, VISION adapts the canonical Taxi contract as follows:
+
+- `/integration/v1/capabilities` → `/_api/integration/v1/capabilities`
+- `/integration/v1/health` → `/_api/integration/v1/health`
+- `POST /integration/v1/rides` → `POST /_api/integration/v1/rides`
+- `GET /integration/v1/rides/{ride_id}` → `GET /_api/integration/v1/ride?rideId={ride_id}`
+- `POST /integration/v1/rides/{ride_id}/commands` → `POST /_api/integration/v1/commands` with `rideId` added to the signed JSON body
+
+The P-256 signature always covers the actual outbound Floot path/query and adapted body. Browser/client-facing VISION routes do not change.
