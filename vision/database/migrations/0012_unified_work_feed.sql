@@ -34,7 +34,7 @@ create index vision_approval_assignee_idx
  on public.vision_approval_requests(tenant_id,assigned_user_id,status,created_at desc);
 
 create function vision_private.active_member(t uuid,org uuid,who uuid default vision_private.actor()) returns boolean
-language sql stable security definer set search_path='' as $
+language sql stable security definer set search_path='' as $active_member$
  select vision_private.active_actor(t)
    and exists(
      select 1
@@ -44,7 +44,7 @@ language sql stable security definer set search_path='' as $
      where m.tenant_id=t and m.organization_id=org and m.user_id=who
        and m.status='ACTIVE' and o.status='ACTIVE'
    );
-$;
+$active_member$;
 revoke all on function vision_private.active_member(uuid,uuid,uuid) from public,anon;
 grant execute on function vision_private.active_member(uuid,uuid,uuid) to authenticated;
 
