@@ -117,7 +117,7 @@ export async function handle(request,env,fetcher=fetch){
     const user=await upstreamJSON(identity,65536);
     if(!uuid.test(user.id||''))return reply({error:'unauthorized'},401);
 
-    const taxiTarget=taxiRoute(url.pathname);
+    const taxiTarget=taxiRoute(url.pathname,request.method);
     if(taxiTarget){
       let context;
       try{context=taxiContext(request);}catch(error){
