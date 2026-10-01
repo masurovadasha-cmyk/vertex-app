@@ -1,0 +1,58 @@
+name: VERTEX master live deploy
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'vertex/**'
+      - 'vision/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'wrangler.jsonc'
+      - '.github/workflows/vertex-master-live-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vertex-master-live-deploy
+  cancel-in-progress: false
+
+jobs:
+  verify-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install verification dependencies
+        run: |
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          python -m pip install playwright==1.57.0 beautifulsoup4==4.14.3
+          python -m playwright install --with-deps chromium
+      - name: Verify source before production publish
+        run: |
+          npm test
+          node scripts/check-android-sync.cjs
+          python scripts/browser-vision.py
+          npm run check:deploy
+      - name: Deploy existing vertex-app Worker only
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          npx wrangler deploy --config wrangler.jsonc --keep-vars
+      - name: Verify live master release
+        run: python scripts/browser-vision.py --live
