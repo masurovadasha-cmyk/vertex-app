@@ -1,0 +1,56 @@
+{
+  "id": "vertex-vision-interface-system-8.0",
+  "version": "8.0",
+  "base": "Interface System 7.0",
+  "focus": "Notifications / Escalations / Event-driven Work Updates",
+  "endpoints": {
+    "feed": "/api/v1/notifications",
+    "commands": "/api/v1/notifications/commands"
+  },
+  "sources": {
+    "notifications": "vision_notifications",
+    "escalations": "vision_escalations",
+    "eventInbox": "vision_event_inbox",
+    "eventOutbox": "vision_outbox_events"
+  },
+  "notificationStates": [
+    "UNREAD",
+    "READ",
+    "DISMISSED"
+  ],
+  "escalationStates": [
+    "OPEN",
+    "ACKNOWLEDGED",
+    "RESOLVED"
+  ],
+  "eventConsumer": {
+    "deduplication": "tenant-consumer-event-id",
+    "connected": false
+  },
+  "escalationScheduler": {
+    "reconciliationRpc": "vision_reconcile_escalations",
+    "connected": false
+  },
+  "refresh": {
+    "mode": "polling",
+    "intervalSeconds": 30,
+    "pushSubscription": false
+  },
+  "controls": {
+    "ownNotificationOnly": true,
+    "rls": true,
+    "idempotency": true,
+    "expectedVersion": true,
+    "audit": true,
+    "directClientWritesRevoked": true,
+    "serverDerivedEscalationAck": true
+  },
+  "safety": {
+    "activeModule": "views",
+    "futureModulesOperational": false,
+    "publicBackendConnected": false,
+    "productionChanged": false,
+    "additiveMigrationOnly": true,
+    "fabricatedEvents": false
+  }
+}
