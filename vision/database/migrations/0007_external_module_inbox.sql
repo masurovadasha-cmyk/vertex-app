@@ -233,37 +233,44 @@ begin
         status=case
           when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
             or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.status=public.vision_taxi_ride_projections.status
                 and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
           then excluded.status else public.vision_taxi_ride_projections.status end,
         status_rank=greatest(excluded.status_rank,public.vision_taxi_ride_projections.status_rank),
         source_aggregate_id=case
           when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
             or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.status=public.vision_taxi_ride_projections.status
                 and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
           then excluded.source_aggregate_id else public.vision_taxi_ride_projections.source_aggregate_id end,
         source_aggregate_version=case
           when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
             or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.status=public.vision_taxi_ride_projections.status
                 and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
           then excluded.source_aggregate_version else public.vision_taxi_ride_projections.source_aggregate_version end,
         last_event_id=case
           when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
             or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.status=public.vision_taxi_ride_projections.status
                 and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
           then excluded.last_event_id else public.vision_taxi_ride_projections.last_event_id end,
         last_event_type=case
           when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
             or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.status=public.vision_taxi_ride_projections.status
                 and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
           then excluded.last_event_type else public.vision_taxi_ride_projections.last_event_type end,
         correlation_id=case
           when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
             or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.status=public.vision_taxi_ride_projections.status
                 and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
           then excluded.correlation_id else public.vision_taxi_ride_projections.correlation_id end,
         occurred_at=case
           when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
             or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.status=public.vision_taxi_ride_projections.status
                 and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
           then excluded.occurred_at else public.vision_taxi_ride_projections.occurred_at end,
         updated_at=now();
