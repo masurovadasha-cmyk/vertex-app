@@ -255,3 +255,29 @@ test('Taxi HTTP fallback is P-256 signed and does not use a shared secret', asyn
     globalThis.fetch=priorFetch;
   }
 });
+
+test('Taxi HTTP fallback rejects non-HTTPS or path-bearing origins before network access', async () => {
+  const priorFetch=globalThis.fetch;
+  let called=0;
+  globalThis.fetch=async ()=>{called+=1;throw new Error('must not fetch invalid Taxi origin');};
+  try {
+    for (const value of ['http://taxi-staging.example','https://taxi-staging.example/base','https://user:pass@taxi-staging.example']) {
+      const request=new Request('https://vision-staging.example/api/taxi/capabilities',{
+        headers:{
+          authorization:'Bearer demo',
+          'x-vertex-tenant-id':'00000000-0000-0000-0000-000000000001',
+          'x-vertex-organization-id':'00000000-0000-0000-0000-000000000001',
+        },
+      });
+      const response=await handle(request,{
+        ...signedEnv,
+        TAXI_INTEGRATION_URL:value,
+      },authFetch);
+      assert.equal(response.status,503);
+      assert.deepEqual(await response.json(),{error:'taxi_integration_not_configured'});
+    }
+    assert.equal(called,0);
+  } finally {
+    globalThis.fetch=priorFetch;
+  }
+});
