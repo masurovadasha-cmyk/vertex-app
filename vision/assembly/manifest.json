@@ -1,13 +1,13 @@
 {
   "product": "VERTEX Vision",
   "assembly": "0.1",
-  "architectureVersion": "1.8",
+  "architectureVersion": "1.9",
   "releaseManifest": "vision/release/0.1-RC1.json",
   "platformVersion": "1.16-rc1",
   "apiVersion": "v1",
   "database": {
-    "latestMigration": "0013_work_actions.sql",
-    "migrationsExpected": 13,
+    "latestMigration": "0014_notifications_escalations.sql",
+    "migrationsExpected": 14,
     "sourceOfTruth": "PostgreSQL/Supabase",
     "productionApplied": false
   },
@@ -118,7 +118,11 @@
     "workCommandsEndpoint": "/api/v1/work/commands",
     "workCommandContract": "vision/contracts/work-command.mjs",
     "workAssigneesEndpoint": "/api/v1/work-assignees",
-    "workAssigneesContract": "vision/contracts/work-assignees.mjs"
+    "workAssigneesContract": "vision/contracts/work-assignees.mjs",
+    "notificationFeedEndpoint": "/api/v1/notifications",
+    "notificationFeedContract": "vision/contracts/notification-feed.mjs",
+    "notificationCommandEndpoint": "/api/v1/notifications/commands",
+    "notificationCommandContract": "vision/contracts/notification-command.mjs"
   },
   "readiness": {
     "endpoint": "/readyz",
@@ -133,7 +137,12 @@
       "unified-work-feed",
       "approval-rls",
       "work-command-rpc",
-      "work-assignee-rpc"
+      "work-assignee-rpc",
+      "notifications-table",
+      "escalations-table",
+      "notification-feed-rpc",
+      "notification-command-rpc",
+      "notification-consumer-rpc"
     ],
     "serviceRoleRequired": false
   },
@@ -149,7 +158,9 @@
   "reliability": {
     "outbox": "transactional-at-least-once",
     "inbox": "durable-deduplication-with-lease",
-    "globalExactlyOnce": false
+    "globalExactlyOnce": false,
+    "notificationConsumer": "durable-inbox-deduplicated-not-connected",
+    "escalationScheduler": "reconciliation-rpc-not-connected"
   },
   "productionSafety": {
     "manifest": "vision/production/safety-manifest.json",
@@ -196,7 +207,7 @@
     "activeRuntimeModule": "views",
     "inactiveModules": "coming-soon",
     "integratedAt": "2026-10-01",
-    "experienceIteration": "7.0",
+    "experienceIteration": "8.0",
     "experienceStyle": "Dark Premium Tech Sand",
     "visualReference": "VERTEX VISION dark control-center boards",
     "runtimeEnhancements": [
@@ -219,7 +230,13 @@
       "approval-decisions",
       "sla-state",
       "work-assignee-directory",
-      "live-refresh-polling"
+      "live-refresh-polling",
+      "notification-center",
+      "escalation-center",
+      "event-driven-notification-projection",
+      "notification-inbox",
+      "notification-actions",
+      "escalation-ack"
     ],
     "navigationIntelligence": {
       "commandPalette": true,
@@ -250,6 +267,15 @@
       "serverAuthoritative": true,
       "refreshMode": "polling-30s-not-push",
       "workFeedReadOnly": true
+    },
+    "notifications": {
+      "enabled": true,
+      "feedEndpoint": "/api/v1/notifications",
+      "commandsEndpoint": "/api/v1/notifications/commands",
+      "eventConsumerConnected": false,
+      "escalationSchedulerConnected": false,
+      "refreshMode": "polling-30s-not-push",
+      "fabricatedEvents": false
     }
   }
 }
