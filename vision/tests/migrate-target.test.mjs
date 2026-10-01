@@ -14,7 +14,7 @@ test('checksum migration runner can build N-1 baseline then safely catch up to c
 
   await migrate(db);
   rows=(await db.query('select name from vision_private.schema_migrations order by name')).rows.map(x=>x.name);
-  assert.equal(rows.at(-1),'0016_staging_session_activation.sql');assert.equal(rows.length,16);
+  assert.equal(rows.at(-1),'0017_engineers_module_v0_2.sql');assert.equal(rows.length,17);
   assert.equal((await db.query("select to_regclass('public.vision_event_inbox') is not null ok")).rows[0].ok,true);
   assert.equal((await db.query("select to_regclass('public.vision_approval_requests') is not null ok")).rows[0].ok,true);
   assert.equal((await db.query("select to_regprocedure('public.vision_work_feed(uuid,uuid,integer)') is not null ok")).rows[0].ok,true);
