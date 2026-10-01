@@ -1,5 +1,5 @@
 {
-  "version": "0.3",
+  "version": "0.4",
   "mode": "evidence-only-no-deploy",
   "productionMutationAllowed": false,
   "sourceMustMatchAcrossEvidence": true,
@@ -20,6 +20,10 @@
     {
       "id": "real-staging-auth-e2e",
       "file": "cloud/cloud-e2e.json"
+    },
+    {
+      "id": "background-staging-smoke",
+      "file": "background/background-smoke.json"
     },
     {
       "id": "production-backup-restore",
@@ -50,6 +54,10 @@
       "backupCreated": true,
       "restoreVerified": true,
       "migrationPrefixVerified": true,
+      "productionChanged": false
+    },
+    "backgroundSmoke": {
+      "runtime": "VERTEX VISION Background Operations",
       "productionChanged": false
     }
   },
