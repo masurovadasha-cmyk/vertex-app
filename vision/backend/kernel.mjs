@@ -26,6 +26,18 @@ export function routePlan(url,method){
     if(url.searchParams.size!==2||url.searchParams.getAll('tenant_id').length!==1||url.searchParams.getAll('organization_id').length!==1||!uuid.test(tenant||'')||!uuid.test(organization||''))throw new Error('invalid_context_query');
     return Object.freeze({kind:'context',rpc:'vision_session_context',module:'views',tenant,organization});
   }
+  if(key==='GET /api/v1/work-feed'){
+    const tenant=url.searchParams.get('tenant_id'),organization=url.searchParams.get('organization_id');
+    const limitRaw=url.searchParams.get('limit'),limit=limitRaw==null?50:Number(limitRaw);
+    const allowed=new Set(['tenant_id','organization_id','limit']);
+    if([...url.searchParams.keys()].some(k=>!allowed.has(k))
+      ||url.searchParams.getAll('tenant_id').length!==1
+      ||url.searchParams.getAll('organization_id').length!==1
+      ||url.searchParams.getAll('limit').length>1
+      ||!uuid.test(tenant||'')||!uuid.test(organization||'')
+      ||!Number.isSafeInteger(limit)||limit<1||limit>100)throw new Error('invalid_work_feed_query');
+    return Object.freeze({kind:'work-feed',rpc:'vision_work_feed',module:'core',tenant,organization,limit});
+  }
   if(method==='GET'&&Object.hasOwn(legacyReads,url.pathname)){
     const tenant=url.searchParams.get('tenant_id');
     if(!uuid.test(tenant||''))throw new Error('tenant_id_required');
