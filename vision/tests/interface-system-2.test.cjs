@@ -30,14 +30,14 @@ test('Tech Sand runtime styles keep readable interaction and responsive mobile n
   assert.match(views,/prefers-reduced-motion/);
 });
 
-test('VISION runtime advances to Interface 3 while preserving Views-only activation',()=>{
+test('VISION runtime advances to Interface 4 while preserving Views-only activation',()=>{
   const shell=read('vision/platform/shell.js');
   const registry=read('vision/platform/registry.cjs');
-  assert.match(shell,/visionUi='3\.0'/);
-  assert.match(shell,/Interface 3\.0/);
+  assert.match(shell,/visionUi='4\.0'/);
+  assert.match(shell,/Interface 4\.0/);
   assert.match(shell,/String\(event\.key\)\.toLowerCase\(\)==='k'/);
   assert.match(registry,/REVISION='vision-views-active-rc1'/);
-  assert.match(read('vision/platform/build.cjs'),/UI_CACHE_SUFFIX='interface-3'/);
+  assert.match(read('vision/platform/build.cjs'),/UI_CACHE_SUFFIX='interface-4'/);
   assert.match(registry,/const status=id==='views'\?'active':'coming-soon'/);
 });
 
