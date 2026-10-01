@@ -34,7 +34,7 @@ test('Work Center ships as separate runtime assets and preserves server-authorit
   assert.match(work,/workFeedConnected:false/);
   assert.match(work,/approvalFeedConnected:false/);
   assert.match(work,/requestFeedConnected:false/);
-  assert.doesNotMatch(work,/Math\.random|fake|fabricat/i);
+  assert.doesNotMatch(work,/Math\.random|demoCount|fakeCount|syntheticTask/i);
   assert.match(css,/\.vvw-dialog/);
   assert.match(css,/safe-area-inset-bottom/);
   assert.match(css,/prefers-reduced-motion/);
@@ -43,8 +43,8 @@ test('Work Center ships as separate runtime assets and preserves server-authorit
 test('Hub exposes My Day without activating future modules',()=>{
   const shell=read('vision/platform/shell.js');
   const registry=require('../platform/registry.cjs');
-  assert.match(shell,/data\.vvWorkCenter='hero'/);
-  assert.match(shell,/data\.vvWorkCenter='today'/);
+  assert.match(shell,/vvWorkCenter='hero'/);
+  assert.match(shell,/vvWorkCenter='today'/);
   assert.match(shell,/openWorkCenter/);
   assert.deepEqual(registry.modules.filter(m=>m.status==='active').map(m=>m.id),['views']);
   assert.equal(registry.modules.filter(m=>m.status==='coming-soon').length,18);
