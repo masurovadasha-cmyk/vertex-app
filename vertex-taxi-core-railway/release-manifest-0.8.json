@@ -39,5 +39,23 @@
     "Cloudflare deployment credentials"
   ],
   "productionMasterModified": false,
-  "visionCoupling": "API/events only"
+  "visionCoupling": "API/events only",
+  "verifiedGates": {
+    "goldenE2E": "PASS",
+    "concurrencyReliability": "PASS",
+    "presentationSmoke": "PASS",
+    "migrationPreflight": "PASS",
+    "logicalBackupRestore": "PASS",
+    "failureInjection": "PASS",
+    "notificationWorkerLoad": "PASS",
+    "cloudflareEdgeCI": "PASS"
+  },
+  "backendHardening": {
+    "fencingTokens": true,
+    "conditionalLeaseRelease": true,
+    "sequencedRealtime": true,
+    "notificationOutbox": true,
+    "retryDeadLetter": true,
+    "h3Dispatch": true
+  }
 }
