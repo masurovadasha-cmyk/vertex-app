@@ -6,9 +6,33 @@
   const tx=(ru,en)=>document.documentElement.lang==='en'?en:ru;
   const element=(tag,className,text)=>{const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
   const button=(text,handler,className='vv-button')=>{const node=element('button',className,text);node.type='button';node.onclick=handler;return node;};
-  const home=element('section','vv-home');home.id='visionHome';home.setAttribute('aria-label','VERTEX VISION');document.documentElement.dataset.visionUi='3.0';
+  const home=element('section','vv-home');home.id='visionHome';home.setAttribute('aria-label','VERTEX VISION');document.documentElement.dataset.visionUi='4.0';
   document.querySelector('main').prepend(home);
   const dialog=element('dialog','vv-dialog');dialog.id='visionModuleDialog';document.body.append(dialog);
+  const palette=element('dialog','vv-palette');palette.id='visionCommandPalette';document.body.append(palette);
+  const preferenceKey='vertex.vision.preferences.v1';
+  const readPrefs=()=>{
+    try{
+      const value=JSON.parse(localStorage.getItem(preferenceKey)||'{}');
+      return {
+        favorites:Array.isArray(value.favorites)?value.favorites.filter(id=>core.module(id)).slice(0,12):[],
+        recent:Array.isArray(value.recent)?value.recent.filter(id=>core.module(id)).slice(0,8):[]
+      };
+    }catch{return {favorites:[],recent:[]};}
+  };
+  let prefs=readPrefs();
+  const writePrefs=()=>{try{localStorage.setItem(preferenceKey,JSON.stringify(prefs));}catch{}};
+  const isFavorite=id=>prefs.favorites.includes(id);
+  function rememberRecent(id){
+    prefs.recent=[id,...prefs.recent.filter(item=>item!==id)].slice(0,8);
+    writePrefs();refreshToday();
+  }
+  function toggleFavorite(id){
+    prefs.favorites=isFavorite(id)?prefs.favorites.filter(item=>item!==id):[id,...prefs.favorites].slice(0,12);
+    writePrefs();cards();refreshToday();
+    const control=dialog.querySelector('[data-vv-favorite]');
+    if(control&&control.dataset.vvFavorite===id){control.textContent=isFavorite(id)?tx('★ В избранном','★ Favorited'):tx('☆ В избранное','☆ Add favorite');control.setAttribute('aria-pressed',String(isFavorite(id)));}
+  }
   let lastFocus=null,query='',domain='',activeModule=null;
   const labels={operations:['Операционный центр Views','Views operations'],catalog:['Каталог Views','Views catalog'],host:['Кабинет собственника','Host workspace'],trips:['Мои поездки','My trips'],journey:['План поездки','Journey plan'],packages:['Конструктор турпакета','Package builder'],taxi:['Заказать такси · демо','Request a taxi · demo'],transfer:['Рассчитать трансфер','Estimate a transfer'],concierge:['Консьерж · демо','Concierge · demo'],requests:['Заявки команды · демо','Team requests · demo'],'guest-guide':['Гид гостя','Guest guide'],'service-control':['Контроль сервиса · демо','Service control · demo'],'property-request':['Запрос по недвижимости','Property request'],'engineering-request':['Запрос мастеру','Maintenance request'],'ticket-request':['Запрос билетов','Ticket request'],'cleaning-request':['Запрос уборки','Cleaning request'],'laundry-request':['Запрос в прачечную','Laundry request'],'meal-request':['Запрос питания','Meal request'],'market-request':['Запрос в маркет','Market request'],'bar-request':['Запрос в бар','Bar request']};
   const groups={stays:['Проживание','Stays'],property:['Недвижимость','Property'],travel:['Путешествия','Travel'],mobility:['Транспорт','Mobility'],services:['Сервис','Services'],hospitality:['Питание и торговля','Food & retail'],technology:['Технологии','Technology'],capital:['Инвестиции','Investment'],education:['Обучение','Training']};
@@ -80,6 +104,7 @@
   function close(){dialog.close();activeModule=null;}
   // Escape and native close() must clear state too; a queued close event must not reset a newly opened dialog.
   dialog.addEventListener('close',()=>{if(dialog.open)return;activeModule=null;if(!document.querySelector('dialog[open]')&&lastFocus?.isConnected)lastFocus.focus({preventScroll:true});});
+  palette.addEventListener('close',()=>{if(!document.querySelector('dialog[open]')&&lastFocus?.isConnected)lastFocus.focus({preventScroll:true});});
   function navigate(id,action){
     if(!core.canLaunch(id,action)||!adapters[action])return false;
     if(dialog.open)close();
@@ -88,6 +113,7 @@
   }
   function details(id){
     const module=core.module(id);if(!module)return false;
+    rememberRecent(id);
     activeModule=id;if(!dialog.open)lastFocus=document.activeElement;
     dialog.replaceChildren();
     const top=element('div','vv-dialog-top');const title=element('h2','',module.name);title.id='visionModuleTitle';dialog.setAttribute('aria-labelledby',title.id);
@@ -108,6 +134,8 @@
     const meta=element('dl','vv-meta');
     for(const [label,value] of [[tx('Основа','Foundation'),'VISION Core '+core.coreVersion],[tx('Общие сервисы','Shared services'),tx('Клиенты · заказы · задачи · права · аудит','Customers · orders · tasks · permissions · audit')],[tx('Серверный процесс','Backend workflow'),module.backend==='local-tested'?tx('Views → Cleaning проверен локально; не запущен в облаке','Views → Cleaning tested locally; not running in the cloud'):tx('Планируется','Planned')],[tx('Общая база','Shared database'),tx('Целевая PostgreSQL / Supabase; не подключена','Target: PostgreSQL / Supabase; not connected')]]){meta.append(element('dt','',label),element('dd','',value));}
     dialog.append(meta);
+    const favoriteControl=button(isFavorite(module.id)?tx('★ В избранном','★ Favorited'):tx('☆ В избранное','☆ Add favorite'),()=>toggleFavorite(module.id),'vv-favorite-button');
+    favoriteControl.dataset.vvFavorite=module.id;favoriteControl.setAttribute('aria-pressed',String(isFavorite(module.id)));dialog.append(favoriteControl);
     const actions=element('div','vv-actions');
     if(module.status==='active'){
       for(const action of module.actions){const label=labels[action];if(!label)continue;const node=button(tx(...label),()=>navigate(id,action));node.dataset.vvAction=action;actions.append(node);}
@@ -129,7 +157,7 @@
       const grid=element('div','vv-category-grid');
       for(const m of members){
         const card=button('',()=>details(m.id),'vv-card');card.dataset.vvOpen=m.id;
-        const active=m.status==='active';card.dataset.vvStatus=m.status;if(active)card.classList.add('vv-card-active');
+        const active=m.status==='active';card.dataset.vvStatus=m.status;if(active)card.classList.add('vv-card-active');if(isFavorite(m.id))card.classList.add('is-favorite');
         const head=element('div','vv-card-top');const identity=element('div','vv-card-identity');
         const icon=element('span','vv-card-icon');icon.innerHTML=iconMarkup(m.id);
         identity.append(icon,element('span','vv-card-domain',tx(...groups[m.domain])));
@@ -162,21 +190,54 @@
     const message=element('p','vv-message');message.id='visionMessage';message.setAttribute('role','status');content.append(message);
     const today=element('aside','vv-today');today.setAttribute('aria-label',tx('Сегодня','Today'));
     const todayHead=element('div','vv-today-head');todayHead.append(element('div','', ''),element('h2','',tx('Сегодня','Today')),element('p','',tx('Фокус на важном. Только реальные данные.','Stay focused. Real data only.')));today.append(todayHead);
-    const todayItems=[
-      [tx('Моя работа','My Work'),tx('Нет активных элементов —','No active items —')],
-      [tx('Требует внимания','Attention'),tx('Нет подключённых сигналов —','No connected signals —')],
-      [tx('Недавнее','Recent'),tx('Нет данных —','No data —')],
-      [tx('Избранное','Favorites'),tx('Не выбрано —','Nothing saved —')]
-    ];
-    for(const pair of todayItems){const item=element('div','vv-today-item');item.append(element('strong','',pair[0]),element('span','',pair[1]));today.append(item);}
+    const myWork=element('div','vv-today-item');myWork.append(element('strong','',tx('Моя работа','My Work')),element('span','',tx('Нет подключённых рабочих элементов —','No connected work items —')));today.append(myWork);
+    const attention=element('div','vv-today-item');attention.append(element('strong','',tx('Требует внимания','Attention')),element('span','',tx('Нет подключённых сигналов —','No connected signals —')));today.append(attention);
+    const recentBox=element('div','vv-today-item vv-today-dynamic');recentBox.id='visionRecent';today.append(recentBox);
+    const favoritesBox=element('div','vv-today-item vv-today-dynamic');favoritesBox.id='visionFavorites';today.append(favoritesBox);
     const todayNote=element('div','vv-today-note');todayNote.append(element('strong','','VERTEX VISION'),element('p','',tx('Одна платформа. Независимые направления. Понятный статус каждого модуля.','One platform. Independent directions. Clear status for every module.')));today.append(todayNote);
     workspace.append(content,today);home.append(workspace);
-    cards();
+    cards();refreshToday();
     const brand=document.querySelector('header .brand');if(brand){brand.setAttribute('aria-label','VERTEX VISION');brand.replaceChildren(element('span','mark','v'),element('span','vv-wordmark','VERTEX VISION'));brand.onclick=e=>{e.preventDefault();home.scrollIntoView({block:'start',behavior:'auto'});};}
     const oldTitle=document.getElementById('visionViewsBoundary');if(!oldTitle){const boundary=element('div','vv-views-boundary',tx('VERTEX VISION / VIEWS · Проживание и поездки','VERTEX VISION / VIEWS · Stays & journeys'));boundary.id='visionViewsBoundary';home.after(boundary);}else oldTitle.textContent=tx('VERTEX VISION / VIEWS · Проживание и поездки','VERTEX VISION / VIEWS · Stays & journeys');
   }
-  document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&String(event.key).toLowerCase()==='k'){const search=document.getElementById('visionSearch');if(search&&!document.querySelector('dialog[open]')){event.preventDefault();search.focus({preventScroll:true});search.select();}}});
-  root.VertexVision=Object.freeze({core,navigate,details,home:()=>home.scrollIntoView({block:'start',behavior:'auto'}),adapters:Object.freeze(Object.keys(adapters))});
+  function refreshToday(){
+    const renderList=(id,label,ids,empty)=>{
+      const box=document.getElementById(id);if(!box)return;box.replaceChildren(element('strong','',label));
+      if(!ids.length){box.append(element('span','',empty));return;}
+      const list=element('div','vv-mini-list');
+      for(const moduleId of ids.slice(0,3)){
+        const module=core.module(moduleId);if(!module)continue;
+        const item=button(module.name,()=>details(module.id),'vv-mini-link');item.dataset.vvTodayModule=module.id;list.append(item);
+      }
+      box.append(list);
+    };
+    renderList('visionRecent',tx('Недавнее','Recent'),prefs.recent,tx('Нет данных —','No data —'));
+    renderList('visionFavorites',tx('Избранное','Favorites'),prefs.favorites,tx('Не выбрано —','Nothing saved —'));
+  }
+  function openPalette(){
+    if(dialog.open)close();if(!palette.open)lastFocus=document.activeElement;
+    palette.replaceChildren();
+    const shell=element('div','vv-palette-shell');
+    const head=element('div','vv-palette-head');head.append(element('span','vv-palette-mark','V'),element('div','', ''));
+    const title=element('strong','',tx('Команды и направления','Commands & modules'));const hint=element('small','',tx('Поиск по VERTEX VISION · Esc закрывает','Search VERTEX VISION · Esc closes'));head.lastChild.append(title,hint);shell.append(head);
+    const input=element('input','vv-palette-input');input.type='search';input.maxLength=120;input.placeholder=tx('Найти Views, Engineers, Travel…','Find Views, Engineers, Travel…');input.setAttribute('aria-label',tx('Поиск команд и направлений','Search commands and modules'));shell.append(input);
+    const results=element('div','vv-palette-results');shell.append(results);palette.append(shell);
+    const draw=()=>{
+      const needle=input.value.toLocaleLowerCase().trim();
+      const items=core.modules.filter(m=>[m.id,m.name,m.description.ru,m.description.en].join(' ').toLocaleLowerCase().includes(needle)).slice(0,10);
+      results.replaceChildren();
+      for(const module of items){
+        const row=button('',()=>{palette.close();details(module.id);},'vv-palette-row');row.dataset.vvPaletteModule=module.id;
+        const icon=element('span','vv-palette-icon');icon.innerHTML=iconMarkup(module.id);
+        const copy=element('span','vv-palette-copy');copy.append(element('strong','',module.name),element('small','',module.status==='active'?tx('ACTIVE RC · открыть модуль','ACTIVE RC · open module'):tx('Architecture Ready · preview','Architecture Ready · preview')));
+        row.append(icon,copy,element('span','vv-palette-arrow','↗'));results.append(row);
+      }
+      if(!items.length)results.append(element('p','vv-palette-empty',tx('Ничего не найдено.','No matches.')));
+    };
+    input.oninput=draw;draw();if(!palette.open)palette.showModal();input.focus();
+  }
+  document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&String(event.key).toLowerCase()==='k'){event.preventDefault();if(palette.open){palette.querySelector('input')?.focus();return;}openPalette();}});
+  root.VertexVision=Object.freeze({core,navigate,details,openPalette,home:()=>home.scrollIntoView({block:'start',behavior:'auto'}),adapters:Object.freeze(Object.keys(adapters))});
   render();new MutationObserver(()=>{const opened=dialog.open?activeModule:null;render();if(opened)details(opened);}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
   document.documentElement.dataset.visionReady='true';
   root.dispatchEvent(new CustomEvent('vertex:vision-ready',{detail:{version:core.version}}));
