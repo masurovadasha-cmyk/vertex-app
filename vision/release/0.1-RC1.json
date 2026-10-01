@@ -3,7 +3,7 @@
   "release": "0.1-RC1",
   "platformVersion": "1.16-rc1",
   "api": "v1",
-  "databaseMigration": "0011_event_inbox.sql",
+  "databaseMigration": "0012_unified_work_feed.sql",
   "activeModules": [
     "views"
   ],
@@ -65,8 +65,8 @@
     "sessionPolicy": "server-authoritative-context-from-verified-jwt",
     "cloudStagingVerified": false
   },
-  "architectureVersion": "1.6",
-  "technicalStage": "trusted-release-control-prepared-0.1",
+  "architectureVersion": "1.7",
+  "technicalStage": "unified-work-feed-read-foundation-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -105,7 +105,9 @@
     "traceHeaders": [
       "X-Request-ID",
       "X-Correlation-ID"
-    ]
+    ],
+    "workFeedEndpoint": "/api/v1/work-feed",
+    "workFeedContract": "vision/contracts/work-feed.mjs"
   },
   "runtimeReadiness": {
     "status": "implemented-in-branch",
@@ -118,7 +120,9 @@
       "required-rpcs",
       "rls",
       "views-release-active",
-      "event-inbox"
+      "event-inbox",
+      "unified-work-feed",
+      "approval-rls"
     ],
     "serviceRoleRequired": false,
     "cloudVerified": false
@@ -194,5 +198,19 @@
     "backupPrincipalPolicyVerifiedInRC2": true,
     "candidateControlsPromotionPolicy": false,
     "productionMutationAllowed": false
+  },
+  "unifiedWorkFeed": {
+    "status": "implemented-in-branch",
+    "endpoint": "/api/v1/work-feed",
+    "mode": "read-only",
+    "sources": [
+      "vision_tasks",
+      "vision_orders",
+      "vision_views_cleaning_jobs",
+      "vision_approval_requests"
+    ],
+    "approvalsDecisionCommand": false,
+    "fabricatedData": false,
+    "cloudStagingVerified": false
   }
 }
