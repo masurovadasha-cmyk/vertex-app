@@ -1,4 +1,4 @@
-name: Vertex Taxi Preview APK
+name: Vertex Taxi Presentation APK
 
 on:
   push:
@@ -88,8 +88,8 @@ jobs:
 
           cat > .taxi-apk/app/src/main/res/values/colors.xml <<'EOF'
           <resources>
-              <color name="vertex_background">#111317</color>
-              <color name="vertex_red">#B5282F</color>
+              <color name="vertex_background">#071018</color>
+              <color name="vertex_red">#E7B749</color>
               <color name="vertex_text">#F5F1E8</color>
           </resources>
           EOF
@@ -128,15 +128,15 @@ jobs:
               android:height="108dp"
               android:viewportWidth="108"
               android:viewportHeight="108">
-              <path android:fillColor="#B5282F" android:pathData="M12,12h84v84h-84z"/>
+              <path android:fillColor="#E7B749" android:pathData="M12,12h84v84h-84z"/>
               <path android:fillColor="#F5F1E8" android:pathData="M28,30h52l-22,50h-8z"/>
-              <path android:fillColor="#111317" android:pathData="M43,43h22l-11,25z"/>
+              <path android:fillColor="#071018" android:pathData="M43,43h22l-11,25z"/>
           </vector>
           EOF
 
           cat > .taxi-apk/app/src/main/res/drawable/ic_launcher_background.xml <<'EOF'
           <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-              <solid android:color="#111317"/>
+              <solid android:color="#071018"/>
           </shape>
           EOF
 
@@ -161,7 +161,7 @@ jobs:
               <application
                   android:allowBackup="false"
                   android:usesCleartextTraffic="false"
-                  android:label="Vertex Taxi Preview"
+                  android:label="Vertex Taxi"
                   android:icon="@mipmap/ic_launcher"
                   android:roundIcon="@mipmap/ic_launcher_round"
                   android:theme="@style/Theme.VertexTaxiPreview">
@@ -226,8 +226,8 @@ jobs:
               @SuppressLint("SetJavaScriptEnabled")
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  getWindow().setStatusBarColor(Color.rgb(17, 19, 23));
-                  getWindow().setNavigationBarColor(Color.rgb(17, 19, 23));
+                  getWindow().setStatusBarColor(Color.rgb(7, 16, 24));
+                  getWindow().setNavigationBarColor(Color.rgb(7, 16, 24));
                   webView = new WebView(this);
                   configure(webView, false);
                   setContentView(webView);
@@ -327,7 +327,7 @@ jobs:
                   CookieManager cookies = CookieManager.getInstance();
                   cookies.setAcceptCookie(true);
                   cookies.setAcceptThirdPartyCookies(view, true);
-                  view.setBackgroundColor(Color.rgb(17, 19, 23));
+                  view.setBackgroundColor(Color.rgb(7, 16, 24));
                   if (!popup) {
                       view.addJavascriptInterface(new VertexNativeBridge(), "VertexNative");
                   }
@@ -625,32 +625,44 @@ jobs:
               }
 
               private void postAvailability(boolean online) {
+                  if (!online) return;
                   try {
                       JSONObject payload = new JSONObject();
-                      payload.put("online", online);
-                      if (online) {
-                          payload.put("lat", latitude);
-                          payload.put("lng", longitude);
-                      }
-                      JSONObject superjson = new JSONObject();
-                      superjson.put("json", payload);
-                      request("POST", "/_api/driver/availability", superjson.toString());
+                      payload.put("lat", latitude);
+                      payload.put("lng", longitude);
+                      payload.put("accuracyM", 15);
+                      payload.put("available", true);
+                      org.json.JSONArray classes = new org.json.JSONArray();
+                      classes.put("start");
+                      classes.put("comfort");
+                      classes.put("business");
+                      payload.put("serviceClasses", classes);
+                      request(
+                          "POST",
+                          "/demo/v1/drivers/demo-driver-1/location",
+                          payload.toString()
+                      );
                   } catch (Exception ignored) {
                   }
               }
 
               private void pollForOrder() {
                   try {
-                      String response = request("GET", "/_api/driver/next", null);
+                      String response = request(
+                          "GET",
+                          "/demo/v1/drivers/demo-driver-1/current",
+                          null
+                      );
                       if (response == null || response.isEmpty()) return;
                       JSONObject root = new JSONObject(response);
-                      JSONObject json = root.optJSONObject("json");
-                      if (json == null) return;
-                      JSONObject order = json.optJSONObject("order");
+                      JSONObject order = root.optJSONObject("data");
                       if (order == null) return;
-                      String status = order.optString("status", "");
-                      String rideId = order.optString("rideId", "");
-                      if (!"REQUESTED".equals(status) || rideId.isEmpty()) return;
+                      String status = order.optString("state", "");
+                      String rideId = order.optString("id", "");
+                      if (rideId.isEmpty()) return;
+                      if (!("DRIVER_ASSIGNED".equals(status) ||
+                            "DRIVER_EN_ROUTE".equals(status) ||
+                            "DRIVER_ARRIVED".equals(status))) return;
                       if (rideId.equals(lastRideId)) return;
                       lastRideId = rideId;
                       showOrderNotification(order);
@@ -659,16 +671,16 @@ jobs:
               }
 
               private void showOrderNotification(JSONObject order) {
-                  String pickup = order.optString("pickup", "Точка подачи");
-                  String destination = order.optString("destination", "Точка назначения");
-                  int fareMinor = order.optInt("fareMinor", 0);
+                  String pickup = order.optString("pickup_label", "Точка подачи");
+                  String destination = order.optString("destination_label", "Точка назначения");
+                  int fareMinor = order.optInt("fare_minor", 0);
                   String price = String.format(java.util.Locale.US, "$%.2f", fareMinor / 100.0);
 
                   Intent open = new Intent(this, MainActivity.class);
                   open.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                   PendingIntent pending = PendingIntent.getActivity(
                       this,
-                      order.optString("rideId", "").hashCode(),
+                      order.optString("id", "").hashCode(),
                       open,
                       PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
                   );
@@ -686,7 +698,7 @@ jobs:
                       .build();
                   NotificationManager nm =
                       (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-                  nm.notify(5000 + Math.abs(order.optString("rideId", "").hashCode() % 1000), notification);
+                  nm.notify(5000 + Math.abs(order.optString("id", "").hashCode() % 1000), notification);
               }
 
               @Override
@@ -713,14 +725,14 @@ jobs:
       - name: Prepare deliverable
         run: |
           mkdir -p artifacts
-          cp .taxi-apk/app/build/outputs/apk/debug/app-debug.apk artifacts/Vertex-Taxi-Preview-v0.4.apk
-          sha256sum artifacts/Vertex-Taxi-Preview-v0.4.apk | tee artifacts/Vertex-Taxi-Preview.sha256.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs artifacts/Vertex-Taxi-Preview-v0.4.apk | tee artifacts/apk-signature.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Vertex-Taxi-Preview-v0.4.apk | tee artifacts/apk-badging.txt
+          cp .taxi-apk/app/build/outputs/apk/debug/app-debug.apk artifacts/Vertex-Taxi-Presentation-v0.4.apk
+          sha256sum artifacts/Vertex-Taxi-Presentation-v0.4.apk | tee artifacts/Vertex-Taxi-Preview.sha256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs artifacts/Vertex-Taxi-Presentation-v0.4.apk | tee artifacts/apk-signature.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Vertex-Taxi-Presentation-v0.4.apk | tee artifacts/apk-badging.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Vertex-Taxi-Preview-APK
+          name: Vertex-Taxi-Presentation-APK
           path: artifacts/
           retention-days: 14
           if-no-files-found: error
