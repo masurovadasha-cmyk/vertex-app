@@ -1,0 +1,36 @@
+{
+  "id": "vertex-vision-interface-system-11.0",
+  "version": "11.0",
+  "base": "Interface System 10.0",
+  "focus": "Staging Sign-in / Session Activation / Server-authoritative Workspace Discovery",
+  "auth": {
+    "provider": "supabase",
+    "environment": "staging",
+    "configEndpoint": "/auth-config",
+    "passwordGrant": true,
+    "passwordPersistence": false,
+    "accessTokenPersistence": "memory-only",
+    "refreshTokenPersistence": false
+  },
+  "scopeDiscovery": {
+    "endpoint": "/api/v1/session-scopes",
+    "rpc": "vision_session_scopes",
+    "authority": "verified-jwt-plus-postgresql-rbac-and-guest-links",
+    "clientSuppliedPermissionsTrusted": false,
+    "crossTenantDiscovery": false
+  },
+  "activation": {
+    "target": "VertexVisionViews.configure",
+    "contextEndpoint": "/api/v1/context",
+    "automaticWhenSingleScope": true,
+    "scopeChoiceWhenMultiple": true
+  },
+  "safety": {
+    "activeModule": "views",
+    "futureModulesOperational": false,
+    "demoSignInFallback": false,
+    "productionChanged": false,
+    "masterChanged": false,
+    "realCloudVerified": false
+  }
+}
