@@ -8,7 +8,7 @@ const executable=sql.split('\n').filter(line=>!line.trim().startsWith('--')).joi
 
 test('background staging principal is RPC-only and password-free',()=>{
   assert.match(sql,/rolname='vision_background_staging'/);
-  assert.doesNotMatch(sql,/create\s+role|alter\s+role.*password|password\s+/i);
+  assert.doesNotMatch(executable,/create\s+role|alter\s+role.*password|password\s+/i);
   assert.match(sql,/revoke all on all tables in schema public from vision_background_staging/);
   assert.match(sql,/revoke all on all sequences in schema public from vision_background_staging/);
   assert.match(sql,/revoke all on all functions in schema public from vision_background_staging/);
