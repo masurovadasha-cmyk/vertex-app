@@ -6,6 +6,7 @@ interface __BaseEnv_Env {
 	VISION_ENV: "staging";
 	VERTEX_TAXI_CORE?: Fetcher;
 	TAXI_INTEGRATION_URL?: string;
+	TAXI_INTEGRATION_PATH_PREFIX?: string;
 	TAXI_INTEGRATION_KEY_ID?: string;
 	TAXI_INTEGRATION_PRIVATE_JWK?: string;
 }
