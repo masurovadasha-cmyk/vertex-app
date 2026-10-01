@@ -1,7 +1,7 @@
 {
   "product": "VERTEX Vision",
   "release": "0.1-RC1",
-  "platformVersion": "1.16-rc1",
+  "platformVersion": "1.17-rc1",
   "api": "v1",
   "databaseMigration": "0015_background_runtime.sql",
   "activeModules": [
@@ -66,7 +66,7 @@
     "cloudStagingVerified": false
   },
   "architectureVersion": "2.0",
-  "technicalStage": "background-operations-runtime-0.1",
+  "technicalStage": "system-status-control-center-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -258,5 +258,15 @@
     "escalationSchedulerConnected": false,
     "cloudStagingVerified": false,
     "productionConnected": false
+  },
+  "systemStatus": {
+    "status": "implemented-in-branch",
+    "endpoint": "/system-status",
+    "uiRuntime": "vision/platform/system-status-center.js",
+    "privacy": "non-sensitive-runtime-metadata-only",
+    "readinessSource": "public.vision_runtime_readiness()",
+    "fabricatedFallback": false,
+    "backgroundFlagsFromRuntimeConfig": true,
+    "cloudStagingVerified": false
   }
 }
