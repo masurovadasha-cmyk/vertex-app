@@ -27,7 +27,7 @@ test('candidate release flags stay false while promotion evidence is evaluated e
 
 test('promotion policy forbids deployment side effects and requires same-source evidence',()=>{
   const policy=JSON.parse(fs.readFileSync('vision/production/promotion-policy.json','utf8'));
-  assert.equal(policy.version,'0.3');
+  assert.equal(policy.version,'0.4');
   assert.equal(policy.mode,'evidence-only-no-deploy');
   assert.equal(policy.productionMutationAllowed,false);
   assert.equal(policy.candidateSourceCommitRequired,true);
@@ -40,8 +40,10 @@ test('promotion policy forbids deployment side effects and requires same-source 
   assert.equal(policy.trustedController.pinFirstPartyActionsByCommit,true);
   assert.equal(policy.rules.rc2Safety.backupPrincipalPolicyVerified,true);
   assert.deepEqual(policy.requiredEvidence.map(x=>x.id),[
-    'integrated-assembly','rc2-safety','real-staging-auth-e2e','production-backup-restore'
+    'integrated-assembly','rc2-safety','real-staging-auth-e2e','background-staging-smoke','production-backup-restore'
   ]);
+  assert.equal(policy.rules.backgroundSmoke.runtime,'VERTEX VISION Background Operations');
+  assert.equal(policy.rules.backgroundSmoke.productionChanged,false);
 });
 
 
@@ -69,4 +71,7 @@ test('manual promotion uses protected master as controller and separate immutabl
   assert.match(workflow,/Verify evidence workflow identities before downloading artifacts/);
   assert.match(workflow,/run\.event!=='workflow_dispatch'/);
   assert.match(workflow,/run\.head_branch!=='master'/);
+  assert.match(workflow,/background_smoke_run_id/);
+  assert.match(workflow,/VERTEX VISION Background Staging Smoke/);
+  assert.match(workflow,/Vertex-Vision-Background-Smoke-/);
 });
