@@ -1,0 +1,46 @@
+{
+  "id": "vertex-vision-interface-system-9.0",
+  "version": "9.0",
+  "base": "Interface System 8.0",
+  "focus": "Background Operations Runtime / Notification Drain / SLA Reconciliation",
+  "runtime": {
+    "orchestrator": "vision/runtime/background-operations.mjs",
+    "notificationConsumer": "prepared-not-connected",
+    "escalationScheduler": "prepared-not-connected",
+    "transportInjected": true,
+    "browserCredentialsAccepted": false,
+    "productionConnected": false
+  },
+  "notificationDrain": {
+    "source": "vision_outbox_events",
+    "projection": "vision_notification_consume",
+    "delivery": "at-least-once",
+    "deduplication": "tenant-consumer-event-id",
+    "boundedBatch": true,
+    "maxBatch": 100,
+    "ackAfterConsume": true,
+    "failureIsolation": true
+  },
+  "escalations": {
+    "scope": "tenant+organization",
+    "reconciliationRpc": "vision_reconcile_escalations",
+    "boundedScopeBatch": true,
+    "maxScopes": 500
+  },
+  "safety": {
+    "activeModule": "views",
+    "futureModulesOperational": false,
+    "productionChanged": false,
+    "masterChanged": false,
+    "cloudSecretsCommitted": false,
+    "stagingTransportConnected": false,
+    "fabricatedEvents": false
+  },
+  "nextGate": [
+    "dedicated background principal",
+    "real staging transport adapter",
+    "scheduled staging Worker",
+    "real Supabase Auth + RLS E2E",
+    "consumer and scheduler smoke evidence"
+  ]
+}
