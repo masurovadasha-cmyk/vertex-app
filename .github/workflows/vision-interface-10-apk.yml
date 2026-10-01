@@ -14,6 +14,7 @@ on:
       - 'vision/release/0.1-RC1.json'
       - 'android/app/build.gradle'
       - 'package.json'
+      - 'scripts/browser-vision.py'
       - 'vertex/tools/app-release.test.cjs'
       - 'vision/tools/verify-assembly.mjs'
       - 'vision/wrangler.jsonc'
