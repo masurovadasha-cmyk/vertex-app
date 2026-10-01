@@ -75,3 +75,59 @@ test('manual promotion uses protected master as controller and separate immutabl
   assert.match(workflow,/VERTEX VISION Background Staging Smoke/);
   assert.match(workflow,/Vertex-Vision-Background-Smoke-/);
 });
+
+
+test('promotion evaluator requires successful same-source background staging evidence',()=>{
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'vision-promotion-evidence-'));
+  const sha='a'.repeat(40);
+  try{
+    for(const sub of ['assembly','rc2','cloud','background','backup'])fs.mkdirSync(path.join(dir,sub),{recursive:true});
+    const release=JSON.parse(fs.readFileSync('vision/release/0.1-RC1.json','utf8'));
+    fs.writeFileSync(path.join(dir,'assembly/integrated-assembly.json'),JSON.stringify({
+      sourceCommit:sha,product:'VERTEX Vision',productionChanged:false,
+      architectureVersion:release.architectureVersion,platformVersion:release.platformVersion
+    }));
+    fs.writeFileSync(path.join(dir,'rc2/rc2-safety-report.json'),JSON.stringify({
+      sourceCommit:sha,status:'PASS',backupRestoreVerified:true,migrationSafetyVerified:true,
+      nMinusOneCompatibilityVerified:true,rollbackPolicyVerified:true,productionApproved:false,
+      productionChanged:false,backupPrincipalPolicyVerified:true
+    }));
+    fs.writeFileSync(path.join(dir,'cloud/cloud-e2e.json'),JSON.stringify({
+      sourceCommit:sha,status:'passed',productionChanged:false,
+      architectureVersion:release.architectureVersion,latestMigration:release.databaseMigration
+    }));
+    fs.writeFileSync(path.join(dir,'backup/production-backup-restore.json'),JSON.stringify({
+      sourceCommit:sha,status:'PASS',target:'production',backupCreated:true,restoreVerified:true,
+      migrationPrefixVerified:true,productionChanged:false,targetMigration:release.databaseMigration,
+      backupSourceLatestMigration:release.databaseMigration,restoredLatestMigration:release.databaseMigration
+    }));
+
+    let run=spawnSync(process.execPath,['vision/production/evaluate-promotion.mjs',dir],{
+      encoding:'utf8',env:{...process.env,VISION_PROMOTION_EVIDENCE_DIR:dir,VISION_PROMOTION_CANDIDATE_SHA:sha}
+    });
+    assert.equal(run.status,2);
+    assert.match(run.stdout,/missing_evidence:background-staging-smoke/);
+
+    fs.writeFileSync(path.join(dir,'background/background-smoke.json'),JSON.stringify({
+      sourceCommit:sha,runtime:'VERTEX VISION Background Operations',productionChanged:false,
+      notifications:{claimed:1,processed:0,duplicates:0,failed:1},
+      escalations:{scopes:1,reconciled:1,failed:0}
+    }));
+    run=spawnSync(process.execPath,['vision/production/evaluate-promotion.mjs',dir],{
+      encoding:'utf8',env:{...process.env,VISION_PROMOTION_EVIDENCE_DIR:dir,VISION_PROMOTION_CANDIDATE_SHA:sha}
+    });
+    assert.equal(run.status,2);
+    assert.match(run.stdout,/background_notification_failures/);
+
+    fs.writeFileSync(path.join(dir,'background/background-smoke.json'),JSON.stringify({
+      sourceCommit:sha,runtime:'VERTEX VISION Background Operations',productionChanged:false,
+      notifications:{claimed:1,processed:1,duplicates:0,failed:0},
+      escalations:{scopes:1,reconciled:1,failed:0}
+    }));
+    run=spawnSync(process.execPath,['vision/production/evaluate-promotion.mjs',dir],{
+      encoding:'utf8',env:{...process.env,VISION_PROMOTION_EVIDENCE_DIR:dir,VISION_PROMOTION_CANDIDATE_SHA:sha}
+    });
+    assert.equal(run.status,0,run.stderr||run.stdout);
+    assert.equal(JSON.parse(run.stdout).status,'EVIDENCE_PASS');
+  }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
