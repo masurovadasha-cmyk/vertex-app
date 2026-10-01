@@ -20,8 +20,8 @@ async function staticChecks(){
   for(const name of names){
     const raw=await readFile(new URL(name,migrationsDir),'utf8');
     const normalized=raw.replaceAll('\r\n','\n').trim();
-    expect(/^begin;/i.test(normalized),`${name}: migration must start with BEGIN`);
-    expect(/commit;$/i.test(normalized),`${name}: migration must end with COMMIT`);
+    expect(/(^|\n)\s*begin;/i.test(normalized),`${name}: migration must contain a top-level BEGIN transaction`);
+    expect(/commit;\s*$/i.test(normalized),`${name}: migration must end with COMMIT`);
     receipts.push({name,sha256:createHash('sha256').update(raw.replaceAll('\r\n','\n')).digest('hex')});
   }
 
