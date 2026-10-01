@@ -639,6 +639,192 @@ app.get("/v1/admin/summary", { preHandler: auth }, async () => {
   };
 });
 
+
+async function getDemoRideOrReply(rideId, reply) {
+  const r=await db.query("select * from taxi_rides where id=$1",[rideId]);
+  if(!r.rowCount) {
+    reply.code(404).send({error:"ride_not_found"});
+    return null;
+  }
+  const ride=r.rows[0];
+  if(!String(ride.user_id).startsWith("demo-client-")) {
+    reply.code(403).send({error:"demo_only"});
+    return null;
+  }
+  return ride;
+}
+
+app.get("/demo/v1/rides/:rideId", { preHandler: demoOnly }, async (req, reply) => {
+  const rideId=z.string().uuid().parse(req.params.rideId);
+  const ride=await getDemoRideOrReply(rideId,reply);
+  if(!ride) return;
+  return {data:ride};
+});
+
+app.post("/demo/v1/rides/:rideId/commands", { preHandler: demoOnly }, async (req, reply) => {
+  const rideId=z.string().uuid().parse(req.params.rideId);
+  const input=rideCommandInput.parse(req.body);
+  if(input.actorId){
+    const actor=String(input.actorId);
+    const ok=actor.startsWith("demo-client-") || actor.startsWith("demo-driver-");
+    if(!ok) return reply.code(403).send({error:"demo_identity_required"});
+  }
+  const client=await db.connect();
+  try{
+    await client.query("begin");
+    const current=await client.query("select * from taxi_rides where id=$1 for update",[rideId]);
+    if(!current.rowCount){ await client.query("rollback"); return reply.code(404).send({error:"ride_not_found"}); }
+    const ride=current.rows[0];
+    if(!String(ride.user_id).startsWith("demo-client-")){
+      await client.query("rollback");
+      return reply.code(403).send({error:"demo_only"});
+    }
+    const rule=transitions[input.command];
+    if(input.expectedVersion && Number(ride.version)!==input.expectedVersion){
+      await client.query("rollback");
+      return reply.code(409).send({error:"version_conflict",currentVersion:Number(ride.version)});
+    }
+    if(!rule.from.includes(ride.state)){
+      await client.query("rollback");
+      return reply.code(409).send({error:"invalid_transition",from:ride.state,command:input.command});
+    }
+    const updated=await client.query(
+      "update taxi_rides set state=$2,version=version+1,updated_at=now() where id=$1 returning *",
+      [rideId,rule.to]
+    );
+    const next=updated.rows[0];
+    await client.query(
+      `insert into taxi_outbox(event_type,aggregate_id,aggregate_version,payload,correlation_id)
+       values($1,$2,$3,$4,$5)`,
+      [`taxi.ride.v2.${String(rule.to).toLowerCase()}`,rideId,next.version,
+       JSON.stringify({ride_id:rideId,state:rule.to,actor_id:input.actorId??null,demo:true}),next.correlation_id]
+    );
+    await client.query(
+      `insert into taxi_audit_timeline
+       (ride_id,actor_type,actor_id,action,before_json,after_json,reason,correlation_id)
+       values($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [rideId,input.command.startsWith("DRIVER")?"driver":"user",input.actorId??null,input.command,
+       JSON.stringify({state:ride.state,version:ride.version}),
+       JSON.stringify({state:next.state,version:next.version}),
+       "presentation_demo_command",next.correlation_id]
+    );
+    await client.query("commit");
+    if(["COMPLETED","RIDER_CANCELLED","DRIVER_CANCELLED"].includes(rule.to)){
+      if(next.driver_id) await redis.del(driverLeaseKey(next.driver_id));
+      await redis.del(rideLeaseKey(rideId));
+    }
+    await publishRideEvent(rideId,{type:"ride.state_changed",rideId,state:next.state,version:next.version,demo:true});
+    return {data:next};
+  }catch(error){
+    try{await client.query("rollback");}catch{}
+    throw error;
+  }finally{
+    client.release();
+  }
+});
+
+app.get("/demo/v1/users/:userId/rides", { preHandler: demoOnly }, async (req, reply) => {
+  const userId=assertDemoIdentity(req.params.userId,"user");
+  const r=await db.query(
+    "select * from taxi_rides where user_id=$1 order by created_at desc limit 50",
+    [userId]
+  );
+  return {data:r.rows};
+});
+
+app.get("/demo/v1/drivers/:driverId/current", { preHandler: demoOnly }, async (req) => {
+  const driverId=assertDemoIdentity(req.params.driverId,"driver");
+  const r=await db.query(
+    `select * from taxi_rides where driver_id=$1
+     and state not in ('COMPLETED','RIDER_CANCELLED','DRIVER_CANCELLED','SYSTEM_CANCELLED','NO_DRIVER','EXPIRED')
+     order by updated_at desc limit 1`,
+    [driverId]
+  );
+  return {data:r.rows[0]??null};
+});
+
+app.get("/demo/v1/drivers/:driverId/earnings", { preHandler: demoOnly }, async (req) => {
+  const driverId=assertDemoIdentity(req.params.driverId,"driver");
+  const r=await db.query(
+    `select count(*)::int trips,
+       coalesce(sum(fare_minor),0)::int gross_minor,
+       coalesce(avg(fare_minor),0)::numeric(10,2) avg_fare_minor
+     from taxi_rides where driver_id=$1 and state='COMPLETED'`,
+    [driverId]
+  );
+  const rating=await db.query(
+    "select coalesce(avg(stars),0)::numeric(3,2) rating from taxi_ratings where driver_id=$1",
+    [driverId]
+  );
+  return {data:{...r.rows[0],rating:Number(rating.rows[0]?.rating??0),currency:"USD"}};
+});
+
+app.post("/demo/v1/rides/:rideId/demo-payment", { preHandler: demoOnly }, async (req, reply) => {
+  const rideId=z.string().uuid().parse(req.params.rideId);
+  const body=z.object({last4:z.string().regex(/^\d{4}$/).default("4242")}).parse(req.body??{});
+  const ride=await getDemoRideOrReply(rideId,reply);
+  if(!ride) return;
+  if(ride.state!=="COMPLETED") return reply.code(409).send({error:"ride_not_completed"});
+  const total=Number(ride.fare_minor);
+  const fee=Math.max(20,Math.round(total*0.05));
+  const waiting=0;
+  const subtotal=Math.max(0,total-fee-waiting);
+  const payment=await db.query(
+    `insert into taxi_demo_payments
+     (ride_id,method,last4,status,subtotal_minor,waiting_minor,service_fee_minor,total_minor,currency)
+     values($1,'demo_card',$2,'PAID',$3,$4,$5,$6,$7)
+     on conflict(ride_id) do update set last4=excluded.last4
+     returning *`,
+    [rideId,body.last4,subtotal,waiting,fee,total,ride.currency]
+  );
+  return {data:payment.rows[0]};
+});
+
+app.post("/demo/v1/rides/:rideId/rating", { preHandler: demoOnly }, async (req, reply) => {
+  const rideId=z.string().uuid().parse(req.params.rideId);
+  const body=z.object({
+    userId:z.string().min(1).max(128),
+    stars:z.number().int().min(1).max(5),
+    comment:z.string().max(500).optional(),
+  }).parse(req.body);
+  assertDemoIdentity(body.userId,"user");
+  const ride=await getDemoRideOrReply(rideId,reply);
+  if(!ride) return;
+  if(ride.state!=="COMPLETED") return reply.code(409).send({error:"ride_not_completed"});
+  if(ride.user_id!==body.userId) return reply.code(403).send({error:"forbidden"});
+  const rating=await db.query(
+    `insert into taxi_ratings(ride_id,user_id,driver_id,stars,comment)
+     values($1,$2,$3,$4,$5)
+     on conflict(ride_id) do update set stars=excluded.stars,comment=excluded.comment
+     returning *`,
+    [rideId,body.userId,ride.driver_id,body.stars,body.comment??null]
+  );
+  return {data:rating.rows[0]};
+});
+
+app.get("/demo/v1/admin/summary", { preHandler: demoOnly }, async () => {
+  const states=await db.query(
+    "select state,count(*)::int count from taxi_rides where user_id like 'demo-client-%' group by state"
+  );
+  const total=await db.query(
+    "select count(*)::int rides,coalesce(sum(fare_minor),0)::int gross_minor from taxi_rides where user_id like 'demo-client-%'"
+  );
+  const drivers=(await redis.keys("taxi:driver:demo-driver-*:location")).length;
+  const recent=await db.query(
+    "select * from taxi_rides where user_id like 'demo-client-%' order by created_at desc limit 20"
+  );
+  return {
+    data:{
+      rides:total.rows[0],
+      states:Object.fromEntries(states.rows.map(row=>[row.state,row.count])),
+      onlineDrivers:drivers,
+      recentRides:recent.rows,
+      currency:"USD",
+      demo:true,
+    }
+  };
+});
+
 app.get("/v1/realtime/rides/:rideId", { websocket:true }, (socket, req) => {
   const rideId=req.params.rideId;
   const sub=redis.duplicate();
