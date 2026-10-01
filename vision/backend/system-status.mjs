@@ -11,8 +11,8 @@ export function systemStatusBase(env){
     service:'VERTEX VISION',
     environment:'staging',
     sourceCommit,
-    architectureVersion:'2.0',
-    requiredMigration:'0015_background_runtime.sql',
+    architectureVersion:'2.1',
+    requiredMigration:'0016_staging_session_activation.sql',
     backendConfigured,
     backgroundConsumerConnected:env?.VISION_BACKGROUND_CONSUMER_CONNECTED==='1',
     escalationSchedulerConnected:env?.VISION_ESCALATION_SCHEDULER_CONNECTED==='1'
