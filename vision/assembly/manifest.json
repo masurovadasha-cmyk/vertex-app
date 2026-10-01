@@ -248,7 +248,8 @@
       "requestMutationsEnabled": false,
       "fabricatedMetrics": false,
       "serverAuthoritative": true,
-      "refreshMode": "polling-30s-not-push"
+      "refreshMode": "polling-30s-not-push",
+      "workFeedReadOnly": true
     }
   }
 }
