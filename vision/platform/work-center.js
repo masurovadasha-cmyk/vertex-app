@@ -100,5 +100,6 @@
     ensure();state.lastFocus=document.activeElement;state.tab=tabs().some(([id])=>id===tab)?tab:'today';render();if(!state.dialog.open)state.dialog.showModal();return true;
   }
   function status(){const v=viewsStatus();return {open:!!state.dialog?.open,tab:state.tab,viewsConfigured:v.configured===true,workFeedConnected:false,approvalFeedConnected:false,requestFeedConnected:false};}
+  new MutationObserver(()=>{if(state.dialog?.open)render();}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
   root.VertexVisionWorkCenter=Object.freeze({open,status});
 })(window);
