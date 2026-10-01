@@ -858,24 +858,6 @@ app.get("/v1/realtime/rides/:rideId", { websocket:true }, (socket, req) => {
   });
 });
 
-const publicAssets = new Map([
-  ["/", { file:"../public/index.html", type:"text/html; charset=utf-8" }],
-  ["/index.html", { file:"../public/index.html", type:"text/html; charset=utf-8" }],
-  ["/app.js", { file:"../presentation/app.js", type:"text/javascript; charset=utf-8" }],
-  ["/styles.css", { file:"../public/styles.css", type:"text/css; charset=utf-8" }],
-  ["/manifest.webmanifest", { file:"../public/manifest.webmanifest", type:"application/manifest+json" }],
-  ["/icon.svg", { file:"../public/icon.svg", type:"image/svg+xml" }],
-]);
-
-for (const [route, asset] of publicAssets) {
-  app.get(route, async (_req, reply) => {
-    const content = await fs.readFile(new URL(asset.file, import.meta.url));
-    reply.type(asset.type);
-    reply.header("cache-control", route === "/" || route === "/index.html" ? "no-cache" : "public, max-age=300");
-    return reply.send(content);
-  });
-}
-
 app.setErrorHandler((err, req, reply)=>{
   req.log.error(err);
   if(err?.name==="ZodError") return reply.code(400).send({error:"invalid_request",issues:err.issues});
