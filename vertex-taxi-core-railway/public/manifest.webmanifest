@@ -1,0 +1,10 @@
+{
+  "name": "Vertex Taxi",
+  "short_name": "Vertex Taxi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#071018",
+  "theme_color": "#071018",
+  "description": "Vertex Taxi presentation client, driver and admin experience.",
+  "icons": []
+}
