@@ -1,8 +1,6 @@
 # Vertex Taxi ↔ VERTEX Vision staging gateway
 
-The VISION staging Worker now declares a Cloudflare Service Binding named `VERTEX_TAXI_CORE` targeting `vertex-taxi-core-staging`.
-
-Cloudflare requires the target Worker to exist in the same Cloudflare account before the caller Worker can be deployed with the binding. Therefore this branch is intentionally a **staging integration gate** until the standalone Taxi Core Worker is deployed under that name. The binding is not a browser API and does not grant VISION database access.
+VISION staging supports two mutually compatible server transports. The default `vision/wrangler.jsonc` has no hard Service Binding so cross-account P-256 HTTPS staging can deploy immediately. `vision/wrangler.service-binding.jsonc` adds `VERTEX_TAXI_CORE` targeting `vertex-taxi-core-staging` and is used only after that Worker exists in the same Cloudflare account. Neither transport grants VISION database access.
 
 ## Server gateway
 
@@ -24,13 +22,18 @@ The gateway first authenticates the VISION user against the existing staging ide
 
 No Taxi credentials or private signing keys are committed to Git. The HTTP fallback uses asymmetric P-256 service proof; there is no shared-secret fallback.
 
-## Required Taxi staging deployment
+## Staging deployment modes
 
-Deploy the standalone Taxi Core Worker first as:
+**Cross-account / temporary host**
 
-`vertex-taxi-core-staging`
+Deploy VISION with `vision/wrangler.jsonc`, then configure:
+- `TAXI_INTEGRATION_URL` as a non-secret staging variable;
+- `TAXI_INTEGRATION_KEY_ID` as a non-secret key identifier;
+- `TAXI_INTEGRATION_PRIVATE_JWK` as a Worker secret.
 
-Then deploy this VISION staging Worker. Cloudflare's Service Binding deployment order is target Worker first, caller Worker second.
+**Same Cloudflare account**
+
+Deploy standalone Taxi Core first as `vertex-taxi-core-staging`, then deploy VISION with `vision/wrangler.service-binding.jsonc`. Cloudflare requires the target Worker to exist before the caller Worker with the binding is deployed. The P-256 service proof remains valid and the HTTP URL can be removed.
 
 Production remains unchanged until the staging golden flow passes:
 
