@@ -1,12 +1,12 @@
 {
   "product": "VERTEX Vision",
   "assembly": "0.1",
-  "architectureVersion": "2.1",
+  "architectureVersion": "2.2",
   "releaseManifest": "vision/release/0.1-RC1.json",
   "platformVersion": "1.18-rc1",
   "apiVersion": "v1",
   "database": {
-    "latestMigration": "0016_staging_session_activation.sql",
+    "latestMigration": "0018_engineers_readiness.sql",
     "migrationsExpected": 16,
     "sourceOfTruth": "PostgreSQL/Supabase",
     "productionApplied": false
