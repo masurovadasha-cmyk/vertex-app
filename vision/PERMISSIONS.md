@@ -116,3 +116,15 @@ same verified bearer token and PostgreSQL RLS as the source tables.
 - `vision.approval.decide` is reserved for a later command path. No approval mutation is exposed in this release.
 - `vision_work_feed(uuid,uuid,integer)` is SECURITY INVOKER, so it does not bypass RLS.
 - Work Feed output is projected by `vision/contracts/work-feed.mjs`; unknown fields fail closed.
+
+
+## Work action permissions
+
+Interface System 7 does not let the browser invent task or approval actions. The server derives the action list from current state, actor identity and PostgreSQL permission checks.
+
+- `task_assign` requires `cleaning.order.assign`; the selected assignee must independently have both assigned-task read and update permissions.
+- `task_accept`, `task_wait`, `task_resume`, and `task_submit` require the authenticated actor to be the current assignee with `cleaning.task.update_assigned`.
+- `quality_pass` and `quality_reject` require a different actor with `cleaning.quality.review`.
+- `approval_approve` and `approval_reject` require `vision.approval.decide`; assigned approvals may only be decided by that assignee and a requester cannot decide their own approval.
+- All work mutations use `vision_work_command(jsonb)`, exact idempotency receipts, row locks, Expected-Version checks, audit events and outbox events.
+- Direct browser writes to tasks, approvals, audit, outbox and receipts remain unavailable.
