@@ -62,7 +62,7 @@ declare
   kind text;
   happened timestamptz;
   body jsonb;
-  inserted boolean;
+  inserted_count integer;
   existing public.vision_inbox_events%rowtype;
 begin
   if jsonb_typeof(event)<>'object' then raise exception 'invalid_event'; end if;
@@ -96,6 +96,27 @@ begin
     raise exception 'invalid_event';
   end if;
   if coalesce(body->>'ride_id','')<>aggregate then raise exception 'aggregate_mismatch'; end if;
+  if (kind='taxi.ride.v1.requested' and (
+        nullif(body->>'service_class_id','') is null or nullif(body->>'quote_id','') is null
+      ))
+     or (kind='taxi.ride.v1.driver_assigned' and (
+        nullif(body->>'driver_id','') is null or nullif(body->>'vehicle_id','') is null
+      ))
+     or (kind='taxi.trip.v1.started' and (
+        nullif(body->>'driver_id','') is null or nullif(body->>'started_at','') is null
+      ))
+     or (kind='taxi.trip.v1.completed' and nullif(body->>'completed_at','') is null)
+     or (kind='taxi.ride.v1.cancelled' and nullif(body->>'reason','') is null)
+     or (kind='taxi.payment.v1.completed' and (
+        nullif(body->>'payment_id','') is null
+        or nullif(body->>'currency','') is null
+        or jsonb_typeof(body->'amount_minor')<>'number'
+      ))
+     or (kind='taxi.safety.v1.incident_created' and (
+        nullif(body->>'incident_id','') is null or nullif(body->>'severity','') is null
+      )) then
+    raise exception 'invalid_event_payload';
+  end if;
 
   insert into public.vision_inbox_events(
     event_id,module_id,event_type,schema_version,tenant_id,organization_id,
@@ -103,8 +124,8 @@ begin
   ) values(
     eid,'taxi',kind,schema_v,tenant,org,aggregate,aggregate_v,correlation,happened,body
   ) on conflict(event_id) do nothing;
-  get diagnostics inserted=row_count;
-  if inserted then return true; end if;
+  get diagnostics inserted_count=row_count;
+  if inserted_count=1 then return true; end if;
 
   select * into existing from public.vision_inbox_events where event_id=eid;
   if existing.module_id<>'taxi'
