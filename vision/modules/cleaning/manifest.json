@@ -17,7 +17,11 @@
   "events": [
     "order.assigned",
     "task.completed",
-    "quality.passed"
+    "quality.passed",
+    "task.started",
+    "task.waiting",
+    "task.resumed",
+    "quality.rejected"
   ],
   "workflows": [
     "cleaning-service-v1"
