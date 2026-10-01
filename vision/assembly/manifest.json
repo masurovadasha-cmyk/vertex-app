@@ -184,7 +184,7 @@
     "activeRuntimeModule": "views",
     "inactiveModules": "coming-soon",
     "integratedAt": "2026-10-01",
-    "experienceIteration": "3.0",
+    "experienceIteration": "4.0",
     "experienceStyle": "Dark Premium Tech Sand",
     "visualReference": "VERTEX VISION dark control-center boards",
     "runtimeEnhancements": [
@@ -192,7 +192,21 @@
       "today-panel",
       "inline-line-icons",
       "concept-preview-cards",
-      "dark-views-operations"
-    ]
+      "dark-views-operations",
+      "command-palette",
+      "favorites",
+      "recent-modules"
+    ],
+    "navigationIntelligence": {
+      "commandPalette": true,
+      "shortcuts": [
+        "Ctrl+K",
+        "Cmd+K"
+      ],
+      "localFavorites": true,
+      "localRecents": true,
+      "sensitiveDataStored": false,
+      "backendWorkFeedConnected": false
+    }
   }
 }
