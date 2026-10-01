@@ -6,7 +6,7 @@
   if(!root.document||root.VertexVisionSessionCenter)return;
   const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const T=(ru,en)=>document.documentElement.lang==='en'?en:ru;
-  const E=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[char]));
+  const E=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const state={dialog:null,root:null,lastFocus:null,loading:false,error:null,config:null,token:null,userId:null,scopes:[],activeScope:null,context:null};
 
   function ensure(){
