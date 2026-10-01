@@ -79,28 +79,48 @@ function taxiHttpOrigin(value) {
   }
 }
 
+function taxiHttpPath(prefix,path) {
+  if (prefix===undefined || prefix===null || prefix==='') return path;
+  if (prefix!=='/_api') return null;
+  return prefix + path;
+}
+
 async function taxiFetch(env, path, request, body, userId) {
   const correlationId = request.headers.get('x-vertex-correlation-id') || crypto.randomUUID();
-  const headers = taxiIntegrationHeaders(request, correlationId, userId);
-  if (body !== undefined) headers.set('content-type','application/json');
-  if (!(await signTaxiHeaders(env,path,request.method,headers,body))) return null;
+  const baseHeaders = taxiIntegrationHeaders(request, correlationId, userId);
+  if (body !== undefined) baseHeaders.set('content-type','application/json');
+
+  let mode;
+  let targetPath=path;
+  let origin=null;
+  if (env.VERTEX_TAXI_CORE && typeof env.VERTEX_TAXI_CORE.fetch === 'function') {
+    mode='binding';
+  } else if (env.TAXI_INTEGRATION_URL) {
+    origin=taxiHttpOrigin(env.TAXI_INTEGRATION_URL);
+    targetPath=taxiHttpPath(env.TAXI_INTEGRATION_PATH_PREFIX,path);
+    if (!origin || !targetPath) return null;
+    mode='http';
+  } else {
+    return null;
+  }
+
+  const headers=new Headers(baseHeaders);
+  if (!(await signTaxiHeaders(env,targetPath,request.method,headers,body))) return null;
   const retryable = request.method === 'GET' || Boolean(request.headers.get('idempotency-key'));
   const maxAttempts = retryable ? 3 : 1;
   let lastError;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
-      if (env.VERTEX_TAXI_CORE && typeof env.VERTEX_TAXI_CORE.fetch === 'function') {
-        const target = new Request('https://vertex-taxi-core.internal' + path, {
+      if (mode==='binding') {
+        const target = new Request('https://vertex-taxi-core.internal' + targetPath, {
           method: request.method,
           headers,
           body: body === undefined ? undefined : body,
         });
         const response = await env.VERTEX_TAXI_CORE.fetch(target);
         if (!retryable || ![502,503,504].includes(response.status) || attempt === maxAttempts - 1) return response;
-      } else if (env.TAXI_INTEGRATION_URL) {
-        const origin=taxiHttpOrigin(env.TAXI_INTEGRATION_URL);
-        if (!origin) return null;
-        const response = await fetch(origin + path, {
+      } else {
+        const response = await fetch(origin + targetPath, {
           method: request.method,
           headers,
           body: body === undefined ? undefined : body,
@@ -108,8 +128,6 @@ async function taxiFetch(env, path, request, body, userId) {
           signal: AbortSignal.timeout(2500),
         });
         if (!retryable || ![502,503,504].includes(response.status) || attempt === maxAttempts - 1) return response;
-      } else {
-        return null;
       }
     } catch (error) {
       lastError = error;
