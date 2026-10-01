@@ -85,6 +85,29 @@ function taxiHttpPath(prefix,path) {
   return prefix + path;
 }
 
+function taxiHttpAdapter(prefix,path,body) {
+  if (prefix===undefined || prefix===null || prefix==='') return {path,body};
+  if (prefix!=='/_api') return null;
+  if (path==='/integration/v1/capabilities') return {path:'/_api/integration/v1/capabilities',body};
+  if (path==='/integration/v1/health') return {path:'/_api/integration/v1/health',body};
+  if (path==='/integration/v1/rides') return {path:'/_api/integration/v1/rides',body};
+  const ride=path.match(/^\/integration\/v1\/rides\/([^/]+)$/);
+  if (ride) {
+    return {path:'/_api/integration/v1/ride?rideId='+encodeURIComponent(decodeURIComponent(ride[1])),body};
+  }
+  const command=path.match(/^\/integration\/v1\/rides\/([^/]+)\/commands$/);
+  if (command) {
+    let payload;
+    try { payload=body===undefined?{}:JSON.parse(body); }
+    catch { return null; }
+    return {
+      path:'/_api/integration/v1/commands',
+      body:JSON.stringify({...payload,rideId:decodeURIComponent(command[1])}),
+    };
+  }
+  return null;
+}
+
 async function taxiFetch(env, path, request, body, userId) {
   const correlationId = request.headers.get('x-vertex-correlation-id') || crypto.randomUUID();
   const baseHeaders = taxiIntegrationHeaders(request, correlationId, userId);
@@ -97,8 +120,10 @@ async function taxiFetch(env, path, request, body, userId) {
     mode='binding';
   } else if (env.TAXI_INTEGRATION_URL) {
     origin=taxiHttpOrigin(env.TAXI_INTEGRATION_URL);
-    targetPath=taxiHttpPath(env.TAXI_INTEGRATION_PATH_PREFIX,path);
-    if (!origin || !targetPath) return null;
+    const adapted=taxiHttpAdapter(env.TAXI_INTEGRATION_PATH_PREFIX,path,body);
+    if (!origin || !adapted) return null;
+    targetPath=adapted.path;
+    body=adapted.body;
     mode='http';
   } else {
     return null;
