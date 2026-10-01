@@ -33,11 +33,11 @@ test('Tech Sand runtime styles keep readable interaction and responsive mobile n
 test('VISION runtime advances to Interface 10 while preserving Views-only activation',()=>{
   const shell=read('vision/platform/shell.js');
   const registry=read('vision/platform/registry.cjs');
-  assert.match(shell,/visionUi='8\.0'/);
+  assert.match(shell,/visionUi='10\.0'/);
   assert.match(shell,/Interface 10\.0/);
   assert.match(shell,/String\(event\.key\)\.toLowerCase\(\)==='k'/);
-  assert.match(registry,/REVISION='vision-views-active-rc1'/);
-  assert.match(read('vision/platform/build.cjs'),/UI_CACHE_SUFFIX='interface-8'/);
+  assert.match(registry,/REVISION='vision-interface-10-rc1'/);
+  assert.match(read('vision/platform/build.cjs'),/UI_CACHE_SUFFIX='interface-10'/);
   assert.match(registry,/const status=id==='views'\?'active':'coming-soon'/);
 });
 
