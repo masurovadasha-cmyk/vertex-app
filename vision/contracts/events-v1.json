@@ -64,6 +64,149 @@
         "correlation_id",
         "occurred_at"
       ]
+    },
+    "views.unit.v1.created": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "entity_type",
+        "entity_id",
+        "correlation_id",
+        "occurred_at",
+        "status",
+        "version"
+      ]
+    },
+    "views.guest.v1.created": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "entity_type",
+        "entity_id",
+        "correlation_id",
+        "occurred_at",
+        "status",
+        "version"
+      ]
+    },
+    "views.booking.v1.created": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "entity_type",
+        "entity_id",
+        "correlation_id",
+        "occurred_at",
+        "status",
+        "version"
+      ]
+    },
+    "views.booking.v1.confirmed": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "entity_type",
+        "entity_id",
+        "correlation_id",
+        "occurred_at",
+        "status",
+        "version"
+      ]
+    },
+    "views.booking.v1.checked_in": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "entity_type",
+        "entity_id",
+        "correlation_id",
+        "occurred_at",
+        "status",
+        "version"
+      ]
+    },
+    "views.booking.v1.checked_out": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "entity_type",
+        "entity_id",
+        "correlation_id",
+        "occurred_at",
+        "status",
+        "version"
+      ]
+    },
+    "views.booking.v1.cancelled": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "entity_type",
+        "entity_id",
+        "correlation_id",
+        "occurred_at",
+        "status",
+        "version"
+      ]
+    },
+    "views.maintenance.v1.created": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "entity_type",
+        "entity_id",
+        "correlation_id",
+        "occurred_at",
+        "status",
+        "version"
+      ]
+    },
+    "views.maintenance.v1.assigned": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "entity_type",
+        "entity_id",
+        "correlation_id",
+        "occurred_at",
+        "status",
+        "version"
+      ]
+    },
+    "views.maintenance.v1.started": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "entity_type",
+        "entity_id",
+        "correlation_id",
+        "occurred_at",
+        "status",
+        "version"
+      ]
+    },
+    "views.maintenance.v1.completed": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "entity_type",
+        "entity_id",
+        "correlation_id",
+        "occurred_at",
+        "status",
+        "version"
+      ]
     }
   }
 }
