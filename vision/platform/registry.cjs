@@ -10,7 +10,7 @@
     ['views','Views Hotel & Apartments','stays','Апартаменты, бронирования и кабинет собственника.','Apartments, reservations and host workspace.','demo','local-tested',['catalog','host','trips']],
     ['managing','Vertex Managing IO','property','Управление объектами и контроль сервиса.','Property operations and service oversight.','demo','planned',['host','service-control']],
     ['real-estate','Vertex Real Estate','property','Покупка, продажа и долгосрочная аренда.','Property purchase, sale and long-term rental.','demo','planned',['property-request']],
-    ['engineers','Vertex Engineers','property','Электрика, сантехника и обслуживание объектов.','Electrical, plumbing and property maintenance.','demo','planned',['engineering-request']],
+    ['engineers','VERTEX Engineers','property','Инженерные проекты и обслуживание через отдельный VERTEX Engineers.','Engineering projects and maintenance through standalone VERTEX Engineers.','planned','external-contract',[]],
     ['aura-design','Aura Design Studio','property','Интерьеры, проектирование и дизайн.','Interiors, project planning and design.','planned','planned',[]],
     ['travel','Vertex Travel','travel','Турпакеты, экскурсии и единый план поездки.','Travel packages, excursions and journey planning.','demo','planned',['journey','packages']],
     ['aviation','Vertex Aviation / Авиакасса','travel','Запрос билетов: авиа, железная дорога и автобусы.','Ticket requests for flights, trains and buses.','demo','planned',['ticket-request']],
@@ -37,6 +37,11 @@
       base.integration={type:'external-api',contract:'/integration/v1',databaseAccess:'none',privateStateOwner:'vertex-taxi-core',serviceBindingPreferred:true};
       base.dataBoundary={identity:'vision-core',organization:'vision-core',orders:'external-taxi',tasks:'external-taxi',audit:'vision-core',privateSchema:null};
     }
+    if(id==='engineers'){
+      base.version='0.2.0';
+      base.integration={type:'external-api',contract:'/api/v1/engineers',visionMount:'/engineers',databaseAccess:'none',privateStateOwner:'vertex-engineers-core',connected:false};
+      base.dataBoundary={identity:'vision-core',organization:'vision-core',orders:'external-engineers',tasks:'external-engineers',audit:'vision-core',privateSchema:null};
+    }
     return base;
   });
   function freeze(value){if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;}
@@ -53,6 +58,7 @@
       if(item.mode==='planned'&&item.actions.length)throw new Error('planned_module_cannot_launch');
       if(typeof item.name!=='string'||!item.description?.ru||!item.description?.en)throw new Error('module_copy_required');
       if(item.id==='taxi'&&(!item.integration||item.integration.databaseAccess!=='none'||item.dataBoundary.privateSchema!==null))throw new Error('taxi_private_boundary_violation');
+      if(item.id==='engineers'&&(!item.integration||item.integration.databaseAccess!=='none'||item.integration.connected!==false||item.dataBoundary.privateSchema!==null))throw new Error('engineers_private_boundary_violation');
     }
     return true;
   }
@@ -72,6 +78,6 @@
     module:id=>typeof id==='string'?byId.get(id)||null:null,
     list:domain=>modules.filter(m=>!domain||m.domain===domain),
     canLaunch:(id,action)=>!!byId.get(id)?.actions.includes(action),
-    readiness:()=>({mode:'local-demo',sharedDatabase:'not-connected',authenticated:false,payments:false,notifications:false,productionReady:false,jarvis:'separate-project',taxi:'external-contract'})
+    readiness:()=>({mode:'local-demo',sharedDatabase:'not-connected',authenticated:false,payments:false,notifications:false,productionReady:false,jarvis:'separate-project',taxi:'external-contract',engineers:'external-contract'})
   });
 });
