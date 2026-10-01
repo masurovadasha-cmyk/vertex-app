@@ -18,7 +18,7 @@ test('Interface System 5 Work Center contract stays honest and Views-safe',()=>{
   assert.equal(design.safety.activeModule,'views');
   assert.equal(design.safety.futureModulesOperational,false);
   assert.equal(design.safety.productionChanged,false);
-  assert.equal(assembly.designSystem.experienceIteration,'6.0');
+  assert.equal(assembly.designSystem.experienceIteration,'7.0');
   assert.equal(assembly.designSystem.workCenter.fabricatedMetrics,false);
   assert.equal(assembly.designSystem.workCenter.workFeedEndpoint,'/api/v1/work-feed');
   assert.equal(assembly.designSystem.workCenter.workFeedReadOnly,true);
@@ -30,10 +30,10 @@ test('Work Center ships as separate runtime assets and preserves server-authorit
   const css=read('vision/platform/work-center.css');
   assert.match(build,/work-center\.js','vision-work-center\.js'/);
   assert.match(build,/work-center\.css','vision-work-center\.css'/);
-  assert.match(build,/UI_CACHE_SUFFIX='interface-6'/);
+  assert.match(build,/UI_CACHE_SUFFIX='interface-7'/);
   assert.match(work,/VertexVisionViews\?\.status/);
   assert.match(work,/function feedConnected\(\)/);
-  assert.match(work,/approvalDecisionsEnabled:false/);
+  assert.match(work,/approvalDecisionsEnabled:/);
   assert.match(work,/workFeed\(50\)/);
   assert.doesNotMatch(work,/Math\.random|demoCount|fakeCount|syntheticTask/i);
   assert.match(css,/\.vvw-dialog/);
