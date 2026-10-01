@@ -17,6 +17,8 @@ test('Taxi integration contract requires delegated identity and idempotency for 
   const contract = JSON.parse(fs.readFileSync(path.join(root,'contracts/taxi-integration-v1.json'),'utf8'));
   assert.equal(contract.version, 1);
   assert.equal(contract.authentication.type, 'delegated-identity');
+  assert.equal(contract.authentication.serviceProof.type, 'ecdsa-p256');
+  assert.equal(contract.authentication.serviceProof.sharedSecretFallback, false);
   assert.equal(contract.endpoints.createRide.idempotencyRequired, true);
   assert.equal(contract.endpoints.commandRide.idempotencyRequired, true);
   assert.equal(contract.responseRules.sourceOfTruth, 'vertex-taxi-core');
@@ -28,4 +30,16 @@ test('Taxi event contract is at-least-once and deduplicated by event id', () => 
   assert.equal(contract.envelope.consumerRule, 'deduplicate_by_event_id');
   assert.ok(contract.events['taxi.ride.v1.driver_assigned']);
   assert.ok(contract.events['taxi.payment.v1.completed']);
+});
+
+test('Taxi transport configs keep cross-account staging deployable and pin same-account binding separately', () => {
+  const crossAccount = JSON.parse(fs.readFileSync(path.join(root,'wrangler.jsonc'),'utf8'));
+  const sameAccount = JSON.parse(fs.readFileSync(path.join(root,'wrangler.service-binding.jsonc'),'utf8'));
+  assert.equal(crossAccount.services, undefined);
+  assert.deepEqual(sameAccount.services, [{
+    binding: 'VERTEX_TAXI_CORE',
+    service: 'vertex-taxi-core-staging',
+  }]);
+  assert.equal(crossAccount.name, 'vertex-vision-staging');
+  assert.equal(sameAccount.name, 'vertex-vision-staging');
 });
