@@ -42,6 +42,7 @@ assert.notEqual(staging.name,prod.name);
 assert.equal(staging.vars?.VISION_ENV,'staging');
 assert.ok(staging.assets?.run_worker_first?.includes('/readyz'));
 assert.ok(staging.assets?.run_worker_first?.includes('/system-status'));
+assert.ok(staging.assets?.run_worker_first?.includes('/auth-config'));
 assert.ok(prod.assets?.run_worker_first?.includes('/readyz'));
 assert.equal(assembly.runtimes.productionWorker.approved,false);
 assert.equal(release.productionApproved,false);
@@ -53,10 +54,10 @@ assert.match(gradle,new RegExp("applicationId\\s+'"+assembly.runtimes.android.pa
 assert.match(gradle,new RegExp("versionName\\s+'"+assembly.runtimes.android.versionName.replaceAll('.','\\.')+"'"));
 assert.match(gradle,new RegExp('versionCode\\s+'+assembly.runtimes.android.versionCode+'\\b'));
 
-for(const asset of ['vision-core.js','vision-views.js','vision-work-center.js','vision-notifications.js','vision-shell.js','vision-system-status.js']){
+for(const asset of ['vision-core.js','vision-views.js','vision-work-center.js','vision-notifications.js','vision-shell.js','vision-system-status.js','vision-session.js']){
   assert.ok(index.includes('src="'+asset+'"'),'missing generated runtime '+asset);
 }
-for(const asset of ['vision-views.css','vision-work-center.css','vision-notifications.css','vision-shell.css','vision-system-status.css']){
+for(const asset of ['vision-views.css','vision-work-center.css','vision-notifications.css','vision-shell.css','vision-system-status.css','vision-session.css']){
   assert.ok(index.includes('href="'+asset+'"'),'missing generated stylesheet '+asset);
 }
 const requiredComponents=Object.freeze([
@@ -69,6 +70,8 @@ const requiredComponents=Object.freeze([
   'vision/backend/kernel.mjs',
   'vision/backend/readiness.mjs',
   'vision/backend/system-status.mjs',
+  'vision/backend/auth-config.mjs',
+  'vision/contracts/session-scopes.mjs',
   'vision/modules/views/command-contract.mjs',
   'vision/modules/views/response-contract.mjs',
   'vision/modules/views/manifest.json',
@@ -80,6 +83,8 @@ const requiredComponents=Object.freeze([
   'vision/database/migrations/0012_unified_work_feed.sql',
   'vision/database/migrations/0013_work_actions.sql',
   'vision/database/migrations/0014_notifications_escalations.sql',
+  'vision/database/migrations/0015_background_runtime.sql',
+  'vision/database/migrations/0016_staging_session_activation.sql',
   'vision/contracts/work-feed.mjs',
   'vision/contracts/work-command.mjs',
   'vision/contracts/work-assignees.mjs',
@@ -91,6 +96,8 @@ const requiredComponents=Object.freeze([
   'vision/platform/notifications-center.css',
   'vision/platform/system-status-center.js',
   'vision/platform/system-status-center.css',
+  'vision/platform/session-center.js',
+  'vision/platform/session-center.css',
   'vision/staging/auth.mjs',
   'vision/staging/provision.mjs',
   'vision/staging/cloud-e2e.mjs',
@@ -147,10 +154,17 @@ assert.equal(release.realStagingE2E.genuineSupabaseAuthRequired,true);
 assert.equal(release.realStagingE2E.directRLSVerification,true);
 assert.equal(assembly.readiness.endpoint,'/readyz');
 assert.equal(assembly.kernel.systemStatusEndpoint,'/system-status');
+assert.equal(assembly.kernel.authConfigEndpoint,'/auth-config');
+assert.equal(assembly.kernel.sessionScopesEndpoint,'/api/v1/session-scopes');
 assert.equal(release.systemStatus.endpoint,'/system-status');
 assert.equal(release.systemStatus.fabricatedFallback,false);
 assert.equal(assembly.designSystem.systemStatus.enabled,true);
 assert.equal(assembly.designSystem.systemStatus.secretsExposed,false);
+assert.equal(assembly.designSystem.sessionActivation.enabled,true);
+assert.equal(assembly.designSystem.sessionActivation.tokenPersistence,'memory-only');
+assert.equal(assembly.designSystem.sessionActivation.passwordPersistence,false);
+assert.equal(release.sessionActivation.sessionScopesEndpoint,'/api/v1/session-scopes');
+assert.equal(release.sessionActivation.browserPermissionClaimsTrusted,false);
 assert.equal(assembly.readiness.serviceRoleRequired,false);
 assert.equal(release.runtimeReadiness.rpc,'public.vision_runtime_readiness()');
 assert.equal(release.trustedReleaseControl.status,'implemented-requires-protected-master-controller');
