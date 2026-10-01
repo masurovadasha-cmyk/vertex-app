@@ -109,6 +109,14 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
     assert.equal(guestFeed.approvals.length,0);
     assert.ok(guestFeed.requests.some(x=>x.source_id===order.order_id));
 
+    await db.query("update public.vision_memberships set status='SUSPENDED' where user_id=$1 and organization_id=$2",[viewsManager,views]);
+    const suspendedFeed=(await as(viewsManager,d=>d.query(
+      'select public.vision_work_feed($1,$2,50) feed',[tenant,views]
+    ))).rows[0].feed;
+    assert.equal(suspendedFeed.approvals.length,0);
+    assert.equal(suspendedFeed.requests.length,0);
+    await db.query("update public.vision_memberships set status='ACTIVE' where user_id=$1 and organization_id=$2",[viewsManager,views]);
+
     await denied(()=>as(viewsManager,d=>d.query(
       `insert into public.vision_approval_requests(tenant_id,organization_id,kind,title,assigned_user_id)
        values($1,$2,'manual','forbidden',$3)`,[tenant,views,viewsManager]
