@@ -243,5 +243,20 @@
     "refresh": "polling-30s-not-push",
     "fabricatedEvents": false,
     "cloudStagingVerified": false
+  },
+  "backgroundOperations": {
+    "status": "implemented-in-branch",
+    "runtime": "vision/runtime/background-operations.mjs",
+    "postgresAdapter": "vision/runtime/postgres-background-adapter.mjs",
+    "stagingRunner": "vision/runtime/run-staging-background.mjs",
+    "grantContract": "vision/staging/background-principal-grants.sql",
+    "stagingSmokeWorkflow": ".github/workflows/vision-background-staging-smoke.yml",
+    "principal": "vision_background_staging",
+    "tableAccess": false,
+    "rpcOnly": true,
+    "notificationConsumerConnected": false,
+    "escalationSchedulerConnected": false,
+    "cloudStagingVerified": false,
+    "productionConnected": false
   }
 }
