@@ -154,13 +154,38 @@ async function history(){
  return `<main class="screen">${topbar("History",false)}<div class="list">${rides.length?rides.map(r=>`<div class="row"><div><strong>${r.pickup_label} → ${r.destination_label}</strong><small>${r.state}</small></div><b>${money(r.fare_minor)}</b></div>`).join(""):'<div class="row"><span>No trips yet</span></div>'}</div>${tabs("history")}</main>`
 }
 function wallet(){return `<main class="screen">${topbar("Wallet",false)}<div class="card"><small style="color:var(--muted)">Demo balance</small><div class="trip-price">$120.00</div></div><div class="list" style="margin-top:14px"><div class="row"><span>Visa •••• 4242</span><b class="green">Demo</b></div><div class="row"><span>Add payment method</span><b>›</b></div></div>${tabs("wallet")}</main>`}
-function profile(){return `<main class="screen">${topbar("Profile",false)}<div class="card driver-card"><div class="driver-face">V</div><div><strong>Vertex Demo User</strong><small>${state.role}</small></div><span class="role-chip">staging</span></div><h3>Presentation roles</h3><div class="role-switch"><button data-role="client">Client</button><button data-role="driver">Driver</button><button data-role="admin">Admin</button></div><div class="list" style="margin-top:16px"><button data-screen="login"><span>Sign out</span><b>›</b></button></div>${tabs("profile",state.role==="driver"?"driver":"client")}</main>`}
+function profile(){return `<main class="screen">${topbar("Profile",false)}<div class="card driver-card"><div class="driver-face">V</div><div><strong>Vertex Demo User</strong><small>${state.role}</small></div><span class="role-chip">staging</span></div><h3>Presentation roles</h3><div class="role-switch"><button data-role="client">Client</button><button data-role="driver">Driver</button><button data-role="staff">Staff</button><button data-role="moderator">Moderator</button><button data-role="admin">Admin</button></div><div class="list" style="margin-top:16px"><button data-screen="login"><span>Sign out</span><b>›</b></button></div>${tabs("profile",state.role==="driver"?"driver":"client")}</main>`}
 async function admin(){
  let d={onlineDrivers:2,rides:{rides:0,gross_minor:0},states:{},recentRides:[]};try{d=(await api("/demo/v1/admin/summary")).data}catch{}
  const completed=d.states?.COMPLETED||0;
- return `<main class="screen no-tabs">${topbar("",false)}<div class="brand" style="margin-bottom:18px"><span class="vmark">V</span>VERTEX TAXI <span class="role-chip">ADMIN</span></div><div class="grid2"><div class="metric"><b class="green">${d.onlineDrivers}</b><span>Active Drivers</span></div><div class="metric"><b>${d.rides?.rides||0}</b><span>Orders</span></div><div class="metric"><b>${completed}</b><span>Completed</span></div><div class="metric"><b class="gold">${money(d.rides?.gross_minor||0)}</b><span>Demo Revenue</span></div></div><div class="list" style="margin-top:16px">${["Live Map","Drivers","Orders","Users","Payments","Support","Analytics","Settings"].map(x=>`<div class="row"><span>${x}</span><b>›</b></div>`).join("")}</div><button class="outline-btn" style="margin-top:16px" data-role="client">Exit admin</button></main>`
+ const items=["Live Map","Drivers","Orders","Users","Payments","Support","Analytics","Settings"];
+ return `<main class="screen no-tabs">${topbar("",false)}<div class="brand" style="margin-bottom:18px"><span class="vmark">V</span>VERTEX TAXI <span class="role-chip">ADMIN</span></div><div class="grid2"><div class="metric"><b class="green">${d.onlineDrivers}</b><span>Active Drivers</span></div><div class="metric"><b>${d.rides?.rides||0}</b><span>Orders</span></div><div class="metric"><b>${completed}</b><span>Completed</span></div><div class="metric"><b class="gold">${money(d.rides?.gross_minor||0)}</b><span>Demo Revenue</span></div></div><div class="list" style="margin-top:16px">${items.map(x=>`<button data-admin-section="${x}"><span>${x}</span><b>›</b></button>`).join("")}</div><button class="outline-btn" style="margin-top:16px" data-role="client">Exit admin</button></main>`
 }
 function driverOrders(){return `<main class="screen">${topbar("Orders",false)}<div class="list"><div class="row"><div><strong>Current / recent demo order</strong><small>${state.ride?.state||"No active order"}</small></div><b>›</b></div></div>${tabs("driverOrders","driver")}</main>`}
+
+async function adminDetail(){
+ const section=state.adminSection||"Overview";
+ let d={onlineDrivers:0,rides:{rides:0,gross_minor:0},states:{},recentRides:[]};try{d=(await api("/demo/v1/admin/summary")).data}catch{}
+ const demoRows={
+   "Live Map":[["demo-driver-1","Online · Central Tashkent"],["demo-driver-2","Online · Tashkent City"]],
+   "Drivers":[["demo-driver-1","Active"],["demo-driver-2","Active"]],
+   "Users":[["demo-client-presentation-web","Client"],["demo-client-ci","Client"],["demo-driver-1","Driver"]],
+   "Payments":[["Demo card •••• 4242","PAID"],["Real processing","Disabled in staging"]],
+   "Support":[["VT-SUP-01","Trip assistance · open"],["VT-SUP-02","Driver verification · review"]],
+   "Analytics":[["Total demo rides",String(d.rides?.rides||0)],["Gross demo volume",money(d.rides?.gross_minor||0)]],
+   "Settings":[["Environment","Railway staging"],["Real payments","Disabled"],["Production dispatch","Disabled"]],
+ };
+ const rows=section==="Orders"?(d.recentRides||[]).slice(0,12).map(r=>[String(r.id).slice(0,8),r.state+" · "+money(r.fare_minor)]):(demoRows[section]||[]);
+ return `<main class="screen no-tabs">${topbar(section,true)}${section==="Live Map"?mapHtml(""):""}<div class="list" style="margin-top:14px">${rows.length?rows.map(([a,b])=>`<div class="row"><div><strong>${a}</strong><small>${b}</small></div><b>›</b></div>`).join(""):'<div class="row"><span>No demo records</span></div>'}</div><button class="outline-btn" style="margin-top:16px" data-screen="admin">Back to Admin</button></main>`
+}
+
+function staff(){
+ return `<main class="screen no-tabs">${topbar("",false)}<div class="brand"><span class="vmark">V</span>VERTEX OPERATIONS <span class="role-chip">STAFF</span></div><h2 class="serif" style="font-size:30px">Operations shift</h2><div class="grid2"><div class="metric"><b class="green">2</b><span>Drivers online</span></div><div class="metric"><b>${state.ride?.state?"1":"0"}</b><span>Active demo rides</span></div><div class="metric"><b>0</b><span>Critical incidents</span></div><div class="metric"><b>99.9%</b><span>Core health</span></div></div><div class="list" style="margin-top:16px"><div class="row"><span>Ride monitoring</span><b>›</b></div><div class="row"><span>Driver support</span><b>›</b></div><div class="row"><span>Fleet checks</span><b>›</b></div></div><button class="outline-btn" style="margin-top:16px" data-screen="profile">Role switch</button></main>`
+}
+
+function moderator(){
+ return `<main class="screen no-tabs">${topbar("",false)}<div class="brand"><span class="vmark">V</span>VERTEX TRUST <span class="role-chip">MODERATOR</span></div><h2 class="serif" style="font-size:30px">Driver verification</h2><div class="card"><strong>Aziz R.</strong><p style="color:var(--muted)">Tashkent · Leapmotor C01 · Documents submitted</p><div class="grid2"><button class="outline-btn" data-mod-action="reject">Reject</button><button class="gold-btn" data-mod-action="approve">Approve</button></div></div><div id="mod-result" class="notice">Presentation-only moderation adapter</div><button class="outline-btn" style="margin-top:16px" data-screen="profile">Role switch</button></main>`
+}
 
 async function render(){
  destroyMap();
@@ -179,6 +204,9 @@ async function render(){
  else if(state.screen==="wallet")html=wallet();
  else if(state.screen==="profile")html=profile();
  else if(state.screen==="admin")html=await admin();
+ else if(state.screen==="adminDetail")html=await adminDetail();
+ else if(state.screen==="staff")html=staff();
+ else if(state.screen==="moderator")html=moderator();
  else if(state.screen==="driverOrders")html=driverOrders();
  app.innerHTML=`<div class="app">${html}</div>`;
  bind();
@@ -190,9 +218,9 @@ async function render(){
 }
 function bind(){
  document.querySelectorAll("[data-screen]").forEach(b=>b.onclick=()=>setScreen(b.dataset.screen));
- document.querySelectorAll("[data-back]").forEach(b=>b.onclick=()=>history.back?.()||setScreen("home"));
+ document.querySelectorAll("[data-back]").forEach(b=>b.onclick=()=>setScreen(state.role==="driver"?"driverHome":state.role==="admin"?"admin":state.role==="staff"?"staff":state.role==="moderator"?"moderator":"home"));
  document.querySelectorAll("[data-login]").forEach(b=>b.onclick=()=>{state.role="client";setScreen("home")});
- document.querySelectorAll("[data-role]").forEach(b=>b.onclick=()=>{state.role=b.dataset.role;setScreen(state.role==="driver"?"driverEntry":state.role==="admin"?"admin":"home")});
+ document.querySelectorAll("[data-role]").forEach(b=>b.onclick=()=>{state.role=b.dataset.role;if(state.role==="driver")setScreen("driverEntry");else if(state.role==="admin")setScreen("admin");else if(state.role==="staff")setScreen("staff");else if(state.role==="moderator")setScreen("moderator");else if(state.role==="client"&&state.ride?.state==="COMPLETED")setScreen("payment");else setScreen("home")});
  document.querySelectorAll("[data-tariff]").forEach(b=>b.onclick=()=>{state.tariff=b.dataset.tariff;render()});
  document.querySelector("[data-location]")?.addEventListener("click",useLocation);
  document.querySelector("[data-order]")?.addEventListener("click",createClientRide);
@@ -204,6 +232,13 @@ function bind(){
  document.querySelectorAll("[data-driver-command]").forEach(b=>b.onclick=()=>driverCommand(b.dataset.driverCommand));
  document.querySelectorAll("[data-star]").forEach(b=>b.onclick=()=>{state.stars=Number(b.dataset.star);render()});
  document.querySelector("[data-rate]")?.addEventListener("click",submitRating);
+ document.querySelectorAll("[data-admin-section]").forEach(b=>b.onclick=()=>{state.adminSection=b.dataset.adminSection;setScreen("adminDetail")});
+ document.querySelectorAll("[data-mod-action]").forEach(b=>b.onclick=()=>{const el=document.querySelector("#mod-result");if(el){el.className=b.dataset.modAction==="approve"?"success":"error";el.textContent=b.dataset.modAction==="approve"?"Driver approved in presentation mode":"Driver rejected in presentation mode"}});
+ try{
+   const native=window.VertexNative;
+   const driverOnline=state.role==="driver"&&["driverHome","driverOrder","driverNav","earnings","driverOrders"].includes(state.screen);
+   native?.setDriverOnline?.(driverOnline);
+ }catch{}
  if(state.screen==="trip"&&state.ride?.state==="COMPLETED")setTimeout(()=>setScreen("payment"),200);
 }
 window.addEventListener("popstate",()=>{if(state.screen!=="splash")setScreen("home")});
