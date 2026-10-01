@@ -1,0 +1,66 @@
+name: Vertex Taxi Notification Load
+
+on:
+  push:
+    branches: [vertex-taxi-core-railway-staging]
+    paths:
+      - 'vertex-taxi-core-railway/migrations/**'
+      - '.github/workflows/vertex-taxi-notification-load.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  notification-load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: vertex
+          POSTGRES_PASSWORD: vertex
+          POSTGRES_DB: vertex_taxi
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vertex -d vertex_taxi"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGPASSWORD: vertex
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migrations and seed 500 notifications
+        run: |
+          set -euo pipefail
+          for f in vertex-taxi-core-railway/migrations/*.sql; do
+            psql -h 127.0.0.1 -U vertex -d vertex_taxi -v ON_ERROR_STOP=1 -f "$f"
+          done
+          psql -h 127.0.0.1 -U vertex -d vertex_taxi -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO taxi_notification_outbox(event_id,user_id,channel,notification_type,title,body,data)
+          SELECT gen_random_uuid(),'load-driver-'||g,'push','DRIVER_OFFER','Load offer','Load test','{}'::jsonb
+          FROM generate_series(1,500) g;
+          SQL
+      - name: Simulate 10 concurrent workers with SKIP LOCKED
+        run: |
+          cat > /tmp/worker.sql <<'SQL'
+          WITH claimed AS (
+            SELECT id FROM taxi_notification_outbox
+            WHERE state='PENDING'
+            ORDER BY created_at
+            FOR UPDATE SKIP LOCKED
+            LIMIT 50
+          )
+          UPDATE taxi_notification_outbox o
+          SET state='DELIVERED',attempt_count=attempt_count+1,delivered_at=now()
+          FROM claimed c WHERE o.id=c.id;
+          SQL
+          for i in $(seq 1 10); do
+            psql -h 127.0.0.1 -U vertex -d vertex_taxi -v ON_ERROR_STOP=1 -f /tmp/worker.sql &
+          done
+          wait
+      - name: Verify no duplicate or missed delivery
+        run: |
+          test "$(psql -h 127.0.0.1 -U vertex -d vertex_taxi -Atc "select count(*) from taxi_notification_outbox where state='DELIVERED'")" = "500"
+          test "$(psql -h 127.0.0.1 -U vertex -d vertex_taxi -Atc "select count(*) from taxi_notification_outbox where attempt_count<>1")" = "0"
+          test "$(psql -h 127.0.0.1 -U vertex -d vertex_taxi -Atc "select count(*) from taxi_notification_outbox where state<>'DELIVERED'")" = "0"
