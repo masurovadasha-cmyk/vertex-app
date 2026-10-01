@@ -73,8 +73,8 @@ jobs:
                   applicationId = "com.vertex.taxi.preview"
                   minSdk = 26
                   targetSdk = 35
-                  versionCode = 1
-                  versionName = "0.1-preview"
+                  versionCode = 2
+                  versionName = "0.2-preview"
               }
 
               buildTypes {
@@ -146,10 +146,17 @@ jobs:
                   <activity
                       android:name=".MainActivity"
                       android:exported="true"
+                      android:launchMode="singleTask"
                       android:screenOrientation="portrait">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN"/>
                           <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                      <intent-filter>
+                          <action android:name="android.intent.action.VIEW"/>
+                          <category android:name="android.intent.category.DEFAULT"/>
+                          <category android:name="android.intent.category.BROWSABLE"/>
+                          <data android:scheme="com.vertex.taxi.preview" android:host="bridge"/>
                       </intent-filter>
                   </activity>
               </application>
@@ -162,8 +169,11 @@ jobs:
           import android.annotation.SuppressLint;
           import android.app.Activity;
           import android.app.Dialog;
+          import android.content.Intent;
           import android.graphics.Color;
+          import android.net.Uri;
           import android.os.Bundle;
+          import android.util.Base64;
           import android.view.ViewGroup;
           import android.webkit.CookieManager;
           import android.webkit.WebChromeClient;
@@ -171,10 +181,15 @@ jobs:
           import android.webkit.WebSettings;
           import android.webkit.WebView;
           import android.webkit.WebViewClient;
+          import org.json.JSONObject;
+          import java.nio.charset.StandardCharsets;
 
           public class MainActivity extends Activity {
               private static final String HOME = "https://vertex-taxi-core-staging.floot.app";
+              private static final String APP_HOST = "vertex-taxi-core-staging.floot.app";
+              private static final String APP_SCHEME = "com.vertex.taxi.preview";
               private WebView webView;
+              private Dialog oauthDialog;
 
               @Override
               @SuppressLint("SetJavaScriptEnabled")
@@ -183,14 +198,62 @@ jobs:
                   getWindow().setStatusBarColor(Color.rgb(17, 19, 23));
                   getWindow().setNavigationBarColor(Color.rgb(17, 19, 23));
                   webView = new WebView(this);
-                  configure(webView);
+                  configure(webView, false);
                   setContentView(webView);
                   if (savedInstanceState == null) webView.loadUrl(HOME);
                   else webView.restoreState(savedInstanceState);
+                  handleDeepLink(getIntent());
+              }
+
+              @Override
+              protected void onNewIntent(Intent intent) {
+                  super.onNewIntent(intent);
+                  setIntent(intent);
+                  handleDeepLink(intent);
+              }
+
+              private void handleDeepLink(Intent intent) {
+                  if (intent == null) return;
+                  Uri data = intent.getData();
+                  if (data == null) return;
+                  if (!APP_SCHEME.equalsIgnoreCase(data.getScheme())) return;
+                  if (!"bridge".equalsIgnoreCase(data.getHost())) return;
+
+                  String payload = data.getQueryParameter("payload");
+                  if (payload == null || payload.isEmpty()) return;
+
+                  try {
+                      String normalized = payload.replace('-', '+').replace('_', '/');
+                      int padding = (4 - (normalized.length() % 4)) % 4;
+                      normalized = normalized + "====".substring(0, padding);
+                      byte[] decoded = Base64.decode(normalized, Base64.DEFAULT);
+                      String json = new String(decoded, StandardCharsets.UTF_8);
+                      String script =
+                          "window.postMessage(JSON.parse(" + JSONObject.quote(json) + "), window.location.origin);";
+                      webView.post(() -> webView.evaluateJavascript(script, null));
+                  } catch (Exception ignored) {
+                  }
+
+                  if (oauthDialog != null) {
+                      oauthDialog.dismiss();
+                      oauthDialog = null;
+                  }
+              }
+
+              private boolean shouldOpenExternally(Uri uri, boolean popup) {
+                  if (!"https".equalsIgnoreCase(uri.getScheme())) return false;
+                  String host = uri.getHost();
+                  if (host == null) return false;
+                  return popup && !APP_HOST.equalsIgnoreCase(host);
+              }
+
+              private void openExternal(Uri uri) {
+                  Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+                  startActivity(intent);
               }
 
               @SuppressLint("SetJavaScriptEnabled")
-              private void configure(WebView view) {
+              private void configure(WebView view, boolean popup) {
                   WebSettings settings = view.getSettings();
                   settings.setJavaScriptEnabled(true);
                   settings.setDomStorageEnabled(true);
@@ -201,7 +264,7 @@ jobs:
                   settings.setSupportMultipleWindows(true);
                   settings.setJavaScriptCanOpenWindowsAutomatically(true);
                   settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-                  settings.setUserAgentString(settings.getUserAgentString() + " VertexTaxiPreview/0.1");
+                  settings.setUserAgentString(settings.getUserAgentString() + " VertexTaxiPreview/0.2");
 
                   CookieManager cookies = CookieManager.getInstance();
                   cookies.setAcceptCookie(true);
@@ -211,39 +274,74 @@ jobs:
                   view.setWebViewClient(new WebViewClient() {
                       @Override
                       public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest request) {
-                          return !"https".equalsIgnoreCase(request.getUrl().getScheme());
+                          Uri uri = request.getUrl();
+                          if (shouldOpenExternally(uri, popup)) {
+                              openExternal(uri);
+                              return true;
+                          }
+                          if ("https".equalsIgnoreCase(uri.getScheme())) return false;
+                          return true;
                       }
                   });
 
                   view.setWebChromeClient(new WebChromeClient() {
                       @Override
                       @SuppressLint("SetJavaScriptEnabled")
-                      public boolean onCreateWindow(WebView parent, boolean isDialog, boolean isUserGesture, android.os.Message resultMsg) {
-                          final Dialog dialog = new Dialog(MainActivity.this, android.R.style.Theme_Material_Light_NoActionBar);
-                          final WebView popup = new WebView(MainActivity.this);
-                          configure(popup);
-                          dialog.setContentView(popup, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-                          dialog.setOnDismissListener(d -> popup.destroy());
-                          popup.setWebChromeClient(new WebChromeClient() {
-                              @Override public void onCloseWindow(WebView window) { dialog.dismiss(); }
+                      public boolean onCreateWindow(
+                          WebView parent,
+                          boolean isDialog,
+                          boolean isUserGesture,
+                          android.os.Message resultMsg
+                      ) {
+                          oauthDialog = new Dialog(
+                              MainActivity.this,
+                              android.R.style.Theme_Material_Light_NoActionBar
+                          );
+                          final WebView popupView = new WebView(MainActivity.this);
+                          configure(popupView, true);
+                          oauthDialog.setContentView(
+                              popupView,
+                              new ViewGroup.LayoutParams(
+                                  ViewGroup.LayoutParams.MATCH_PARENT,
+                                  ViewGroup.LayoutParams.MATCH_PARENT
+                              )
+                          );
+                          oauthDialog.setOnDismissListener(d -> popupView.destroy());
+                          popupView.setWebChromeClient(new WebChromeClient() {
+                              @Override
+                              public void onCloseWindow(WebView window) {
+                                  if (oauthDialog != null) {
+                                      oauthDialog.dismiss();
+                                      oauthDialog = null;
+                                  }
+                              }
                           });
-                          WebView.WebViewTransport transport = (WebView.WebViewTransport) resultMsg.obj;
-                          transport.setWebView(popup);
+                          WebView.WebViewTransport transport =
+                              (WebView.WebViewTransport) resultMsg.obj;
+                          transport.setWebView(popupView);
                           resultMsg.sendToTarget();
-                          dialog.show();
+                          oauthDialog.show();
                           return true;
                       }
                   });
               }
 
-              @Override protected void onSaveInstanceState(Bundle outState) {
+              @Override
+              protected void onSaveInstanceState(Bundle outState) {
                   webView.saveState(outState);
                   super.onSaveInstanceState(outState);
               }
 
-              @Override public void onBackPressed() {
-                  if (webView != null && webView.canGoBack()) webView.goBack();
-                  else super.onBackPressed();
+              @Override
+              public void onBackPressed() {
+                  if (oauthDialog != null && oauthDialog.isShowing()) {
+                      oauthDialog.dismiss();
+                      oauthDialog = null;
+                  } else if (webView != null && webView.canGoBack()) {
+                      webView.goBack();
+                  } else {
+                      super.onBackPressed();
+                  }
               }
           }
           EOF
@@ -255,10 +353,10 @@ jobs:
       - name: Prepare deliverable
         run: |
           mkdir -p artifacts
-          cp .taxi-apk/app/build/outputs/apk/debug/app-debug.apk artifacts/Vertex-Taxi-Preview.apk
-          sha256sum artifacts/Vertex-Taxi-Preview.apk | tee artifacts/Vertex-Taxi-Preview.sha256.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs artifacts/Vertex-Taxi-Preview.apk | tee artifacts/apk-signature.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Vertex-Taxi-Preview.apk | tee artifacts/apk-badging.txt
+          cp .taxi-apk/app/build/outputs/apk/debug/app-debug.apk artifacts/Vertex-Taxi-Preview-v0.2.apk
+          sha256sum artifacts/Vertex-Taxi-Preview-v0.2.apk | tee artifacts/Vertex-Taxi-Preview.sha256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs artifacts/Vertex-Taxi-Preview-v0.2.apk | tee artifacts/apk-signature.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Vertex-Taxi-Preview-v0.2.apk | tee artifacts/apk-badging.txt
 
       - uses: actions/upload-artifact@v4
         with:
