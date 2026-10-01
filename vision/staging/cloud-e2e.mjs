@@ -53,6 +53,12 @@ async function command(session,payload,expected=200){
   }else if(result.correlationId!==null)throw new Error('failed_command_has_correlation');
   return result;
 }
+async function sessionScopes(session){
+  const result=await workerJSON('/api/v1/session-scopes',{session});
+  if(result.response.status!==200)throw new Error('session_scopes_failed:'+result.response.status);
+  if(result.data.module!=='views'||result.data.actorId!==session.userId||!Array.isArray(result.data.scopes))throw new Error('session_scopes_invalid');
+  return result.data;
+}
 async function context(session){
   const q=new URLSearchParams({tenant_id:provision.tenantId,organization_id:provision.organizationId});
   const result=await workerJSON('/api/v1/context?'+q,{session});
@@ -78,6 +84,18 @@ async function directBookings(session){
 
 const readiness=await workerJSON('/readyz');
 if(readiness.response.status!==200||readiness.data.ready!==true||readiness.data.latestMigration!==release.databaseMigration||readiness.data.architectureVersion!==release.architectureVersion)throw new Error('staging_not_ready');
+
+const authConfig=await workerJSON('/auth-config');
+if(authConfig.response.status!==200||authConfig.data.provider!=='supabase'||authConfig.data.environment!=='staging'||authConfig.data.url!==config.url||authConfig.data.publishableKey!==config.key||authConfig.data.persistence!=='memory-only')throw new Error('auth_config_invalid');
+
+const managerScopes=await sessionScopes(credentials.views);
+const cleanerScopes=await sessionScopes(credentials.staff);
+const qualityScopes=await sessionScopes(credentials.quality);
+const guestScopes=await sessionScopes(credentials.guest);
+for(const [name,value] of [['manager',managerScopes],['cleaner',cleanerScopes],['quality',qualityScopes],['guest',guestScopes]]){
+  if(value.scopes.length!==1||value.scopes[0].tenantId!==provision.tenantId||value.scopes[0].organizationId!==provision.organizationId)throw new Error(name+'_scope_invalid');
+}
+if(managerScopes.scopes[0].memberAuthorized!==true||guestScopes.scopes[0].guestLinked!==true)throw new Error('scope_authority_invalid');
 
 const managerContext=await context(credentials.views);
 const cleanerContext=await context(credentials.staff);
@@ -156,6 +174,8 @@ const report={
   },
   checks:[
     'runtime-readiness',
+    'public-auth-config',
+    'server-session-scopes',
     'server-context',
     'guest-create-denied',
     'idempotent-create',
