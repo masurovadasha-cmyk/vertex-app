@@ -81,15 +81,24 @@ Use [RC 0.1 staging checklist](RC-0.1-CHECKLIST.md) as the production approval g
 ### API
 
 - `GET /health`: staging liveness/configuration only.
-- `POST /api/commands`: authenticated JSON command (`type`, `tenant_id`,
-  `idempotency_key`, and command-specific IDs/version).
+- `POST /api/commands`: service-request Golden Flow command.
+- `POST /api/views/commands`: Views RC operational command.
 - `GET /api/orders?tenant_id=UUID`, `/api/tasks`, `/api/history`, `/api/audit`:
-  authenticated, RLS-filtered, maximum 50 rows. Initial API has no pagination.
+  authenticated, RLS-filtered, maximum 50 rows.
+- Views read surfaces require `organization_id=UUID` and are hard-allowlisted:
+  `/api/views/units`, `/api/views/guests`, `/api/views/bookings`,
+  `/api/views/calendar`, `/api/views/maintenance`, `/api/views/finance`,
+  `/api/views/dashboard`. Client-supplied PostgREST filters are ignored.
 
-Command types: `create`, `assign`, `start`, `submit`, `pass`, `reject`.
-For mutations of existing orders, supply `order_id` and `expected_version`.
-`assign` also requires `assignee_user_id`. `create` requires `customer_id`,
-`requester_organization_id`, `service_id`. Actor identity always comes from Auth.
+Service-request commands: `create`, `assign`, `start`, `submit`, `pass`, `reject`.
+
+Views commands: `unit.create`, `guest.create`, `booking.create`,
+`booking.confirm`, `booking.cancel`, `stay.check_in`, `stay.check_out`,
+`maintenance.create`, `maintenance.assign`, `maintenance.start`,
+`maintenance.complete`. Existing-entity transitions require `expected_version`.
+Actor identity always comes from Auth.
+
+The Views finance endpoint is booking-gross reporting only, not a payment ledger.
 
 ### Outbox
 
