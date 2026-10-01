@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>VERTEX VISION · Views RC</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="VERTEX VISION">
+      <span class="brand-mark">V</span>
+      <span><strong>VERTEX VISION</strong><small>Views · RC 0.1 staging</small></span>
+    </a>
+    <div class="session">
+      <span id="sessionLabel">Не выполнен вход</span>
+      <button id="signOut" class="button button-ghost" type="button" hidden>Выйти</button>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">VERTEX GROUP / STAGING ONLY</p>
+        <h1>Views Operations</h1>
+        <p class="lead">Рабочий контур Units → Guests → Bookings → Check-in/out → Maintenance → Finance read.</p>
+      </div>
+      <div class="gate-card">
+        <strong>RC safety gate</strong>
+        <p>Только синтетические тестовые данные. Не вводите реальные паспортные, платёжные или гостевые данные.</p>
+        <span id="backendState" class="pill">Проверка staging…</span>
+      </div>
+    </section>
+
+    <section id="loginPanel" class="panel login-panel">
+      <div>
+        <p class="eyebrow">SUPABASE AUTH</p>
+        <h2>Вход в staging</h2>
+        <p>Пароль отправляется напрямую в Supabase Auth и не сохраняется VERTEX VISION.</p>
+      </div>
+      <form id="loginForm" class="form-grid">
+        <label>Email<input id="email" name="email" type="email" autocomplete="username" required></label>
+        <label>Пароль<input id="password" name="password" type="password" autocomplete="current-password" required></label>
+        <button class="button button-primary" type="submit">Войти</button>
+      </form>
+    </section>
+
+    <section id="workspace" hidden>
+      <div class="workspace-head">
+        <div>
+          <p class="eyebrow">AUTHENTICATED / RLS</p>
+          <h2 id="workspaceTitle">Views</h2>
+        </div>
+        <label class="org-picker">Организация<select id="organizationSelect"></select></label>
+      </div>
+
+      <p id="message" class="message" role="status" aria-live="polite"></p>
+
+      <nav class="nav" aria-label="Views sections">
+        <a href="#dashboard">Dashboard</a>
+        <a href="#units">Units</a>
+        <a href="#guests">Guests</a>
+        <a href="#bookings">Bookings</a>
+        <a href="#calendar">Calendar</a>
+        <a href="#maintenance">Maintenance</a>
+        <a href="#finance">Finance read</a>
+      </nav>
+
+      <section id="dashboard" class="section-block">
+        <div class="section-title"><div><p class="eyebrow">TODAY</p><h2>Dashboard</h2></div><button id="refreshAll" class="button button-ghost" type="button">Обновить</button></div>
+        <div id="dashboardCards" class="metrics"></div>
+      </section>
+
+      <section id="units" class="section-block">
+        <div class="section-title"><div><p class="eyebrow">INVENTORY</p><h2>Units</h2></div></div>
+        <form id="unitForm" class="inline-form">
+          <label>Код<input name="code" maxlength="64" required placeholder="235"></label>
+          <label>Название<input name="name" maxlength="160" required placeholder="Apartment 235"></label>
+          <label>Макс. гостей<input name="max_guests" type="number" min="1" max="50" value="2" required></label>
+          <button class="button button-primary" type="submit">Добавить unit</button>
+        </form>
+        <div id="unitsTable" class="table-wrap"></div>
+      </section>
+
+      <section id="guests" class="section-block">
+        <div class="section-title"><div><p class="eyebrow">CUSTOMERS</p><h2>Guests</h2></div></div>
+        <form id="guestForm" class="inline-form">
+          <label>Синтетическое имя<input name="display_name" maxlength="160" required placeholder="Synthetic Guest"></label>
+          <button class="button button-primary" type="submit">Добавить guest</button>
+        </form>
+        <div id="guestsTable" class="table-wrap"></div>
+      </section>
+
+      <section id="bookings" class="section-block">
+        <div class="section-title"><div><p class="eyebrow">RESERVATIONS</p><h2>Bookings</h2></div></div>
+        <form id="bookingForm" class="inline-form booking-form">
+          <label>Unit<select name="unit_id" required></select></label>
+          <label>Guest<select name="guest_id" required></select></label>
+          <label>Заезд<input name="arrival" type="date" required></label>
+          <label>Выезд<input name="departure" type="date" required></label>
+          <label>Взрослые<input name="adults" type="number" min="1" max="50" value="1" required></label>
+          <label>Валюта<input name="currency" maxlength="3" value="USD" pattern="[A-Z]{3}" required></label>
+          <label>Gross, minor units<input name="total_minor" type="number" min="0" step="1" placeholder="150000"></label>
+          <button class="button button-primary" type="submit">Создать draft</button>
+        </form>
+        <div id="bookingsTable" class="table-wrap"></div>
+      </section>
+
+      <section id="calendar" class="section-block">
+        <div class="section-title"><div><p class="eyebrow">OPERATIONS</p><h2>Calendar</h2></div></div>
+        <div id="calendarTable" class="table-wrap"></div>
+      </section>
+
+      <section id="maintenance" class="section-block">
+        <div class="section-title"><div><p class="eyebrow">PROPERTY CARE</p><h2>Maintenance</h2></div></div>
+        <form id="maintenanceForm" class="inline-form">
+          <label>Unit<select name="unit_id" required></select></label>
+          <label>Задача<input name="title" maxlength="240" required placeholder="Synthetic plumbing check"></label>
+          <label>Категория<select name="category"><option>GENERAL</option><option>ELECTRICAL</option><option>PLUMBING</option><option>HVAC</option><option>CARPENTRY</option><option>APPLIANCE</option><option>SAFETY</option><option>OTHER</option></select></label>
+          <label>Приоритет<select name="priority"><option>LOW</option><option selected>NORMAL</option><option>HIGH</option><option>CRITICAL</option></select></label>
+          <button class="button button-primary" type="submit">Создать заявку</button>
+        </form>
+        <div id="maintenanceTable" class="table-wrap"></div>
+      </section>
+
+      <section id="finance" class="section-block">
+        <div class="section-title"><div><p class="eyebrow">READ ONLY</p><h2>Finance</h2></div></div>
+        <p class="notice">Только booking gross по бронированиям. Это не касса, не эквайринг, не payout и не бухгалтерский ledger.</p>
+        <div id="financeTable" class="table-wrap"></div>
+      </section>
+    </section>
+  </main>
+
+  <footer>VERTEX VISION · staging · Views RC 0.1 · production changes are not authorized</footer>
+  <script src="/app.js" defer></script>
+</body>
+</html>
