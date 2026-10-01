@@ -216,8 +216,8 @@ jobs:
           import java.nio.charset.StandardCharsets;
 
           public class MainActivity extends Activity {
-              private static final String HOME = "https://vertex-taxi-core-staging.floot.app";
-              private static final String APP_HOST = "vertex-taxi-core-staging.floot.app";
+              private static final String HOME = "https://vertex-taxi-core-api-production.up.railway.app";
+              private static final String APP_HOST = "vertex-taxi-core-api-production.up.railway.app";
               private static final String APP_SCHEME = "com.vertex.taxi.preview";
               private WebView webView;
               private Dialog oauthDialog;
@@ -453,7 +453,7 @@ jobs:
           public class DriverForegroundService extends Service implements LocationListener {
               public static final String ACTION_START = "com.vertex.taxi.preview.START_DRIVER";
               public static final String ACTION_STOP = "com.vertex.taxi.preview.STOP_DRIVER";
-              private static final String BASE = "https://vertex-taxi-core-staging.floot.app";
+              private static final String BASE = "https://vertex-taxi-core-api-production.up.railway.app";
               private static final String SERVICE_CHANNEL = "vertex_driver_service";
               private static final String ORDER_CHANNEL = "vertex_new_orders";
               private static final int SERVICE_NOTIFICATION_ID = 4101;
