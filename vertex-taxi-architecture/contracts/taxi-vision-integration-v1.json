@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "sourceOfTruth": "vertex-taxi-core",
+  "transport": {"preferred":"cloudflare-service-binding","fallback":"private-http"},
+  "databaseAccessFromVision": false,
+  "redisAccessFromVision": false,
+  "allowedVisionData": ["taxi_ride_id","status_projection","public_eta","public_driver_reference"],
+  "forbiddenVisionData": ["private_driver_state","gps_history","payment_credentials","ledger_private_rows","dispatch_private_state"],
+  "auth": {"delegatedIdentity":true,"requiredContext":["tenant_id","organization_id","subject_id","correlation_id"]},
+  "mutations": {"idempotencyRequired":true,"failClosed":true},
+  "events": {"delivery":"at-least-once","dedupe":"event_id"}
+}
