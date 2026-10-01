@@ -19,7 +19,7 @@ jobs:
   cloud-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    environment: staging
+    environment: vision-staging
     env:
       VISION_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
       SUPABASE_STAGING_REF: ${{ vars.SUPABASE_STAGING_REF }}
