@@ -151,6 +151,23 @@ test('Taxi inbound events are deduplicated, server-only and projected without Ta
     assert.equal(projection.last_event_type,'taxi.trip.v1.completed');
   });
 
+  await t.test('conflicting terminal events cannot flip an established terminal status',async()=>{
+    const ride=randomUUID(),trip=randomUUID();
+    const completed=event({
+      type:'taxi.trip.v1.completed',ride,aggregate:trip,version:2,occurred:at(4),
+      payload:{completed_at:at(4)}
+    });
+    await receive(completed);let row=await claim();await apply(row);
+    const cancelled=event({
+      type:'taxi.ride.v1.cancelled',ride,aggregate:ride,version:5,occurred:'2026-10-01T00:09:00.000Z',
+      payload:{reason:'late-conflict'}
+    });
+    await receive(cancelled);row=await claim();await apply(row);
+    const projection=(await db.query('select * from public.vision_taxi_ride_projections where ride_id=$1',[ride])).rows[0];
+    assert.equal(projection.status,'COMPLETED');
+    assert.equal(projection.last_event_type,'taxi.trip.v1.completed');
+  });
+
   await t.test('cross-tenant organization envelopes are rejected by database integrity',async()=>{
     const ride=randomUUID();
     const e=event({ride,payload:{service_class_id:'standard',quote_id:'q-cross'}});
