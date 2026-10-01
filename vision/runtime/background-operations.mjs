@@ -48,7 +48,8 @@ export async function drainNotificationOutbox(adapter,options={}){
     }catch(error){
       failed++;
       const id=event?.id||raw?.id;
-      if(UUID.test(id||'')) await fail(id,error instanceof Error?error.message:'consumer_failed');
+      const leaseToken=event?.lease_token||raw?.lease_token;
+      if(UUID.test(id||'')&&UUID.test(leaseToken||'')) await fail(id,leaseToken,error instanceof Error?error.message:'consumer_failed');
     }
   }
   return Object.freeze({claimed:claimed.length,processed,duplicates,failed});
