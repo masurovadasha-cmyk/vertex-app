@@ -7,7 +7,7 @@ The complete standalone Taxi Core repository has been prepared locally from the 
 - Tag: `v0.1.0-foundation`
 - HEAD: `715d0ff`
 - Intended remote: `https://github.com/masurovadasha-cmyk/vertex-taxi-core.git`
-- Git bundle SHA-256: `d22acf7b30fc655f43a0ea087f975297c5fee804bfb75d80e5ab76800529fc3a`
+- Git bundle SHA-256: `fc07f0a6760cda07498594f182e5fee5c14f1dd35c9c9ddc6d20c933c711556c`
 - Source archive SHA-256: `d8700daa50e5ce6330d13f3ae819d93033c53aa85a7183b13b5bf0e49778d6b1`
 
 Verification:
