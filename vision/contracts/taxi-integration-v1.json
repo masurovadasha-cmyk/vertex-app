@@ -5,17 +5,61 @@
   "transport": {
     "browser": "external-app",
     "serverToServer": "cloudflare-service-binding-preferred",
-    "publicHttpFallback": true
+    "publicHttpFallback": true,
+    "httpFallbackAuthentication": "p256-signed-delegation",
+    "httpAdapters": {
+      "flootStaticV1": {
+        "pathPrefix": "/_api",
+        "dynamicRideRead": "/_api/integration/v1/ride?rideId={ride_id}",
+        "dynamicRideCommand": "/_api/integration/v1/commands",
+        "commandRideIdLocation": "json-body"
+      }
+    },
+    "currentStagingHost": "floot",
+    "httpAdapter": {
+      "pathPrefix": "/_api",
+      "stableVisionContract": true,
+      "signatureCoversAdaptedRequest": true
+    }
   },
   "authentication": {
     "type": "delegated-identity",
     "requiredHeaders": [
       "authorization",
+      "x-vertex-user-id",
       "x-vertex-tenant-id",
       "x-vertex-organization-id",
-      "x-vertex-correlation-id"
+      "x-vertex-correlation-id",
+      "x-vertex-key-id",
+      "x-vertex-timestamp",
+      "x-vertex-signature"
     ],
-    "databaseCredentialsFromVision": false
+    "databaseCredentialsFromVision": false,
+    "delegation": {
+      "userIdSource": "verified-vision-identity",
+      "tenantOrganizationContext": "verified-active-vision-membership",
+      "clientSuppliedUserIdAccepted": false
+    },
+    "serviceProof": {
+      "type": "ecdsa-p256",
+      "keyIdHeader": "x-vertex-key-id",
+      "timestampHeader": "x-vertex-timestamp",
+      "signatureHeader": "x-vertex-signature",
+      "maxClockSkewSeconds": 300,
+      "canonicalFields": [
+        "method",
+        "pathAndQuery",
+        "timestamp",
+        "tenantId",
+        "organizationId",
+        "verifiedUserId",
+        "caller",
+        "sha256Authorization",
+        "sha256Body"
+      ],
+      "privateKeyStorage": "vision-worker-secret-only",
+      "sharedSecretFallback": false
+    }
   },
   "endpoints": {
     "capabilities": {
@@ -38,6 +82,10 @@
       "allowedCommands": [
         "cancel"
       ]
+    },
+    "health": {
+      "method": "GET",
+      "path": "/integration/v1/health"
     }
   },
   "responseRules": {
