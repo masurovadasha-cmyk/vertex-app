@@ -14,6 +14,7 @@ const event={
   aggregate_type:'task',
   aggregate_id:'33333333-3333-4333-8333-333333333333',
   correlation_id:'44444444-4444-4444-8444-444444444444',
+  lease_token:'99999999-9999-4999-8999-999999999999',
   payload_sha256:'a'.repeat(64),
   payload:{
     event_id:'11111111-1111-4111-8111-111111111111',
@@ -36,12 +37,13 @@ test('notification drain isolates failures and only acknowledges handled events'
   const result=await drainNotificationOutbox({
     claim:async()=>[event,second],
     consume:async value=>{ if(value.id===second.id) throw new Error('boom'); return {processed:true,duplicate:false}; },
-    ack:async id=>acked.push(id),
-    fail:async(id,reason)=>failed.push([id,reason])
+    ack:async(id,token)=>{acked.push([id,token]);return true;},
+    fail:async(id,token,reason)=>failed.push([id,token,reason])
   });
   assert.deepEqual(result,{claimed:2,processed:1,duplicates:0,failed:1});
-  assert.deepEqual(acked,[event.id]);
+  assert.deepEqual(acked,[[event.id,event.lease_token]]);
   assert.equal(failed[0][0],second.id);
+  assert.equal(failed[0][1],second.lease_token);
 });
 
 test('duplicate notification delivery is acknowledged without double-processing count',async()=>{
@@ -49,11 +51,11 @@ test('duplicate notification delivery is acknowledged without double-processing 
   const result=await drainNotificationOutbox({
     claim:async()=>[event],
     consume:async()=>({processed:false,duplicate:true,status:'PROCESSED'}),
-    ack:async id=>acked.push(id),
+    ack:async(id,token)=>{acked.push([id,token]);return true;},
     fail:async()=>assert.fail('fail should not run')
   });
   assert.deepEqual(result,{claimed:1,processed:0,duplicates:1,failed:0});
-  assert.deepEqual(acked,[event.id]);
+  assert.deepEqual(acked,[[event.id,event.lease_token]]);
 });
 
 test('escalation reconciliation is tenant and organization scoped',async()=>{
