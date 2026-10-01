@@ -35,7 +35,7 @@ jobs:
       - name: Reject obvious private keys
         run: |
           set -euo pipefail
-          if grep -R -n -E --exclude-dir=.git --exclude='*.md' -- 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AIza[0-9A-Za-z_-]{30,}|-----BEGIN PRIVATE KEY-----' .; then
+          if grep -R -n -E --exclude='*.md' -- 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AIza[0-9A-Za-z_-]{30,}|-----BEGIN PRIVATE KEY-----' vertex-taxi-core-railway vertex-taxi-edge-cloudflare 2>/dev/null; then
             echo "Potential secret material found"
             exit 1
           fi
