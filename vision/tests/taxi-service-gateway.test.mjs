@@ -230,7 +230,7 @@ test('Taxi HTTP fallback is P-256 signed and does not use a shared secret', asyn
   let called=0;
   globalThis.fetch=async (url,options)=>{
     called+=1;
-    assert.equal(url,'https://taxi-staging.example/integration/v1/capabilities');
+    assert.equal(url,'https://taxi-staging.example/_api/integration/v1/capabilities');
     const outbound=new Request(url,options);
     assert.equal(outbound.headers.has('x-vertex-integration-secret'),false);
     await assertValidTaxiSignature(outbound);
@@ -247,6 +247,7 @@ test('Taxi HTTP fallback is P-256 signed and does not use a shared secret', asyn
     const response=await handle(request,{
       ...signedEnv,
       TAXI_INTEGRATION_URL:'https://taxi-staging.example/',
+      TAXI_INTEGRATION_PATH_PREFIX:'/_api',
     },authFetch);
     assert.equal(response.status,200);
     assert.equal((await response.json()).data.module,'taxi');
@@ -276,6 +277,104 @@ test('Taxi HTTP fallback rejects non-HTTPS or path-bearing origins before networ
       assert.equal(response.status,503);
       assert.deepEqual(await response.json(),{error:'taxi_integration_not_configured'});
     }
+    assert.equal(called,0);
+  } finally {
+    globalThis.fetch=priorFetch;
+  }
+});
+
+
+test('Taxi Floot HTTP adapter rewrites ride GET and signs the actual static route', async () => {
+  const priorFetch=globalThis.fetch;
+  let called=0;
+  globalThis.fetch=async (url,options)=>{
+    called+=1;
+    assert.equal(url,'https://taxi-staging.example/_api/integration/v1/ride?rideId=00000000-0000-0000-0000-000000000099');
+    const outbound=new Request(url,options);
+    await assertValidTaxiSignature(outbound);
+    return Response.json({data:{rideId:'00000000-0000-0000-0000-000000000099',status:'REQUESTED'}});
+  };
+  try {
+    const request=new Request('https://vision-staging.example/api/taxi/rides/00000000-0000-0000-0000-000000000099',{
+      headers:{
+        authorization:'Bearer demo',
+        'x-vertex-tenant-id':'00000000-0000-0000-0000-000000000001',
+        'x-vertex-organization-id':'00000000-0000-0000-0000-000000000001',
+      },
+    });
+    const response=await handle(request,{
+      ...signedEnv,
+      TAXI_INTEGRATION_URL:'https://taxi-staging.example',
+      TAXI_INTEGRATION_PATH_PREFIX:'/_api',
+    },authFetch);
+    assert.equal(response.status,200);
+    assert.equal((await response.json()).data.status,'REQUESTED');
+    assert.equal(called,1);
+  } finally {
+    globalThis.fetch=priorFetch;
+  }
+});
+
+test('Taxi Floot HTTP adapter moves ride id into cancel command JSON and signs adapted body', async () => {
+  const priorFetch=globalThis.fetch;
+  let called=0;
+  globalThis.fetch=async (url,options)=>{
+    called+=1;
+    assert.equal(url,'https://taxi-staging.example/_api/integration/v1/commands');
+    const outbound=new Request(url,options);
+    await assertValidTaxiSignature(outbound);
+    const payload=await outbound.json();
+    assert.deepEqual(payload,{
+      type:'cancel',
+      reason:'guest_request',
+      rideId:'00000000-0000-0000-0000-000000000099',
+    });
+    return Response.json({data:{rideId:payload.rideId,status:'CANCELLED'}});
+  };
+  try {
+    const request=new Request('https://vision-staging.example/api/taxi/rides/00000000-0000-0000-0000-000000000099/commands',{
+      method:'POST',
+      headers:{
+        authorization:'Bearer demo',
+        'content-type':'application/json',
+        'idempotency-key':'cancel-1',
+        'x-vertex-tenant-id':'00000000-0000-0000-0000-000000000001',
+        'x-vertex-organization-id':'00000000-0000-0000-0000-000000000001',
+      },
+      body:JSON.stringify({type:'cancel',reason:'guest_request'}),
+    });
+    const response=await handle(request,{
+      ...signedEnv,
+      TAXI_INTEGRATION_URL:'https://taxi-staging.example',
+      TAXI_INTEGRATION_PATH_PREFIX:'/_api',
+    },authFetch);
+    assert.equal(response.status,200);
+    assert.equal((await response.json()).data.status,'CANCELLED');
+    assert.equal(called,1);
+  } finally {
+    globalThis.fetch=priorFetch;
+  }
+});
+
+test('Taxi HTTP adapter rejects unsupported prefixes before network access', async () => {
+  const priorFetch=globalThis.fetch;
+  let called=0;
+  globalThis.fetch=async ()=>{called+=1;throw new Error('must not call invalid adapter');};
+  try {
+    const request=new Request('https://vision-staging.example/api/taxi/capabilities',{
+      headers:{
+        authorization:'Bearer demo',
+        'x-vertex-tenant-id':'00000000-0000-0000-0000-000000000001',
+        'x-vertex-organization-id':'00000000-0000-0000-0000-000000000001',
+      },
+    });
+    const response=await handle(request,{
+      ...signedEnv,
+      TAXI_INTEGRATION_URL:'https://taxi-staging.example',
+      TAXI_INTEGRATION_PATH_PREFIX:'/custom',
+    },authFetch);
+    assert.equal(response.status,503);
+    assert.deepEqual(await response.json(),{error:'taxi_integration_not_configured'});
     assert.equal(called,0);
   } finally {
     globalThis.fetch=priorFetch;
