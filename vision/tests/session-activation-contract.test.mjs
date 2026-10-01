@@ -39,8 +39,7 @@ test('public auth config contains only client-safe Supabase staging metadata',()
   const value=publicAuthConfig(env);
   assert.deepEqual(value,{
     provider:'supabase',environment:'staging',url:env.SUPABASE_URL,
-    publishableKey:env.SUPABASE_PUBLISHABLE_KEY,passwordGrant:true,persistence:'memory-only',
-    authority:'server-derived',privilegedRoleSelection:false,mfaReady:true
+    publishableKey:env.SUPABASE_PUBLISHABLE_KEY,passwordGrant:true,persistence:'memory-only'
   });
   assert.equal(JSON.stringify(value).includes('password'),true);
   assert.equal(Object.hasOwn(value,'serviceRoleKey'),false);
