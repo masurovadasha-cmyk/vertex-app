@@ -1,0 +1,94 @@
+name: Vertex Taxi Reliability Gate
+
+on:
+  push:
+    branches: [vertex-taxi-core-railway-staging]
+    paths:
+      - 'vertex-taxi-core-railway/**'
+      - '.github/workflows/vertex-taxi-reliability.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reliability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Wait for staging
+        run: |
+          node <<'NODE'
+          const u='https://vertex-taxi-core-api-production.up.railway.app/demo/health';
+          for(let i=0;i<36;i++){
+            try{const r=await fetch(u);if(r.ok)process.exit(0)}catch{}
+            await new Promise(r=>setTimeout(r,5000));
+          }
+          process.exit(1);
+          NODE
+
+      - name: Concurrent dispatch invariants
+        run: |
+          node <<'NODE'
+          import fs from 'node:fs';
+          const base='https://vertex-taxi-core-api-production.up.railway.app';
+          const out={success:false,rides:[],offers:[],conflicts:[],errors:[]};
+          async function call(path,options={}){
+            const r=await fetch(base+path,{...options,headers:{'content-type':'application/json',...(options.headers||{})}});
+            const text=await r.text();let body;try{body=JSON.parse(text)}catch{body={raw:text}}
+            return {status:r.status,body};
+          }
+          try{
+            const drivers=Array.from({length:12},(_,i)=>({id:'demo-driver-load-'+i,lat:41.311+(i%4)*.001,lng:69.279+(i%3)*.001}));
+            await Promise.all(drivers.map(d=>call('/demo/v1/drivers/'+d.id+'/location',{method:'POST',body:JSON.stringify({lat:d.lat,lng:d.lng,accuracyM:8,available:true,serviceClasses:['comfort']})})));
+            const rides=[];
+            for(let i=0;i<8;i++){
+              const userId='demo-client-load-'+i;
+              const q=await call('/demo/v1/quotes',{method:'POST',body:JSON.stringify({userId,pickup:{lat:41.3111+i*.0001,lng:69.2797,label:'Load pickup '+i},destination:{lat:41.2995,lng:69.2401,label:'Tashkent City Mall'},serviceClass:'comfort',distanceKm:12})});
+              if(q.status!==201)throw new Error('quote '+i+' '+q.status);
+              const r=await call('/demo/v1/rides',{method:'POST',body:JSON.stringify({userId,quoteId:q.body.data.id})});
+              if(r.status!==201)throw new Error('ride '+i+' '+r.status);
+              rides.push(r.body.data.id);
+            }
+            out.rides=rides;
+            const candidateLists=await Promise.all(rides.map(id=>call('/demo/v1/dispatch/'+id+'/candidates')));
+            const offerAttempts=await Promise.all(rides.map(async(rideId,i)=>{
+              const candidates=candidateLists[i].body.data||[];
+              for(const candidate of candidates){
+                const o=await call('/demo/v1/offers',{method:'POST',body:JSON.stringify({rideId,driverId:candidate.driverId})});
+                if(o.status===201)return {rideId,driverId:candidate.driverId,offerId:o.body.data.offerId,status:o.status};
+                out.conflicts.push({rideId,driverId:candidate.driverId,status:o.status,error:o.body.error});
+              }
+              return {rideId,status:409};
+            }));
+            out.offers=offerAttempts;
+            const successful=offerAttempts.filter(x=>x.offerId);
+            const driverIds=successful.map(x=>x.driverId);
+            if(new Set(driverIds).size!==driverIds.length)throw new Error('driver assigned to multiple simultaneous offers');
+            const rideIds=successful.map(x=>x.rideId);
+            if(new Set(rideIds).size!==rideIds.length)throw new Error('ride has multiple offers');
+            const accepts=await Promise.all(successful.map(x=>call('/demo/v1/offers/'+x.offerId+'/accept',{method:'POST',body:'{}'})));
+            if(accepts.some(x=>x.status!==200))throw new Error('accept failure '+JSON.stringify(accepts.map(x=>x.status)));
+            if(successful[0]){
+              const duplicate=await call('/demo/v1/offers/'+successful[0].offerId+'/accept',{method:'POST',body:'{}'});
+              out.duplicateAcceptStatus=duplicate.status;
+              if(duplicate.status===200)throw new Error('duplicate accept unexpectedly succeeded');
+            }
+            out.success=true;
+          }catch(e){out.errors.push(String(e))}
+          fs.writeFileSync('vertex-taxi-reliability.json',JSON.stringify(out,null,2));
+          console.log(JSON.stringify(out,null,2));
+          if(!out.success)process.exit(1);
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vertex-taxi-reliability-result
+          path: vertex-taxi-reliability.json
+          retention-days: 14
