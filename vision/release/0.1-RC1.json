@@ -197,10 +197,12 @@
       "integrated-assembly",
       "rc2-safety",
       "real-staging-auth-e2e",
+      "background-staging-smoke",
       "production-backup-restore"
     ],
     "ownerApprovalRequired": true,
-    "passed": false
+    "passed": false,
+    "backgroundSmokeWorkflow": ".github/workflows/vision-background-staging-smoke.yml"
   },
   "trustedReleaseControl": {
     "status": "implemented-requires-protected-master-controller",
