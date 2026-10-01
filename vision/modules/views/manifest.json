@@ -1,20 +1,45 @@
 {
   "id": "views",
   "name": "Views Hotel & Apartments",
-  "version": "0.1.0",
+  "version": "0.2.0-rc.1",
   "core": ">=0.1",
   "permissions": [
     "views.order.read",
     "views.order.create",
-    "views.order.monitor"
+    "views.order.monitor",
+    "views.unit.read",
+    "views.unit.manage",
+    "views.guest.read",
+    "views.guest.manage",
+    "views.booking.read",
+    "views.booking.manage",
+    "views.stay.manage",
+    "views.maintenance.read",
+    "views.maintenance.manage",
+    "views.maintenance.assigned",
+    "views.finance.read"
   ],
   "services": [
-    "views.accommodation"
+    "views.accommodation",
+    "views.operations"
   ],
   "events": [
-    "order.created"
+    "order.created",
+    "views.unit.v1.created",
+    "views.guest.v1.created",
+    "views.booking.v1.created",
+    "views.booking.v1.confirmed",
+    "views.booking.v1.checked_in",
+    "views.booking.v1.checked_out",
+    "views.booking.v1.cancelled",
+    "views.maintenance.v1.created",
+    "views.maintenance.v1.assigned",
+    "views.maintenance.v1.started",
+    "views.maintenance.v1.completed"
   ],
   "workflows": [
-    "views-service-request-v1"
+    "views-service-request-v1",
+    "views-booking-stay-v1",
+    "views-maintenance-v1"
   ]
 }
