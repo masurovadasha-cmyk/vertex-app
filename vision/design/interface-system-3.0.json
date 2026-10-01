@@ -1,0 +1,53 @@
+{
+  "id": "vertex-vision-interface-system-3.0",
+  "version": "3.0",
+  "releaseIdentity": "1.16-rc1",
+  "style": "Dark Premium Tech Sand",
+  "visualPrinciples": [
+    "premium-dark-control-center",
+    "readable-before-decorative",
+    "group-modules-by-user-mental-model",
+    "line-icons-not-emoji",
+    "status-never-color-only",
+    "unknown-data-is-dash",
+    "views-only-active-rc",
+    "future-modules-concept-only"
+  ],
+  "hub": {
+    "categories": [
+      "Hospitality & Stays",
+      "Property & Engineering",
+      "Travel & Mobility",
+      "Guest Services",
+      "Technology & Capital"
+    ],
+    "rightRail": [
+      "My Work",
+      "Attention",
+      "Recent",
+      "Favorites"
+    ],
+    "commandSearch": "Ctrl/Cmd+K"
+  },
+  "views": {
+    "theme": "dark-premium-operational",
+    "existingFunctionalTabs": [
+      "dashboard",
+      "calendar",
+      "bookings",
+      "units",
+      "cleaning"
+    ],
+    "dataPolicy": "real-staging-only-no-demo-fallback"
+  },
+  "boundaries": {
+    "active": [
+      "views"
+    ],
+    "comingSoonCount": 18,
+    "jarvis": "separate-project-api-only",
+    "taxi": "separate-product-contract-ready",
+    "engineers": "separate-product-contract-ready",
+    "productionMasterChanged": false
+  }
+}

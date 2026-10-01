@@ -1,0 +1,124 @@
+name: VERTEX VISION Staging Deploy (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vertex-vision-staging
+  cancel-in-progress: false
+
+jobs:
+  verify-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    environment: staging
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: vision_test_staging_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+      - name: Install without deployment credentials
+        run: |
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+      - name: Verify RC sources and native database invariants
+        run: |
+          set -o pipefail
+          mkdir -p artifacts/staging
+          env -u VISION_TEST_DATABASE_URL npm test 2>&1 | tee artifacts/staging/tests.txt
+          node scripts/check-android-sync.cjs
+          node --test vision/tests/database.test.mjs 2>&1 | tee artifacts/staging/postgresql.txt
+          node --test vision/tests/next-stage.test.mjs 2>&1 | tee artifacts/staging/postgresql-next.txt
+        env:
+          VISION_TEST_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_test_staging_ci
+      - name: Compile dedicated staging Worker and record source manifest
+        run: |
+          set -o pipefail
+          npx wrangler deploy --config vision/wrangler.jsonc --dry-run --outdir artifacts/staging/worker 2>&1 | tee artifacts/staging/build.txt
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          import {createHash} from 'node:crypto';
+          const rc=JSON.parse(fs.readFileSync('vision/release/0.1-RC1.json','utf8'));
+          const config=JSON.parse(fs.readFileSync('vision/wrangler.jsonc','utf8'));
+          if(config.name!=='vertex-vision-staging'||config.vars?.VISION_ENV!=='staging')throw Error('Unsafe staging target');
+          const migrations=Object.fromEntries(fs.readdirSync('vision/database/migrations').filter(n=>n.endsWith('.sql')).sort().map(n=>[n,createHash('sha256').update(fs.readFileSync('vision/database/migrations/'+n)).digest('hex')]));
+          const manifest={sourceCommit:process.env.GITHUB_SHA,worker:config.name,requiredMigration:rc.databaseMigration,architectureVersion:rc.architectureVersion,activeModules:rc.activeModules,migrations,uploaded:false,deploymentVerified:false,authenticatedE2E:false,productionChanged:false};
+          fs.writeFileSync('artifacts/staging/deployment.json',JSON.stringify(manifest,null,2));
+          JS
+      - name: Deploy only the dedicated VISION staging Worker
+        id: deploy
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VISION_STAGING_URL: ${{ vars.VISION_STAGING_URL }}
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const path='artifacts/staging/deployment.json',m=JSON.parse(fs.readFileSync(path));
+          const missing=['CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID','VISION_STAGING_URL'].filter(n=>!process.env[n]);
+          if(missing.length){m.blocked='missing_staging_configuration';m.missing=missing;fs.writeFileSync(path,JSON.stringify(m,null,2));throw Error('Staging deployment blocked: '+missing.join(', '));}
+          const u=new URL(process.env.VISION_STAGING_URL);
+          if(u.protocol!=='https:'||u.hostname!=='vertex-vision-staging.masurovadasha.workers.dev'||u.port||u.username||u.password||u.search||u.hash||u.pathname!=='/')throw Error('Unexpected staging URL');
+          JS
+          npx wrangler deploy --config vision/wrangler.jsonc --keep-vars --var "VISION_SOURCE_COMMIT:$GITHUB_SHA" 2>&1 | tee artifacts/staging/deploy.txt
+          node -e "const fs=require('fs'),p='artifacts/staging/deployment.json',m=JSON.parse(fs.readFileSync(p));m.uploaded=true;fs.writeFileSync(p,JSON.stringify(m,null,2))"
+          echo "deployed=true" >> "$GITHUB_OUTPUT"
+      - name: Verify actual staging source without claiming authenticated E2E
+        if: steps.deploy.outputs.deployed == 'true'
+        shell: bash
+        env:
+          VISION_STAGING_URL: ${{ vars.VISION_STAGING_URL }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "${VISION_STAGING_URL%/}/health" -o artifacts/staging/health.json
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const p='artifacts/staging/deployment.json',m=JSON.parse(fs.readFileSync(p)),h=JSON.parse(fs.readFileSync('artifacts/staging/health.json'));
+          if(h.service!=='VERTEX VISION'||h.environment!=='staging'||h.sourceCommit!==m.sourceCommit||h.requiredMigration!==m.requiredMigration||h.probe!=='liveness-config-only')throw Error('Staging health/source verification failed');
+          m.deploymentVerified=true;m.backendConfigured=h.configured===true;m.databaseReady=false;m.authenticatedE2E=false;
+          fs.writeFileSync(p,JSON.stringify(m,null,2));
+          JS
+          if node -e "const h=require('./artifacts/staging/health.json');process.exit(h.configured===true?0:1)"; then
+            curl --fail --silent --show-error --retry 5 --retry-delay 2 "${VISION_STAGING_URL%/}/readyz" -o artifacts/staging/readiness.json
+            node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const p='artifacts/staging/deployment.json',m=JSON.parse(fs.readFileSync(p)),r=JSON.parse(fs.readFileSync('artifacts/staging/readiness.json'));
+          if(r.ready!==true||r.latestMigration!==m.requiredMigration||r.architectureVersion!==m.architectureVersion||r.tablesOk!==true||r.functionsOk!==true||r.rlsOk!==true||r.viewsReleaseActive!==true)throw Error('Staging readiness verification failed');
+          m.databaseReady=true;fs.writeFileSync(p,JSON.stringify(m,null,2));
+          JS
+          else
+            echo "::notice::Worker source verified, but Supabase staging is not configured; /readyz was not claimed."
+          fi
+      - name: Record truthful staging result
+        if: always()
+        run: |
+          echo "## VERTEX VISION staging" >> "$GITHUB_STEP_SUMMARY"
+          echo "Source: $GITHUB_SHA. Production/master untouched. No cloud SQL migration or Auth E2E is performed by this workflow." >> "$GITHUB_STEP_SUMMARY"
+          if test -f artifacts/staging/deployment.json; then cat artifacts/staging/deployment.json >> "$GITHUB_STEP_SUMMARY"; fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: vision-staging-result-${{ github.sha }}
+          path: artifacts/staging/
+          retention-days: 14
+          if-no-files-found: warn

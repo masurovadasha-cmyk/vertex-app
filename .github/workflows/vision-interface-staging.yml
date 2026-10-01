@@ -1,0 +1,15 @@
+name: VERTEX VISION Staging Deploy (manual fallback)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  info:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Automatic branch delivery uses Cloudflare Worker Previews through Workers Builds."
+          echo "This manual fallback intentionally performs no deployment unless repository Cloudflare credentials are configured in a future controlled change."

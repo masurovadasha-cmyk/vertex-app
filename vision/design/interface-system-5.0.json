@@ -1,0 +1,33 @@
+{
+  "id": "vertex-vision-interface-system-5.0",
+  "version": "5.0",
+  "base": "Interface System 4.0",
+  "focus": "My Day / Work Center",
+  "tabs": [
+    "today",
+    "tasks",
+    "approvals",
+    "requests",
+    "operations"
+  ],
+  "sources": {
+    "workFeed": "not-connected",
+    "approvalFeed": "not-connected",
+    "requestFeed": "not-connected",
+    "viewsOperations": "existing Views runtime status only"
+  },
+  "behavior": {
+    "fabricatedMetrics": false,
+    "disconnectedStateExplicit": true,
+    "viewsQuickActions": true,
+    "commandPaletteQuickAction": true,
+    "roleCountVisibleOnlyWhenSessionConfigured": true
+  },
+  "safety": {
+    "activeModule": "views",
+    "futureModulesOperational": false,
+    "serverAuthoritativePermissionsPreserved": true,
+    "productionChanged": false,
+    "databaseMigration": false
+  }
+}

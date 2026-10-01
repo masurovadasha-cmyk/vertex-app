@@ -1,0 +1,78 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+
+const controllerRoot=path.resolve(new URL('../../',import.meta.url).pathname.replace(/^\/(?:([A-Z]:))/,'$1'));
+const root=process.env.VISION_CANDIDATE_ROOT?path.resolve(process.env.VISION_CANDIDATE_ROOT):controllerRoot;
+const rel=p=>path.join(root,p);
+const hash=p=>createHash('sha256').update(fs.readFileSync(rel(p))).digest('hex');
+const json=p=>JSON.parse(fs.readFileSync(rel(p),'utf8'));
+const assembly=json('vision/assembly/manifest.json');
+const release=json(assembly.releaseManifest);
+const migrationDir=rel('vision/database/migrations');
+const migrations=fs.readdirSync(migrationDir).filter(n=>/^\d{4}_.+\.sql$/.test(n)).sort();
+const tracked=Object.freeze([
+  'package.json',
+  'vision/package.json',
+  'vision/pnpm-lock.yaml',
+  'vision/assembly/manifest.json',
+  assembly.releaseManifest,
+  'vision/platform/registry.cjs',
+  'vision/platform/views-ops.js',
+  'vision/backend/worker.mjs',
+  'vision/backend/kernel.mjs',
+  'vision/backend/readiness.mjs',
+  'vision/modules/views/command-contract.mjs',
+  'vision/modules/views/response-contract.mjs',
+  'vision/modules/views/manifest.json',
+  'vision/staging/auth.mjs',
+  'vision/staging/provision.mjs',
+  'vision/staging/cloud-e2e.mjs',
+  'vision/production/check-migration-safety.mjs',
+  'vision/production/build-n-minus-one-baseline.mjs',
+  'vision/production/check-n-minus-one-compatibility.mjs',
+  'vision/production/preflight.mjs',
+  'vision/production/check-backup-principal.mjs',
+  'vision/production/seed-restore-fixture.mjs',
+  'vision/production/verify-restore.mjs',
+  'vision/production/verify-production-restore.mjs',
+  'vision/production/safety-manifest.json',
+  'vision/production/rollback-plan.json',
+  'vision/production/promotion-policy.json',
+  'vision/production/evaluate-promotion.mjs',
+  '.github/workflows/vision-assembly.yml',
+  '.github/workflows/vision-cloud-e2e.yml',
+  '.github/workflows/vision-staging-deploy.yml',
+  '.github/workflows/vision-rc2-safety.yml',
+  '.github/workflows/vision-production-backup-restore.yml',
+  '.github/workflows/vision-promotion-gate.yml',
+  '.github/workflows/build-android-apk.yml',
+  'wrangler.jsonc',
+  'vision/wrangler.jsonc',
+  'android/app/build.gradle',
+  'vertex/dist/index.html',
+  'vertex/dist/vision-core.js',
+  'vertex/dist/vision-views.js',
+  'vertex/dist/vision-shell.js'
+]);
+if(new Set(tracked).size!==tracked.length)throw new Error('Duplicate assembly component');
+const sourceCommit=(()=>{if(process.env.VISION_CANDIDATE_SHA)return process.env.VISION_CANDIDATE_SHA;try{return execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();}catch{return null;}})();
+const output={
+  product:assembly.product,
+  assembly:assembly.assembly,
+  architectureVersion:assembly.architectureVersion,
+  platformVersion:assembly.platformVersion,
+  release:release.release,
+  sourceCommit,
+  generatedAt:new Date().toISOString(),
+  activeModules:assembly.modules.active,
+  productionApproved:false,
+  productionChanged:false,
+  files:Object.fromEntries(tracked.map(p=>[p,hash(p)])),
+  migrations:Object.fromEntries(migrations.map(n=>[n,hash('vision/database/migrations/'+n)]))
+};
+const outDir=path.join(controllerRoot,'artifacts/assembly');
+fs.mkdirSync(outDir,{recursive:true});
+fs.writeFileSync(path.join(outDir,'integrated-assembly.json'),JSON.stringify(output,null,2)+'\n');
+console.log(JSON.stringify({status:'PASS',output:'artifacts/assembly/integrated-assembly.json',sourceCommit,files:tracked.length,migrations:migrations.length},null,2));

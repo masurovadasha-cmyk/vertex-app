@@ -1,20 +1,35 @@
 {
   "id": "views",
   "name": "Views Hotel & Apartments",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "core": ">=0.1",
   "permissions": [
     "views.order.read",
     "views.order.create",
-    "views.order.monitor"
+    "views.order.monitor",
+    "views.operations.read",
+    "views.booking.create",
+    "views.booking.manage",
+    "views.cleaning.execute",
+    "views.cleaning.verify"
   ],
   "services": [
     "views.accommodation"
   ],
   "events": [
-    "order.created"
+    "order.created",
+    "views.booking.created",
+    "views.booking.confirmed",
+    "views.booking.checked_in",
+    "views.booking.checked_out",
+    "views.booking.cancelled",
+    "views.cleaning.required",
+    "views.cleaning.started",
+    "views.cleaning.submitted",
+    "views.cleaning.verified"
   ],
   "workflows": [
-    "views-service-request-v1"
+    "views-service-request-v1",
+    "views-booking-stay-cleaning-v1"
   ]
 }

@@ -1,6 +1,6 @@
 // Synthetic identities for loopback-only development. Never Auth credentials.
 const id=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
-export const demo={tenant_id:id(1),views_id:id(2),cleaning_id:id(3),customer_id:id(4),service_id:id(5),staff_id:id(13)};
+export const demo={tenant_id:id(1),views_id:id(2),cleaning_id:id(3),customer_id:id(4),service_id:id(5),staff_id:id(13),property_id:id(50),unit_id:id(51)};
 export const organizations=[
  {id:id(6),code:'vertex-vision',name:'Vertex Vision',kind:'GROUP'},
  {id:demo.views_id,code:'views',name:'Views Hotel & Apartments'},
@@ -19,7 +19,7 @@ export const organizations=[
 ];
 export const profiles=[
  {key:'guest',id:id(10),name:'VISION-GUEST',org:null,permissions:[]},
- {key:'views',id:id(11),name:'Views',org:demo.views_id,permissions:['views.order.read','views.order.create']},
+ {key:'views',id:id(11),name:'Views',org:demo.views_id,permissions:['views.order.read','views.order.create','views.operations.read','views.booking.create','views.booking.manage']},
  {key:'dispatcher',id:id(12),name:'Vertex Cleaning',org:demo.cleaning_id,permissions:['cleaning.order.read','cleaning.order.assign']},
  {key:'staff',id:id(13),name:'Cleaning Staff',org:demo.cleaning_id,permissions:['cleaning.task.read_assigned','cleaning.task.update_assigned']},
  {key:'quality',id:id(14),name:'Quality',org:demo.cleaning_id,permissions:['cleaning.quality.review']},
@@ -40,6 +40,8 @@ export async function provisionDemo(db, identities=Object.fromEntries(profiles.m
         [org.name,org.kind?null:id(6),demo.tenant_id,org.id]);
     }
     await insert('customers',{id:demo.customer_id,tenant_id:demo.tenant_id,display_name:'Synthetic VISION Guest'});
+    await insert('views_properties',{id:demo.property_id,tenant_id:demo.tenant_id,organization_id:demo.views_id,code:'u-tower-demo',name:'NRG U-Tower — Synthetic'});
+    await insert('views_units',{id:demo.unit_id,tenant_id:demo.tenant_id,organization_id:demo.views_id,property_id:demo.property_id,unit_number:'TEST-235',unit_type:'apartment'});
     await insert('services',{id:demo.service_id,tenant_id:demo.tenant_id,code:'cleaning.guest',name:'Demo Cleaning',provider_organization_id:demo.cleaning_id});
     for(const [index,p] of profiles.entries()) {
       const user=identities[p.key];if(!user)throw new Error('Missing profile identity: '+p.key);
@@ -56,6 +58,23 @@ export async function provisionDemo(db, identities=Object.fromEntries(profiles.m
         await db.query('insert into public.vision_role_permissions(role_id,permission_id) select $1,id from public.vision_permissions where code=$2 on conflict do nothing',[role,code]);
       }
     }
+    // This is the explicitly synthetic development fixture, not a production grant.
+    await insert('module_installations',{tenant_id:demo.tenant_id,organization_id:demo.views_id,module_id:'views',state:'ENABLED'});
+    const cleaner=identities.staff,cleanerMembership=id(303),cleanerRole=id(304);
+    const cleanerBound=(await db.query('select user_id from public.vision_memberships where id=$1',[cleanerMembership])).rows[0];
+    if(cleanerBound&&cleanerBound.user_id!==cleaner)throw new Error('Synthetic Views cleaner is already bound to another identity');
+    await insert('memberships',{id:cleanerMembership,tenant_id:demo.tenant_id,user_id:cleaner,organization_id:demo.views_id});
+    await insert('roles',{id:cleanerRole,tenant_id:demo.tenant_id,code:'demo-views-cleaner',name:'Synthetic Views cleaner'});
+    await insert('membership_roles',{tenant_id:demo.tenant_id,membership_id:cleanerMembership,role_id:cleanerRole});
+    await db.query("insert into public.vision_role_permissions(role_id,permission_id) select $1,id from public.vision_permissions where code='views.cleaning.execute' on conflict do nothing",[cleanerRole]);
+
+    const reviewer=identities.quality,reviewMembership=id(301),reviewRole=id(302);
+    const bound=(await db.query('select user_id from public.vision_memberships where id=$1',[reviewMembership])).rows[0];
+    if(bound&&bound.user_id!==reviewer)throw new Error('Synthetic Views reviewer is already bound to another identity');
+    await insert('memberships',{id:reviewMembership,tenant_id:demo.tenant_id,user_id:reviewer,organization_id:demo.views_id});
+    await insert('roles',{id:reviewRole,tenant_id:demo.tenant_id,code:'demo-views-reviewer',name:'Synthetic Views reviewer'});
+    await insert('membership_roles',{tenant_id:demo.tenant_id,membership_id:reviewMembership,role_id:reviewRole});
+    await db.query("insert into public.vision_role_permissions(role_id,permission_id) select $1,id from public.vision_permissions where code='views.cleaning.verify' on conflict do nothing",[reviewRole]);
     await db.query('commit');
   }catch(e){await db.query('rollback');throw e;}
 }

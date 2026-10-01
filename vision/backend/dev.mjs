@@ -1,12 +1,39 @@
 import http from 'node:http';
-import {readFile,mkdir} from 'node:fs/promises';
+import {readFile,mkdir,open,unlink} from 'node:fs/promises';
+import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {PGlite} from '@electric-sql/pglite';
 import {migrate} from './migrate.mjs';
 import {demo,profiles,organizations,provisionDemo} from './demo.mjs';
+import {validateViewsCommand} from '../modules/views/command-contract.mjs';
+import {projectViewsCommandResponse} from '../modules/views/response-contract.mjs';
+
+async function acquireDevDataDirLock(dataDir){
+  if(!dataDir)return async()=>{};
+  const normalized=path.resolve(dataDir).replace(/[\\/]+$/,'');
+  const lockPath=normalized+'.lock';
+  let handle;
+  try{
+    handle=await open(lockPath,'wx',0o600);
+    await handle.writeFile(JSON.stringify({pid:process.pid,createdAt:new Date().toISOString()})+'\n');
+  }catch(error){
+    if(error?.code==='EEXIST')throw new Error('development_database_locked');
+    throw error;
+  }
+  let released=false;
+  return async()=>{
+    if(released)return;
+    released=true;
+    await handle.close();
+    await unlink(lockPath).catch(error=>{if(error?.code!=='ENOENT')throw error;});
+  };
+}
 
 export async function startDev({port=8790,dataDir}={}) {
-  const db=new PGlite(dataDir);
+  const releaseLock=await acquireDevDataDirLock(dataDir);
+  let db;
+  try{
+  db=new PGlite(dataDir);
   await db.exec(`do $$ begin
     if not exists(select 1 from pg_roles where rolname='anon') then create role anon; end if;
     if not exists(select 1 from pg_roles where rolname='authenticated') then create role authenticated; end if;
@@ -27,26 +54,42 @@ export async function startDev({port=8790,dataDir}={}) {
       const profile=profiles.find(p=>p.key===req.headers['x-vision-profile']);
       if(!profile)return send(401,{error:'choose_demo_profile'});
       let command;
-      if(path==='/api/commands'&&req.method==='POST'){
+      if(['/api/commands','/api/v1/views/commands'].includes(path)&&req.method==='POST'){
         if(req.headers['content-type']!=='application/json')return send(415,{error:'json_required'});
         let body='';for await(const chunk of req){body+=chunk.toString();if(body.length>8192)return send(413,{error:'too_large'});}
-        try{command=JSON.parse(body);}catch{return send(400,{error:'invalid_json'});}
+        try{command=JSON.parse(body);if(path==='/api/v1/views/commands')command=validateViewsCommand(command);}catch(e){return send(400,{error:e.message==='invalid_command'?'invalid_command':'invalid_json'});}
       }else if(!(req.method==='GET'&&['/api/orders','/api/audit'].includes(path)))return send(404,{error:'not_found'});
       const result=await transact(async()=>{
         await db.query('begin');
         try{
           await db.query('set local role authenticated');
           await db.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:profile.id})]);
-          const r=command?await db.query('select public.vision_command($1::jsonb) result',[JSON.stringify(command)]):
+          const rpc=path==='/api/v1/views/commands'?'vision_views_command':'vision_command';
+          const r=command?await db.query('select public.'+rpc+'($1::jsonb) result',[JSON.stringify(command)]):
             await db.query(`select * from public.${path==='/api/audit'?'vision_audit_events':'vision_orders'} order by created_at desc limit 50`);
-          await db.query('commit');return command?r.rows[0].result:r.rows;
+          await db.query('commit');
+          if(command&&path==='/api/v1/views/commands')return projectViewsCommandResponse(command.type,r.rows[0].result);
+          return command?r.rows[0].result:r.rows;
         }catch(e){await db.query('rollback');throw e;}
       });
       send(200,result);
     }catch(e){send(['42501'].includes(e.code)?403:['23505','40001'].includes(e.code)?409:400,{error:e.message});}
   });
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve);});
-  return {url:`http://127.0.0.1:${server.address().port}`,close:async()=>{await new Promise(r=>server.close(r));await queue;await db.close();}};
+  let closed=false;
+  return {url:`http://127.0.0.1:${server.address().port}`,close:async()=>{
+    if(closed)return;
+    closed=true;
+    await new Promise(r=>server.close(r));
+    await queue;
+    await db.close();
+    await releaseLock();
+  }};
+  }catch(error){
+    await db?.close().catch(()=>{});
+    await releaseLock().catch(()=>{});
+    throw error;
+  }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   const directory=new URL('../.data/development/',import.meta.url);await mkdir(directory,{recursive:true});

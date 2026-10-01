@@ -11,6 +11,7 @@ export async function handle(request,env={}){
     if(request.method!=='GET'&&request.method!=='HEAD')return json({error:'method_not_allowed'},405);
     return request.method==='HEAD'?new Response(null,{status:200,headers:{'cache-control':'no-store'}}):json(metadata());
   }
+  if(path==='/readyz')return json({error:'cloud_backend_not_connected',mode:'release-candidate',activeModule:'views',authenticated:false},503);
   if(path.startsWith('/api/')){
     const origin=request.headers.get('origin');
     if(origin&&origin!==url.origin)return json({error:'origin_denied'},403);
@@ -18,9 +19,9 @@ export async function handle(request,env={}){
       if(request.method!=='GET')return json({error:'method_not_allowed'},405);
       return json({platform:core.id,version:core.version,modules:core.modules});
     }
-    if(['/api/vision/v1/commands','/api/vision/v1/orders','/api/vision/v1/tasks','/api/vision/v1/audit'].includes(path)){
+    if(['/api/vision/v1/commands','/api/vision/v1/orders','/api/vision/v1/tasks','/api/vision/v1/audit','/api/v1/context','/api/v1/work-feed','/api/v1/work-assignees','/api/v1/work/commands','/api/v1/notifications','/api/v1/notifications/commands'].includes(path)||path.startsWith('/api/v1/views/')){
       // No fallback to demo identities, privileged credentials or browser-owned roles.
-      return json({error:'cloud_backend_not_connected',mode:'local-demo',authenticated:false},503);
+      return json({error:'cloud_backend_not_connected',mode:'release-candidate',activeModule:'views',authenticated:false},503);
     }
     return json({error:'not_found'},404);
   }

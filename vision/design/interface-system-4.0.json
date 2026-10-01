@@ -1,0 +1,39 @@
+{
+  "id": "vertex-vision-interface-system-4.0",
+  "version": "4.0",
+  "base": "Interface System 3.0",
+  "focus": "Navigation Intelligence",
+  "features": {
+    "commandPalette": {
+      "shortcut": [
+        "Ctrl+K",
+        "Cmd+K"
+      ],
+      "scope": "module registry only",
+      "permissionAware": true
+    },
+    "recentModules": {
+      "storage": "local preference only",
+      "maxItems": 8,
+      "sensitiveData": false
+    },
+    "favorites": {
+      "storage": "local preference only",
+      "maxItems": 12,
+      "sensitiveData": false
+    },
+    "todayPanel": {
+      "workFeed": "not-connected",
+      "attentionFeed": "not-connected",
+      "recent": "local preference",
+      "favorites": "local preference"
+    }
+  },
+  "safety": {
+    "activeModule": "views",
+    "futureModulesOperational": false,
+    "backendClaimsAdded": false,
+    "productionChanged": false,
+    "authRequiredForSensitiveState": true
+  }
+}

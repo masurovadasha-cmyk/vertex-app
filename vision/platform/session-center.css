@@ -1,0 +1,40 @@
+/* VERTEX VISION Session Center — Interface System 11.0 */
+.vvsn-dialog{border:0;padding:0;background:transparent;color:inherit;width:min(760px,calc(100vw - 32px));max-width:none}
+.vvsn-dialog::backdrop{background:rgba(8,11,14,.8);backdrop-filter:blur(8px)}
+.vvsn-shell{background:#11161a;border:1px solid rgba(220,193,147,.24);border-radius:24px;box-shadow:0 24px 80px rgba(0,0,0,.45);overflow:hidden}
+.vvsn-head{display:flex;justify-content:space-between;gap:18px;padding:26px 28px 20px;border-bottom:1px solid rgba(220,193,147,.14)}
+.vvsn-head small{letter-spacing:.16em;color:#c8a978;font-size:11px}
+.vvsn-head h2{margin:6px 0;font-size:28px}
+.vvsn-head p{margin:0;color:#9da6ad}
+.vvsn-head>button{width:42px;height:42px;border-radius:12px;border:1px solid rgba(220,193,147,.24);background:#171d22;color:#f4efe7;font-size:22px}
+.vvsn-shell main{padding:24px 28px 28px}
+.vvsn-login>strong{display:block;font-size:20px;margin-bottom:8px}
+.vvsn-login>p,.vvsn-error p{color:#9ba4aa;line-height:1.55;margin:0 0 20px}
+.vvsn-login form{display:grid;gap:14px}
+.vvsn-login label{display:grid;gap:7px;color:#c7cdd1;font-size:13px}
+.vvsn-login input{min-height:46px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:#151b20;color:#f4efe7;padding:0 14px;font:inherit}
+.vvsn-login input:focus{outline:2px solid rgba(200,169,120,.6);outline-offset:2px}
+.vvsn-login button,.vvsn-error button,.vvsn-session-head button{min-height:44px;border:1px solid rgba(200,169,120,.3);border-radius:12px;background:#c8a978;color:#15191c;font-weight:700;padding:0 16px}
+.vvsn-session-head{display:flex;justify-content:space-between;gap:18px;align-items:center;margin-bottom:22px}
+.vvsn-session-head small{display:block;color:#909aa1;margin-bottom:6px}
+.vvsn-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;word-break:break-all}
+.vvsn-session h3{font-size:15px;margin:0 0 10px}
+.vvsn-scopes{display:grid;gap:10px}
+.vvsn-scopes>button{display:grid;text-align:left;gap:5px;padding:14px 16px;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#151b20;color:#f2ede5}
+.vvsn-scopes>button:hover,.vvsn-scopes>button.is-active{border-color:rgba(200,169,120,.45);background:#1b211f}
+.vvsn-scopes span{color:#c8a978;font-size:12px}
+.vvsn-scopes small{color:#7f8990;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.vvsn-active{margin-top:16px;padding:15px;border-radius:14px;border:1px solid rgba(120,190,145,.32);background:rgba(120,190,145,.06)}
+.vvsn-active span,.vvsn-active small{display:block;color:#91a198;font-size:12px}
+.vvsn-active strong{display:block;margin:5px 0}
+.vvsn-error{text-align:center;padding:34px 10px}.vvsn-error strong{display:block;margin-bottom:10px}
+.vvsn-loading{display:flex;justify-content:center;gap:8px;padding:54px}
+.vvsn-loading span{width:9px;height:9px;border-radius:50%;background:#c8a978;animation:vvsn-pulse 1s infinite ease-in-out}
+.vvsn-loading span:nth-child(2){animation-delay:.12s}.vvsn-loading span:nth-child(3){animation-delay:.24s}
+@keyframes vvsn-pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+@media(max-width:640px){
+ .vvsn-dialog{width:100vw;height:100vh;margin:0;max-height:none}
+ .vvsn-shell{min-height:100vh;border-radius:0;padding-bottom:env(safe-area-inset-bottom)}
+ .vvsn-head{padding:20px 18px 16px}.vvsn-head h2{font-size:24px}
+ .vvsn-shell main{padding:18px}.vvsn-session-head{align-items:flex-start;flex-direction:column}
+}

@@ -16,10 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 18
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - uses: actions/setup-python@v5
@@ -56,7 +56,7 @@ jobs:
       - name: Verify unified live website and every public asset after native Cloudflare deployment
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: python scripts/browser-vision.py --live
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: vertex-quality-${{ github.sha }}-${{ github.run_attempt }}

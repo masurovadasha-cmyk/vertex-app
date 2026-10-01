@@ -1,0 +1,238 @@
+name: VERTEX VISION Real Staging Auth E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact candidate commit to verify against real staging
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vertex-vision-real-staging-e2e
+  cancel-in-progress: false
+
+jobs:
+  cloud-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment: staging
+    env:
+      VISION_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+      SUPABASE_STAGING_REF: ${{ vars.SUPABASE_STAGING_REF }}
+      VISION_STAGING_URL: ${{ vars.VISION_STAGING_URL }}
+
+    steps:
+      - name: Require trusted master controller
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/master"
+          [[ "$VISION_CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]
+
+      - name: Checkout trusted release controller
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: master
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+
+      - name: Checkout immutable candidate separately
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ env.VISION_CANDIDATE_SHA }}
+          path: candidate
+
+      - name: Validate controller and candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/master"
+          test "$(git -C candidate rev-parse HEAD)" = "$VISION_CANDIDATE_SHA"
+
+      - name: Install trusted controller dependencies
+        run: |
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          mkdir -p artifacts/staging
+
+      - name: Verify candidate before exposing staging secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd candidate
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          npm test 2>&1 | tee ../artifacts/staging/candidate-tests.txt
+          npm run assemble:vision 2>&1 | tee ../artifacts/staging/candidate-assembly.txt
+          npx wrangler deploy --config vision/wrangler.jsonc --dry-run --outdir ../artifacts/staging/candidate-worker-dry-run 2>&1 | tee ../artifacts/staging/candidate-worker-dry-run.txt
+
+      - name: Validate staging-only configuration without printing secrets
+        shell: bash
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          VISION_STAGING_DATABASE_URL: ${{ secrets.VISION_STAGING_DATABASE_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          VISION_E2E_GUEST_EMAIL: ${{ secrets.VISION_E2E_GUEST_EMAIL }}
+          VISION_E2E_GUEST_PASSWORD: ${{ secrets.VISION_E2E_GUEST_PASSWORD }}
+          VISION_E2E_VIEWS_EMAIL: ${{ secrets.VISION_E2E_VIEWS_EMAIL }}
+          VISION_E2E_VIEWS_PASSWORD: ${{ secrets.VISION_E2E_VIEWS_PASSWORD }}
+          VISION_E2E_DISPATCHER_EMAIL: ${{ secrets.VISION_E2E_DISPATCHER_EMAIL }}
+          VISION_E2E_DISPATCHER_PASSWORD: ${{ secrets.VISION_E2E_DISPATCHER_PASSWORD }}
+          VISION_E2E_STAFF_EMAIL: ${{ secrets.VISION_E2E_STAFF_EMAIL }}
+          VISION_E2E_STAFF_PASSWORD: ${{ secrets.VISION_E2E_STAFF_PASSWORD }}
+          VISION_E2E_QUALITY_EMAIL: ${{ secrets.VISION_E2E_QUALITY_EMAIL }}
+          VISION_E2E_QUALITY_PASSWORD: ${{ secrets.VISION_E2E_QUALITY_PASSWORD }}
+          VISION_E2E_AUDIT_EMAIL: ${{ secrets.VISION_E2E_AUDIT_EMAIL }}
+          VISION_E2E_AUDIT_PASSWORD: ${{ secrets.VISION_E2E_AUDIT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const required=[
+            'SUPABASE_STAGING_REF','SUPABASE_PUBLISHABLE_KEY','VISION_STAGING_DATABASE_URL',
+            'VISION_STAGING_URL','CLOUDFLARE_API_TOKEN','CLOUDFLARE_ACCOUNT_ID',
+            'VISION_E2E_GUEST_EMAIL','VISION_E2E_GUEST_PASSWORD',
+            'VISION_E2E_VIEWS_EMAIL','VISION_E2E_VIEWS_PASSWORD',
+            'VISION_E2E_DISPATCHER_EMAIL','VISION_E2E_DISPATCHER_PASSWORD',
+            'VISION_E2E_STAFF_EMAIL','VISION_E2E_STAFF_PASSWORD',
+            'VISION_E2E_QUALITY_EMAIL','VISION_E2E_QUALITY_PASSWORD',
+            'VISION_E2E_AUDIT_EMAIL','VISION_E2E_AUDIT_PASSWORD'
+          ];
+          const missing=required.filter(name=>!process.env[name]);
+          const report={sourceCommit:process.env.VISION_CANDIDATE_SHA,missing,productionChanged:false};
+          fs.writeFileSync('artifacts/staging/preflight.json',JSON.stringify(report,null,2)+'\n');
+          if(missing.length)throw Error('Missing staging configuration: '+missing.join(', '));
+          const worker=new URL(process.env.VISION_STAGING_URL);
+          if(worker.protocol!=='https:'||worker.hostname!=='vertex-vision-staging.masurovadasha.workers.dev'||worker.pathname!=='/'||worker.search||worker.hash)throw Error('Unsafe staging Worker URL');
+          if(!/^[a-z0-9]{20}$/.test(process.env.SUPABASE_STAGING_REF))throw Error('Invalid Supabase staging ref');
+          JS
+
+      - name: Apply candidate migrations and map genuine synthetic Auth identities with trusted provisioner
+        shell: bash
+        env:
+          VISION_CANDIDATE_ROOT: candidate
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          VISION_STAGING_DATABASE_URL: ${{ secrets.VISION_STAGING_DATABASE_URL }}
+          VISION_E2E_GUEST_EMAIL: ${{ secrets.VISION_E2E_GUEST_EMAIL }}
+          VISION_E2E_GUEST_PASSWORD: ${{ secrets.VISION_E2E_GUEST_PASSWORD }}
+          VISION_E2E_VIEWS_EMAIL: ${{ secrets.VISION_E2E_VIEWS_EMAIL }}
+          VISION_E2E_VIEWS_PASSWORD: ${{ secrets.VISION_E2E_VIEWS_PASSWORD }}
+          VISION_E2E_DISPATCHER_EMAIL: ${{ secrets.VISION_E2E_DISPATCHER_EMAIL }}
+          VISION_E2E_DISPATCHER_PASSWORD: ${{ secrets.VISION_E2E_DISPATCHER_PASSWORD }}
+          VISION_E2E_STAFF_EMAIL: ${{ secrets.VISION_E2E_STAFF_EMAIL }}
+          VISION_E2E_STAFF_PASSWORD: ${{ secrets.VISION_E2E_STAFF_PASSWORD }}
+          VISION_E2E_QUALITY_EMAIL: ${{ secrets.VISION_E2E_QUALITY_EMAIL }}
+          VISION_E2E_QUALITY_PASSWORD: ${{ secrets.VISION_E2E_QUALITY_PASSWORD }}
+          VISION_E2E_AUDIT_EMAIL: ${{ secrets.VISION_E2E_AUDIT_EMAIL }}
+          VISION_E2E_AUDIT_PASSWORD: ${{ secrets.VISION_E2E_AUDIT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          export SUPABASE_URL="https://${SUPABASE_STAGING_REF}.supabase.co"
+          node vision/staging/provision.mjs artifacts/staging/provision.json
+
+      - name: Build trusted staging Wrangler config for candidate Worker
+        shell: bash
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          set -euo pipefail
+          export SUPABASE_URL="https://${SUPABASE_STAGING_REF}.supabase.co"
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const config={
+            name:'vertex-vision-staging',
+            main:'candidate/vision/backend/worker.mjs',
+            compatibility_date:'2026-09-30',
+            compatibility_flags:['nodejs_compat'],
+            workers_dev:true,
+            preview_urls:false,
+            assets:{directory:'candidate/vertex/dist',binding:'ASSETS',run_worker_first:['/api/*','/health','/readyz','/system-status','/auth-config']},
+            vars:{
+              VISION_ENV:'staging',
+              VISION_SOURCE_COMMIT:process.env.VISION_CANDIDATE_SHA,
+              SUPABASE_STAGING_REF:process.env.SUPABASE_STAGING_REF,
+              SUPABASE_URL:process.env.SUPABASE_URL,
+              SUPABASE_PUBLISHABLE_KEY:process.env.SUPABASE_PUBLISHABLE_KEY
+            },
+            observability:{enabled:true,head_sampling_rate:1}
+          };
+          fs.writeFileSync('artifacts/staging/trusted-wrangler.json',JSON.stringify(config,null,2)+'\n');
+          JS
+
+      - name: Deploy only candidate Worker through trusted staging config
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx wrangler deploy --config artifacts/staging/trusted-wrangler.json --keep-vars 2>&1 | tee artifacts/staging/deploy.txt
+
+      - name: Verify deployed candidate source and runtime readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${VISION_STAGING_URL%/}"
+          curl --fail --silent --show-error --retry 6 --retry-delay 2 "$base/health" -o artifacts/staging/health.json
+          curl --fail --silent --show-error --retry 6 --retry-delay 2 "$base/readyz" -o artifacts/staging/readiness.json
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const release=JSON.parse(fs.readFileSync('candidate/vision/release/0.1-RC1.json','utf8'));
+          const health=JSON.parse(fs.readFileSync('artifacts/staging/health.json','utf8'));
+          const ready=JSON.parse(fs.readFileSync('artifacts/staging/readiness.json','utf8'));
+          if(health.service!=='VERTEX VISION'||health.environment!=='staging'||health.configured!==true||health.sourceCommit!==process.env.VISION_CANDIDATE_SHA)throw Error('Deployed candidate source/config mismatch');
+          if(health.requiredMigration!==release.databaseMigration||health.architectureVersion!==release.architectureVersion)throw Error('Health release mismatch');
+          if(ready.ready!==true||ready.latestMigration!==release.databaseMigration||ready.architectureVersion!==release.architectureVersion)throw Error('Database not ready');
+          JS
+
+      - name: Run genuine Auth, candidate Worker and direct-RLS E2E with trusted runner
+        shell: bash
+        env:
+          VISION_CANDIDATE_ROOT: candidate
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          VISION_E2E_GUEST_EMAIL: ${{ secrets.VISION_E2E_GUEST_EMAIL }}
+          VISION_E2E_GUEST_PASSWORD: ${{ secrets.VISION_E2E_GUEST_PASSWORD }}
+          VISION_E2E_VIEWS_EMAIL: ${{ secrets.VISION_E2E_VIEWS_EMAIL }}
+          VISION_E2E_VIEWS_PASSWORD: ${{ secrets.VISION_E2E_VIEWS_PASSWORD }}
+          VISION_E2E_STAFF_EMAIL: ${{ secrets.VISION_E2E_STAFF_EMAIL }}
+          VISION_E2E_STAFF_PASSWORD: ${{ secrets.VISION_E2E_STAFF_PASSWORD }}
+          VISION_E2E_QUALITY_EMAIL: ${{ secrets.VISION_E2E_QUALITY_EMAIL }}
+          VISION_E2E_QUALITY_PASSWORD: ${{ secrets.VISION_E2E_QUALITY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          export SUPABASE_URL="https://${SUPABASE_STAGING_REF}.supabase.co"
+          node vision/staging/cloud-e2e.mjs artifacts/staging/provision.json artifacts/staging/cloud-e2e.json
+
+      - name: Record cloud gate result
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## VERTEX VISION Real Staging Auth E2E"
+            echo "- Candidate: `$VISION_CANDIDATE_SHA`"
+            echo "- Controller: protected master"
+            echo "- Target Worker: `vertex-vision-staging`"
+            echo "- Production/master changed: **no**"
+            if test -f artifacts/staging/cloud-e2e.json; then
+              echo "- Authenticated cloud E2E report: generated"
+            else
+              echo "- Authenticated cloud E2E report: not generated"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: Vertex-Vision-Real-Staging-E2E-${{ env.VISION_CANDIDATE_SHA }}
+          path: artifacts/staging/
+          retention-days: 30
+          if-no-files-found: error

@@ -1,0 +1,40 @@
+{
+  "id": "vertex-vision-interface-system-10.0",
+  "version": "10.0",
+  "base": "Interface System 9.0",
+  "focus": "System Status / Operations Control Center",
+  "endpoint": "/system-status",
+  "signals": [
+    "backendConfigured",
+    "readinessChecked",
+    "databaseReady",
+    "latestMigration",
+    "migrationCount",
+    "viewsReleaseActive",
+    "backgroundConsumerConnected",
+    "escalationSchedulerConnected",
+    "sourceCommit",
+    "architectureVersion",
+    "requiredMigration"
+  ],
+  "privacy": {
+    "secretsExposed": false,
+    "tokensExposed": false,
+    "connectionStringsExposed": false,
+    "userDataExposed": false
+  },
+  "ui": {
+    "runtime": "vision/platform/system-status-center.js",
+    "style": "vision/platform/system-status-center.css",
+    "entryPoint": "VISION Hub hero",
+    "fabricatedFallback": false,
+    "mobileResponsive": true
+  },
+  "safety": {
+    "activeModule": "views",
+    "futureModulesOperational": false,
+    "productionChanged": false,
+    "masterChanged": false,
+    "backgroundConnectedByDefault": false
+  }
+}

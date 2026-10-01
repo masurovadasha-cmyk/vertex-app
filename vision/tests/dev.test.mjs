@@ -1,5 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import os from 'node:os';
+import path from 'node:path';
+import {mkdtemp,rm} from 'node:fs/promises';
 import {startDev} from '../backend/dev.mjs';
 import {demo} from '../backend/demo.mjs';
 test('loopback development profiles run complete Golden Flow and reject cross-origin requests',async t=>{
@@ -23,4 +26,16 @@ test('loopback development profiles run complete Golden Flow and reject cross-or
  assert.equal(order.status,'COMPLETED');
  assert.equal((await (await request('audit','/api/audit')).json()).length,5);
  assert.equal((await (await request('guest','/api/audit')).json()).length,0);
+});
+
+
+test('persistent local dev database refuses a second process-style opener on the same data directory',async t=>{
+ const root=await mkdtemp(path.join(os.tmpdir(),'vision-dev-lock-'));
+ t.after(()=>rm(root,{recursive:true,force:true}));
+ const dataDir=path.join(root,'db');
+ const first=await startDev({port:0,dataDir});
+ await assert.rejects(()=>startDev({port:0,dataDir}),/development_database_locked/);
+ await first.close();
+ const reopened=await startDev({port:0,dataDir});
+ await reopened.close();
 });

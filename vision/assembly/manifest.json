@@ -1,0 +1,330 @@
+{
+  "product": "VERTEX Vision",
+  "assembly": "0.1",
+  "architectureVersion": "2.2",
+  "releaseManifest": "vision/release/0.1-RC1.json",
+  "platformVersion": "1.18-rc1",
+  "apiVersion": "v1",
+  "database": {
+    "latestMigration": "0018_engineers_readiness.sql",
+    "migrationsExpected": 18,
+    "sourceOfTruth": "PostgreSQL/Supabase",
+    "productionApplied": false
+  },
+  "modules": {
+    "active": [
+      "views"
+    ],
+    "comingSoonCount": 18,
+    "registryCount": 19
+  },
+  "views": {
+    "ui": [
+      "dashboard",
+      "calendar",
+      "bookings",
+      "units",
+      "cleaning"
+    ],
+    "backend": "/api/v1/views",
+    "commands": [
+      "create_booking",
+      "confirm_booking",
+      "check_in",
+      "check_out",
+      "cancel_booking",
+      "cleaning_start",
+      "cleaning_submit",
+      "cleaning_verify"
+    ],
+    "authoritativeWrites": "database-rpc",
+    "demoFallbackInOperations": false
+  },
+  "runtimes": {
+    "web": {
+      "source": "vision/platform",
+      "buildOutput": "vertex/dist"
+    },
+    "android": {
+      "packageId": "com.vertex.vision.demo",
+      "versionName": "1.18-rc1",
+      "versionCode": 22
+    },
+    "stagingWorker": {
+      "name": "vertex-vision-staging",
+      "config": "vision/wrangler.jsonc"
+    },
+    "productionWorker": {
+      "name": "vertex-app",
+      "config": "wrangler.jsonc",
+      "approved": false
+    },
+    "background": {
+      "orchestration": "vision/runtime/background-operations.mjs",
+      "postgresAdapter": "vision/runtime/postgres-background-adapter.mjs",
+      "stagingRunner": "vision/runtime/run-staging-background.mjs",
+      "grantContract": "vision/staging/background-principal-grants.sql",
+      "principal": "vision_background_staging",
+      "directTableAccess": false,
+      "rpcOnly": true,
+      "connected": false
+    }
+  },
+  "boundaries": {
+    "jarvis": "separate-project-external-api-only",
+    "productionMerge": false,
+    "productionDeploy": false,
+    "cloudDatabaseMigration": false,
+    "interfaceDesign": "design-integrated-no-new-business-modules-activated"
+  },
+  "gates": [
+    "assembly-contract",
+    "server-authoritative-session-context",
+    "typed-command-contract",
+    "typed-response-contract",
+    "request-correlation-trace",
+    "runtime-readiness",
+    "event-inbox-idempotency",
+    "unit-regression",
+    "postgresql-rls",
+    "views-vertical-flow",
+    "browser-desktop-mobile",
+    "android-build-signature-assets",
+    "cloudflare-production-dry-run",
+    "cloudflare-staging-dry-run",
+    "real-supabase-auth-e2e",
+    "background-staging-smoke",
+    "expand-only-migration-policy",
+    "read-only-release-preflight",
+    "backup-restore-drill",
+    "n-minus-one-schema-compatibility",
+    "rollback-policy",
+    "production-promotion-evidence",
+    "production-backup-restore-evidence",
+    "trusted-release-controller",
+    "effective-read-only-backup-principal",
+    "unified-work-feed",
+    "approval-read-foundation",
+    "staging-auth-session-activation"
+  ],
+  "kernel": {
+    "routePolicy": "vision/backend/kernel.mjs",
+    "contextEndpoint": "/api/v1/context",
+    "permissionSource": "postgresql-rbac-only",
+    "clientPermissionClaimsTrusted": false,
+    "organizationScopeRequired": true,
+    "commandContract": "vision/modules/views/command-contract.mjs",
+    "commandSchemaVersion": "v1",
+    "commandValidationLayers": [
+      "api-contract",
+      "postgresql-domain"
+    ],
+    "responseContract": "vision/modules/views/response-contract.mjs",
+    "responseProjection": "allowlisted-command-dto",
+    "traceHeaders": [
+      "X-Request-ID",
+      "X-Correlation-ID"
+    ],
+    "workFeedEndpoint": "/api/v1/work-feed",
+    "workFeedContract": "vision/contracts/work-feed.mjs",
+    "workCommandsEndpoint": "/api/v1/work/commands",
+    "workCommandContract": "vision/contracts/work-command.mjs",
+    "workAssigneesEndpoint": "/api/v1/work-assignees",
+    "workAssigneesContract": "vision/contracts/work-assignees.mjs",
+    "notificationFeedEndpoint": "/api/v1/notifications",
+    "notificationFeedContract": "vision/contracts/notification-feed.mjs",
+    "notificationCommandEndpoint": "/api/v1/notifications/commands",
+    "notificationCommandContract": "vision/contracts/notification-command.mjs",
+    "systemStatusEndpoint": "/system-status",
+    "authConfigEndpoint": "/auth-config",
+    "sessionScopesEndpoint": "/api/v1/session-scopes"
+  },
+  "readiness": {
+    "endpoint": "/readyz",
+    "rpc": "public.vision_runtime_readiness()",
+    "checks": [
+      "migration-level",
+      "required-tables",
+      "required-rpcs",
+      "rls",
+      "views-release-active",
+      "event-inbox",
+      "unified-work-feed",
+      "approval-rls",
+      "work-command-rpc",
+      "work-assignee-rpc",
+      "notifications-table",
+      "escalations-table",
+      "notification-feed-rpc",
+      "notification-command-rpc",
+      "notification-consumer-rpc",
+      "outbox-fail-rpc",
+      "background-scopes-rpc"
+    ],
+    "serviceRoleRequired": false
+  },
+  "externalGates": {
+    "realStagingAuthE2E": {
+      "workflow": ".github/workflows/vision-cloud-e2e.yml",
+      "mode": "manual-staging-environment",
+      "required": true,
+      "verified": false,
+      "productionChanged": false
+    },
+    "backgroundStagingSmoke": {
+      "workflow": ".github/workflows/vision-background-staging-smoke.yml",
+      "mode": "manual-staging-environment",
+      "required": true,
+      "verified": false,
+      "productionChanged": false
+    }
+  },
+  "reliability": {
+    "outbox": "transactional-at-least-once",
+    "inbox": "durable-deduplication-with-lease",
+    "globalExactlyOnce": false,
+    "notificationConsumer": "durable-inbox-deduplicated-not-connected",
+    "escalationScheduler": "reconciliation-rpc-not-connected"
+  },
+  "productionSafety": {
+    "manifest": "vision/production/safety-manifest.json",
+    "rollbackPlan": "vision/production/rollback-plan.json",
+    "workflow": ".github/workflows/vision-rc2-safety.yml",
+    "backupRestoreRequired": true,
+    "readOnlyPreflightRequired": true,
+    "productionApproved": false,
+    "nMinusOneCompatibility": "vision/production/check-n-minus-one-compatibility.mjs",
+    "ciBackupRestoreDrillRequired": true,
+    "productionBackupRestoreVerified": false,
+    "stagingDeployMode": "manual-only"
+  },
+  "productionPromotion": {
+    "policy": "vision/production/promotion-policy.json",
+    "evaluator": "vision/production/evaluate-promotion.mjs",
+    "workflow": ".github/workflows/vision-promotion-gate.yml",
+    "productionBackupWorkflow": ".github/workflows/vision-production-backup-restore.yml",
+    "mutationAllowed": false,
+    "passed": false,
+    "trustedController": {
+      "version": "0.1",
+      "requiredRef": "refs/heads/master",
+      "candidateCheckout": "separate-exact-sha",
+      "evidenceWorkflowMetadataVerified": true,
+      "firstPartyActionsPinnedByCommit": true,
+      "productionMutationAllowed": false
+    },
+    "requiredEvidence": [
+      "integrated-assembly",
+      "rc2-safety",
+      "real-staging-auth-e2e",
+      "background-staging-smoke",
+      "production-backup-restore"
+    ],
+    "backgroundSmokeWorkflow": ".github/workflows/vision-background-staging-smoke.yml"
+  },
+  "designSystem": {
+    "name": "VERTEX VISION Interface System",
+    "version": "2.0",
+    "style": "Tech Sand",
+    "source": "Canva",
+    "canvaDesignId": "DAHWuG0D0xk",
+    "canvaViewUrl": "https://www.canva.com/d/2REVo-Km73I52F4",
+    "integrationScope": [
+      "vision-hub",
+      "views-operations",
+      "responsive-navigation",
+      "system-states",
+      "accessibility"
+    ],
+    "activeRuntimeModule": "views",
+    "inactiveModules": "coming-soon",
+    "integratedAt": "2026-10-01",
+    "experienceIteration": "11.0",
+    "experienceStyle": "Dark Premium Tech Sand",
+    "visualReference": "VERTEX VISION dark control-center boards",
+    "runtimeEnhancements": [
+      "grouped-module-launcher",
+      "today-panel",
+      "inline-line-icons",
+      "concept-preview-cards",
+      "dark-views-operations",
+      "command-palette",
+      "favorites",
+      "recent-modules",
+      "my-day-work-center",
+      "role-aware-quick-actions",
+      "honest-work-feed-states",
+      "unified-work-feed",
+      "tasks-read-model",
+      "approvals-read-foundation",
+      "attention-center",
+      "task-lifecycle-actions",
+      "approval-decisions",
+      "sla-state",
+      "work-assignee-directory",
+      "live-refresh-polling",
+      "notification-center",
+      "escalation-center",
+      "event-driven-notification-projection",
+      "notification-inbox",
+      "notification-actions",
+      "escalation-ack",
+      "system-status-center",
+      "staging-session-center"
+    ],
+    "navigationIntelligence": {
+      "commandPalette": true,
+      "shortcuts": [
+        "Ctrl+K",
+        "Cmd+K"
+      ],
+      "localFavorites": true,
+      "localRecents": true,
+      "sensitiveDataStored": false,
+      "backendWorkFeedConnected": false
+    },
+    "workCenter": {
+      "enabled": true,
+      "tabs": [
+        "today",
+        "tasks",
+        "approvals",
+        "requests",
+        "operations"
+      ],
+      "workFeedEndpoint": "/api/v1/work-feed",
+      "workCommandsEndpoint": "/api/v1/work/commands",
+      "assigneesEndpoint": "/api/v1/work-assignees",
+      "approvalDecisionsEnabled": true,
+      "requestMutationsEnabled": false,
+      "fabricatedMetrics": false,
+      "serverAuthoritative": true,
+      "refreshMode": "polling-30s-not-push",
+      "workFeedReadOnly": true
+    },
+    "notifications": {
+      "enabled": true,
+      "feedEndpoint": "/api/v1/notifications",
+      "commandsEndpoint": "/api/v1/notifications/commands",
+      "eventConsumerConnected": false,
+      "escalationSchedulerConnected": false,
+      "refreshMode": "polling-30s-not-push",
+      "fabricatedEvents": false
+    },
+    "systemStatus": {
+      "enabled": true,
+      "endpoint": "/system-status",
+      "fabricatedFallback": false,
+      "secretsExposed": false,
+      "backgroundFlags": "runtime-config-only"
+    },
+    "sessionActivation": {
+      "enabled": true,
+      "authProvider": "supabase-staging",
+      "tokenPersistence": "memory-only",
+      "passwordPersistence": false,
+      "scopeDiscovery": "server-authoritative",
+      "fabricatedFallback": false
+    }
+  }
+}

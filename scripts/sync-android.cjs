@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('fs'),path=require('path');const root=path.resolve(__dirname,'..');const source=path.join(root,'vertex/dist'),dest=path.join(root,'android/app/src/main/assets/site');
 const version=JSON.parse(fs.readFileSync(path.join(source,'release.json'),'utf8')).version;
-if(typeof version!=='string'||!/^\d+\.\d+(?:\.\d+)?-demo$/.test(version))throw new Error('Invalid release version for Android assets.');
+if(typeof version!=='string'||!/^\d+\.\d+(?:\.\d+)?-(?:demo|rc\d+)$/.test(version))throw new Error('Invalid release version for Android assets.');
 const sourceFiles=fs.readdirSync(source).filter(file=>fs.statSync(path.join(source,file)).isFile()&&!file.endsWith('.apk'));
 for(const file of fs.readdirSync(dest)){const target=path.join(dest,file);if(fs.statSync(target).isFile()&&!sourceFiles.includes(file))fs.unlinkSync(target);}
 for(const file of sourceFiles){let bytes=fs.readFileSync(path.join(source,file));if(file==='app.js'){let text=bytes.toString('utf8').replace(/navigator\.serviceWorker\.register\('\.\/sw\.js'\)/g,'Promise.resolve(null)');bytes=Buffer.from(text);}

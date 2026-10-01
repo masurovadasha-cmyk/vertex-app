@@ -1,54 +1,220 @@
-/* Scoped VISION styles. Do not override legacy Host Studio, Taxi or modal selectors. */
-#visionHome{margin:0 0 36px;width:100%;color:#222;background:#fff;isolation:isolate}
+/* VERTEX VISION Interface System 2.0 — Tech Sand. Scoped to VISION only. */
+#visionHome{
+  --vv-bg:#0f1312;--vv-panel:#171c1a;--vv-panel-2:#1d2320;--vv-surface:#f4efe5;--vv-surface-2:#ebe3d4;
+  --vv-text:#f7f4ed;--vv-ink:#1b201e;--vv-muted:#aeb4ae;--vv-muted-dark:#65706a;
+  --vv-gold:#cdb276;--vv-gold-strong:#e0c58a;--vv-steel:#8ea0b2;--vv-line:rgba(224,197,138,.18);
+  --vv-success:#62b98f;--vv-info:#6c98cb;--vv-warning:#d5a25a;--vv-danger:#d97373;
+  --vv-radius:18px;--vv-shadow:0 24px 70px rgba(0,0,0,.24);
+  margin:0 0 36px;width:100%;padding:clamp(18px,2.8vw,34px);color:var(--vv-text);
+  background:
+    radial-gradient(circle at 85% 8%,rgba(142,160,178,.12),transparent 26rem),
+    radial-gradient(circle at 8% 0%,rgba(205,178,118,.10),transparent 24rem),
+    linear-gradient(180deg,#111615 0%,#0f1312 100%);
+  border:1px solid var(--vv-line);border-radius:28px;box-shadow:var(--vv-shadow);isolation:isolate;overflow:hidden;
+}
 #visionHome *,.vv-dialog *{box-sizing:border-box}
-#visionHome .vv-hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(290px,.8fr);gap:28px;padding:38px 0 24px}
-#visionHome .vv-kicker{font-size:11px;line-height:1.7;font-weight:750;letter-spacing:.16em;color:#b01946;margin:0 0 16px}
-#visionHome .vv-title{white-space:pre-line;font-size:clamp(34px,4.5vw,60px);line-height:1.05;letter-spacing:-.045em;margin:0 0 20px;max-width:740px;color:#222}
-#visionHome .vv-lead{font-size:17px;line-height:1.7;color:#59606a;max-width:670px;margin:0 0 24px}
-.vv-actions{display:flex;flex-wrap:wrap;gap:9px;margin:16px 0 0}
-.vv-button{border:1px solid #e2e4e8;border-radius:12px;padding:13px 17px;min-height:46px;background:#fff;color:#222;cursor:pointer;font:600 13px/1.4 system-ui;transition:background .15s,border-color .15s;max-width:100%;white-space:normal}
-.vv-button:hover{background:#fff3f7;border-color:#e51d57}
-#visionHome .vv-actions .vv-button:first-child{background:#e51d57;border-color:#e51d57;color:#fff}
-#visionHome .vv-foundation{padding:28px;border:1px solid #e9e0e3;border-radius:22px;background:#fff5f8;align-self:center}
-#visionHome .vv-foundation h2{font-size:25px;letter-spacing:-.02em;margin:0 0 20px;color:#222}
-#visionHome .vv-services{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-#visionHome .vv-services span{background:#fff;border:1px solid #efdde4;border-radius:10px;padding:12px;font-size:12px;line-height:1.5;font-weight:650}
-#visionHome .vv-foundation-note{font-size:12px;line-height:1.7;color:#745561;margin:18px 0 0}
-.vv-disclosure{padding:14px 18px;border-left:3px solid #e51d57;background:#faf6f8;color:#684655;font-size:12px;line-height:1.7;border-radius:0 9px 9px 0;margin:12px 0 26px}
-#visionHome .vv-tools{display:flex;justify-content:space-between;align-items:end;gap:20px;margin:34px 0 20px;flex-wrap:wrap}
-#visionHome .vv-tools h2{margin:0 0 7px;font-size:25px;letter-spacing:-.02em;color:#222}
-#visionHome .vv-count{margin:0;color:#69707a;font-size:12px}
+#visionHome .vv-hero{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(290px,.82fr);gap:clamp(20px,3vw,40px);padding:10px 0 24px}
+#visionHome .vv-kicker{font-size:11px;line-height:1.6;font-weight:800;letter-spacing:.17em;color:var(--vv-gold-strong);margin:0 0 14px;text-transform:uppercase}
+#visionHome .vv-title{white-space:pre-line;font-size:clamp(38px,5vw,68px);line-height:.98;letter-spacing:-.052em;margin:0 0 20px;max-width:760px;color:var(--vv-text);font-weight:780}
+#visionHome .vv-lead{font-size:clamp(15px,1.5vw,18px);line-height:1.68;color:#c5cbc6;max-width:690px;margin:0 0 22px}
+.vv-actions{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 0}
+.vv-button{border:1px solid rgba(205,178,118,.26);border-radius:13px;padding:12px 17px;min-height:46px;background:rgba(255,255,255,.055);color:#f7f4ed;cursor:pointer;font:700 13px/1.4 system-ui,sans-serif;transition:transform .16s ease,background .16s ease,border-color .16s ease;max-width:100%;white-space:normal}
+.vv-button:hover{background:rgba(205,178,118,.12);border-color:var(--vv-gold);transform:translateY(-1px)}
+#visionHome .vv-actions .vv-button:first-child{background:var(--vv-gold);border-color:var(--vv-gold);color:#151916;box-shadow:0 10px 30px rgba(205,178,118,.14)}
+#visionHome .vv-actions .vv-button:first-child:hover{background:var(--vv-gold-strong)}
+#visionHome .vv-foundation{padding:24px;border:1px solid var(--vv-line);border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035));align-self:center;backdrop-filter:blur(10px)}
+#visionHome .vv-foundation h2{font-size:24px;letter-spacing:-.03em;margin:0 0 18px;color:#fff}
+#visionHome .vv-services{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+#visionHome .vv-services span{background:rgba(8,12,11,.34);border:1px solid rgba(255,255,255,.08);border-radius:11px;padding:12px;font-size:12px;line-height:1.45;font-weight:700;color:#d9ddd9}
+#visionHome .vv-foundation-note{font-size:12px;line-height:1.65;color:#aeb5af;margin:16px 0 0}
+.vv-disclosure{padding:13px 16px;border:1px solid rgba(205,178,118,.17);border-left:3px solid var(--vv-gold);background:rgba(205,178,118,.065);color:#d5d8d3;font-size:12px;line-height:1.65;border-radius:0 11px 11px 0;margin:8px 0 16px}
+#visionHome .vv-statebar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 28px}
+#visionHome .vv-statebar span{display:inline-flex;align-items:center;min-height:32px;padding:6px 10px;border:1px solid rgba(255,255,255,.09);border-radius:999px;background:rgba(255,255,255,.04);font:750 10px/1.2 system-ui,sans-serif;letter-spacing:.05em;color:#cbd0cb}
+#visionHome .vv-statebar .is-active{border-color:rgba(98,185,143,.35);color:#9ed9ba;background:rgba(98,185,143,.08)}
+#visionHome .vv-statebar .is-ui{border-color:rgba(205,178,118,.34);color:var(--vv-gold-strong);background:rgba(205,178,118,.08)}
+#visionHome .vv-tools{display:flex;justify-content:space-between;align-items:end;gap:20px;margin:26px 0 18px;flex-wrap:wrap}
+#visionHome .vv-tools h2{margin:0 0 6px;font-size:24px;letter-spacing:-.03em;color:#fff}
+#visionHome .vv-count{margin:0;color:#939b95;font-size:12px}
 #visionHome .vv-filters{display:flex;gap:10px;max-width:100%;flex-wrap:wrap}
-#visionHome .vv-filters label{font-size:11px;font-weight:650;display:grid;gap:5px;color:#636a74;min-width:0}
-#visionHome .vv-filters input,#visionHome .vv-filters select{height:43px;padding:9px 12px;border:1px solid #dadde2;background:#fff;border-radius:9px;color:#222;font:13px system-ui;max-width:100%;min-width:0}
-#visionHome .vv-filters input{width:240px}
-#visionHome .vv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
-#visionHome .vv-card{padding:21px;text-align:left;border:1px solid #e2e4e8;border-radius:16px;display:flex;flex-direction:column;align-items:stretch;background:#fff;color:#222;min-width:0;cursor:pointer;white-space:normal;min-height:220px;transition:border-color .15s,box-shadow .15s}
-#visionHome .vv-card:hover{border-color:#e51d57;box-shadow:0 4px 20px #8010300a}
-#visionHome .vv-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:22px}
-#visionHome .vv-card-domain{font:600 10px/1.5 system-ui;letter-spacing:.03em;color:#737984}
-#visionHome .vv-tag{font:650 10px/1.5 system-ui;border-radius:20px;padding:4px 9px;background:#fff0f5;color:#b71947}
-#visionHome .vv-tag-planned{background:#f0f1f3;color:#68717e}
-#visionHome .vv-card h3{font:750 18px/1.35 system-ui;letter-spacing:-.025em;margin:0 0 10px;color:#222;overflow-wrap:anywhere}
-#visionHome .vv-card p{font:13px/1.65 system-ui;margin:0 0 20px;color:#69707a}
-#visionHome .vv-card-link{font:650 12px/1.5 system-ui;color:#ba1646;margin-top:auto}
-#visionHome .vv-empty{grid-column:1/-1;padding:30px;color:#69707a;border:1px dashed #d4d7dc;border-radius:12px}
-#visionHome .vv-map{display:flex;flex-direction:column;gap:12px;background:#202129;color:#fff;border-radius:16px;padding:24px;margin:24px 0 0}
-#visionHome .vv-map strong{font:750 14px system-ui;letter-spacing:.06em;color:#fff}
-#visionHome .vv-map span{font:14px/1.8 system-ui;color:#e7e8eb}
-#visionHome .vv-map small{font:12px/1.6 system-ui;color:#b9bdc9}
-#visionHome .vv-message{font:13px/1.6 system-ui;color:#a8163f;min-height:18px}
-.vv-views-boundary{font:750 12px/1.6 system-ui;letter-spacing:.05em;padding-top:24px;margin-bottom:14px;border-top:1px solid #e1e3e7;color:#a01b43}
-header .brand .vv-wordmark{font:800 13px/1.2 system-ui;letter-spacing:-.03em;white-space:nowrap}
-.vv-dialog{width:min(650px,calc(100% - 28px));max-height:calc(100dvh - 48px);padding:26px;border:1px solid #e1e3e8;border-radius:18px;background:#fff;color:#222;overflow:auto;font:15px/1.7 system-ui}
-.vv-dialog::backdrop{background:#17182388;backdrop-filter:blur(3px)}
+#visionHome .vv-filters label{font-size:11px;font-weight:700;display:grid;gap:6px;color:#aeb4ae;min-width:0}
+#visionHome .vv-filters input,#visionHome .vv-filters select{height:46px;padding:10px 13px;border:1px solid rgba(255,255,255,.11);background:#171c1a;border-radius:12px;color:#f4f0e8;font:13px system-ui,sans-serif;max-width:100%;min-width:0;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+#visionHome .vv-filters input{width:min(300px,72vw)}
+#visionHome .vv-filters input::placeholder{color:#737d76}
+#visionHome .vv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+#visionHome .vv-card{padding:20px;text-align:left;border:1px solid rgba(255,255,255,.085);border-radius:17px;display:flex;flex-direction:column;align-items:stretch;background:linear-gradient(180deg,#171c1a,#141816);color:#f3f0e9;min-width:0;cursor:pointer;white-space:normal;min-height:214px;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+#visionHome .vv-card:hover{border-color:rgba(205,178,118,.44);box-shadow:0 16px 38px rgba(0,0,0,.22);transform:translateY(-2px)}
+#visionHome .vv-card-active{background:linear-gradient(145deg,#f2eadb,#ddd0b7);border-color:#e5d2a8;color:#171b18;box-shadow:0 18px 48px rgba(205,178,118,.15)}
+#visionHome .vv-card-active:hover{border-color:#f0d89f;box-shadow:0 22px 58px rgba(205,178,118,.20)}
+#visionHome .vv-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+#visionHome .vv-card-identity{display:flex;align-items:center;gap:9px;min-width:0}
+#visionHome .vv-card-icon{display:grid;place-items:center;width:42px;height:42px;border:1px solid rgba(255,255,255,.10);border-radius:12px;background:rgba(255,255,255,.055);font-size:20px;line-height:1;flex:0 0 auto}
+#visionHome .vv-card-active .vv-card-icon{background:rgba(255,255,255,.55);border-color:rgba(72,66,51,.12)}
+#visionHome .vv-card-domain{font:700 10px/1.5 system-ui,sans-serif;letter-spacing:.055em;color:#8f9991;text-transform:uppercase}
+#visionHome .vv-card-active .vv-card-domain{color:#6f705f}
+#visionHome .vv-tag{font:800 10px/1.5 system-ui,sans-serif;border-radius:20px;padding:5px 9px;background:rgba(98,185,143,.12);color:#92d5b2;border:1px solid rgba(98,185,143,.24)}
+#visionHome .vv-card-active .vv-tag{background:#183327;color:#a6e2c0;border-color:#2d5743}
+#visionHome .vv-tag-planned{background:rgba(142,160,178,.08);color:#aab5c0;border-color:rgba(142,160,178,.16)}
+#visionHome .vv-card h3{font:760 18px/1.32 system-ui,sans-serif;letter-spacing:-.025em;margin:0 0 10px;color:inherit;overflow-wrap:anywhere}
+#visionHome .vv-card p{font:13px/1.62 system-ui,sans-serif;margin:0 0 18px;color:#9fa7a0}
+#visionHome .vv-card-active p{color:#595d55}
+#visionHome .vv-card-link{font:760 12px/1.5 system-ui,sans-serif;color:var(--vv-gold-strong);margin-top:auto}
+#visionHome .vv-card-active .vv-card-link{color:#765f2d}
+#visionHome .vv-empty{grid-column:1/-1;padding:30px;color:#a8afa9;border:1px dashed rgba(255,255,255,.14);border-radius:14px}
+#visionHome .vv-map{display:flex;flex-direction:column;gap:10px;background:linear-gradient(135deg,#1a201e,#111513);color:#fff;border:1px solid var(--vv-line);border-radius:17px;padding:22px;margin:24px 0 0;position:relative;overflow:hidden}
+#visionHome .vv-map::after{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(205,178,118,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(205,178,118,.045) 1px,transparent 1px);background-size:24px 24px;pointer-events:none}
+#visionHome .vv-map>*{position:relative;z-index:1}
+#visionHome .vv-map strong{font:800 13px system-ui,sans-serif;letter-spacing:.10em;color:var(--vv-gold-strong)}
+#visionHome .vv-map span{font:14px/1.7 system-ui,sans-serif;color:#e7e9e5}
+#visionHome .vv-map small{font:12px/1.6 system-ui,sans-serif;color:#949d96}
+#visionHome .vv-message{font:13px/1.6 system-ui,sans-serif;color:#efaaaa;min-height:18px}
+.vv-views-boundary{font:800 11px/1.6 system-ui,sans-serif;letter-spacing:.10em;padding-top:24px;margin-bottom:14px;border-top:1px solid #d9d4c9;color:#756546;text-transform:uppercase}
+header .brand .vv-wordmark{font:820 13px/1.2 system-ui,sans-serif;letter-spacing:.01em;white-space:nowrap}
+.vv-dialog{--vv-dialog-gold:#cdb276;width:min(680px,calc(100% - 28px));max-height:calc(100dvh - 48px);padding:26px;border:1px solid rgba(205,178,118,.24);border-radius:20px;background:linear-gradient(180deg,#171c1a,#111513);color:#f5f1e9;overflow:auto;font:15px/1.68 system-ui,sans-serif;box-shadow:0 28px 90px rgba(0,0,0,.48)}
+.vv-dialog::backdrop{background:#090c0bbb;backdrop-filter:blur(8px)}
 .vv-dialog-top{display:flex;gap:20px;align-items:start;justify-content:space-between}
-.vv-dialog-top h2{font-size:25px;line-height:1.3;letter-spacing:-.02em;margin:0;color:#222;overflow-wrap:anywhere}
-.vv-close{border:1px solid #e2e3e7;background:#f8f8fa;color:#222;border-radius:50%;min-width:44px;height:44px;font-size:24px;line-height:1;cursor:pointer}
-.vv-dialog .vv-path{font:650 11px/1.6 system-ui;letter-spacing:.04em;color:#ac214c;overflow-wrap:anywhere}
-.vv-meta{display:grid;grid-template-columns:minmax(120px,.65fr) minmax(0,1.3fr);gap:12px 20px;font-size:12px;border-top:1px solid #e7e8eb;padding-top:20px}
-.vv-meta dt{font-weight:650;color:#66707c}.vv-meta dd{margin:0;color:#303640}
-#visionHome button:focus-visible,.vv-dialog button:focus-visible,#visionHome input:focus-visible,#visionHome select:focus-visible{outline:3px solid #ce174b;outline-offset:3px}
+.vv-dialog-top h2{font-size:26px;line-height:1.26;letter-spacing:-.03em;margin:0;color:#fff;overflow-wrap:anywhere}
+.vv-close{border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.045);color:#eee9df;border-radius:12px;min-width:44px;height:44px;font-size:24px;line-height:1;cursor:pointer}
+.vv-dialog .vv-path{font:760 10px/1.6 system-ui,sans-serif;letter-spacing:.08em;color:var(--vv-dialog-gold);overflow-wrap:anywhere;text-transform:uppercase}
+.vv-dialog .vv-disclosure{margin:12px 0 22px}
+.vv-meta{display:grid;grid-template-columns:minmax(130px,.65fr) minmax(0,1.3fr);gap:12px 20px;font-size:12px;border-top:1px solid rgba(255,255,255,.09);padding-top:20px}
+.vv-meta dt{font-weight:750;color:#939c95}.vv-meta dd{margin:0;color:#dde1dc}.vv-coming-soon{display:inline-flex;align-items:center;min-height:44px;padding:10px 13px;border-radius:11px;background:rgba(142,160,178,.08);color:#b4bec6;font:750 12px/1.4 system-ui,sans-serif;border:1px solid rgba(142,160,178,.16)}
+#visionHome button:focus-visible,.vv-dialog button:focus-visible,#visionHome input:focus-visible,#visionHome select:focus-visible{outline:3px solid var(--vv-gold-strong);outline-offset:3px}
 @media(max-width:960px){#visionHome .vv-hero{grid-template-columns:1fr 1fr;gap:20px}#visionHome .vv-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#visionHome .vv-foundation{padding:20px}}
-@media(max-width:620px){#visionHome .vv-hero{grid-template-columns:1fr;padding-top:22px;gap:22px}#visionHome .vv-title{font-size:39px}#visionHome .vv-lead{font-size:15px}#visionHome .vv-grid{grid-template-columns:1fr}#visionHome .vv-card{min-height:190px}#visionHome .vv-card-top{margin-bottom:15px}#visionHome .vv-tools{display:block}#visionHome .vv-filters{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;width:100%}#visionHome .vv-filters input{width:100%}#visionHome .vv-actions .vv-button{flex:1 1 calc(50% - 10px);padding:11px 9px}.vv-dialog{padding:20px}.vv-meta{grid-template-columns:1fr;gap:5px}.vv-meta dd{margin:0 0 12px}header .brand .vv-wordmark{font-size:11px}}
-@media(prefers-reduced-motion:reduce){.vv-button,#visionHome .vv-card{transition:none}}
+@media(max-width:620px){#visionHome{padding:16px;border-radius:20px}#visionHome .vv-hero{grid-template-columns:1fr;padding-top:6px;gap:18px}#visionHome .vv-title{font-size:42px}#visionHome .vv-lead{font-size:15px}#visionHome .vv-grid{grid-template-columns:1fr}#visionHome .vv-card{min-height:184px}#visionHome .vv-card-top{margin-bottom:14px}#visionHome .vv-tools{display:block}#visionHome .vv-filters{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;width:100%}#visionHome .vv-filters input{width:100%}#visionHome .vv-actions .vv-button{flex:1 1 calc(50% - 10px);padding:11px 9px}.vv-dialog{padding:20px}.vv-meta{grid-template-columns:1fr;gap:5px}.vv-meta dd{margin:0 0 12px}header .brand .vv-wordmark{font-size:11px}}
+@media(max-width:420px){#visionHome .vv-filters{grid-template-columns:1fr}#visionHome .vv-title{font-size:36px}}
+@media(prefers-reduced-motion:reduce){.vv-button,#visionHome .vv-card{transition:none;transform:none!important}}
+
+
+/* Interface System 3.0 — premium grouped launcher inspired by the approved dark VERTEX VISION boards. */
+#visionHome .vv-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(248px,292px);gap:16px;align-items:start}
+#visionHome .vv-content{min-width:0}
+#visionHome .vv-grid{display:block}
+#visionHome .vv-category{margin:0 0 18px;padding:14px;border:1px solid rgba(224,197,138,.13);border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.012))}
+#visionHome .vv-category-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+#visionHome .vv-category-head h3{margin:0;color:#f7f2e8;font:780 15px/1.35 system-ui,sans-serif;letter-spacing:-.015em}
+#visionHome .vv-category-head span{color:#8e9991;font:720 10px/1.4 system-ui,sans-serif;letter-spacing:.055em;text-transform:uppercase}
+#visionHome .vv-category-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+#visionHome .vv-card{min-height:198px;padding:17px;background:
+  linear-gradient(180deg,rgba(27,34,31,.98),rgba(18,23,21,.98)),
+  radial-gradient(circle at 100% 0%,rgba(205,178,118,.08),transparent 44%);
+  border-color:rgba(224,197,138,.13)}
+#visionHome .vv-card::after{content:"";height:1px;width:44px;margin-top:14px;background:linear-gradient(90deg,var(--vv-gold),transparent);opacity:.72}
+#visionHome .vv-card-active{background:
+  linear-gradient(145deg,rgba(87,72,43,.58),rgba(25,31,28,.98) 48%),
+  radial-gradient(circle at 12% 8%,rgba(224,197,138,.24),transparent 42%);
+  color:#fff;border-color:rgba(224,197,138,.7);box-shadow:0 0 0 1px rgba(224,197,138,.08),0 16px 48px rgba(0,0,0,.26)}
+#visionHome .vv-card-active p{color:#d9d2c4}
+#visionHome .vv-card-active .vv-card-link{color:#f3d99f}
+#visionHome .vv-card-icon{width:44px;height:44px;background:rgba(205,178,118,.055);color:#e6c985;border-color:rgba(224,197,138,.22)}
+#visionHome .vv-card-icon svg,#visionHome .vv-module-preview-icon svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+#visionHome .vv-card-domain{font-size:9px;color:#88948c}
+#visionHome .vv-card h3{font-size:16px}
+#visionHome .vv-card p{font-size:12px;line-height:1.55;color:#9aa49d}
+#visionHome .vv-tag{white-space:nowrap}
+#visionHome .vv-tag-planned{background:rgba(111,137,160,.09);border-color:rgba(128,151,173,.18);color:#a8b6c3}
+#visionHome .vv-today{position:sticky;top:12px;padding:15px;border:1px solid rgba(224,197,138,.15);border-radius:18px;background:
+  linear-gradient(180deg,rgba(20,26,23,.98),rgba(14,18,16,.98));
+  box-shadow:0 22px 54px rgba(0,0,0,.24)}
+#visionHome .vv-today-head{padding:2px 2px 13px;border-bottom:1px solid rgba(255,255,255,.07)}
+#visionHome .vv-today-head>div:empty{display:none}
+#visionHome .vv-today-head h2{margin:0 0 5px;color:#fff;font:780 22px/1.15 system-ui,sans-serif;letter-spacing:-.035em}
+#visionHome .vv-today-head p{margin:0;color:#8f9992;font:12px/1.5 system-ui,sans-serif}
+#visionHome .vv-today-item{display:grid;gap:5px;padding:13px 12px;margin-top:10px;border:1px solid rgba(255,255,255,.075);border-radius:12px;background:rgba(255,255,255,.025)}
+#visionHome .vv-today-item strong{color:#ece8df;font:720 12px/1.35 system-ui,sans-serif}
+#visionHome .vv-today-item span{color:#858f88;font:11px/1.45 system-ui,sans-serif}
+#visionHome .vv-today-note{margin-top:14px;padding:14px 12px;border-left:2px solid var(--vv-gold);background:rgba(205,178,118,.045)}
+#visionHome .vv-today-note strong{display:block;margin-bottom:6px;color:var(--vv-gold-strong);font:800 10px/1.2 system-ui,sans-serif;letter-spacing:.12em}
+#visionHome .vv-today-note p{margin:0;color:#acb3ad;font:11px/1.55 system-ui,sans-serif}
+.vv-dialog{width:min(860px,calc(100% - 28px))}
+.vv-module-preview{margin:18px 0 20px;padding:16px;border:1px solid rgba(224,197,138,.15);border-radius:16px;background:
+  radial-gradient(circle at 100% 0%,rgba(205,178,118,.08),transparent 45%),
+  rgba(255,255,255,.025)}
+.vv-module-preview-head{display:flex;align-items:center;gap:13px}
+.vv-module-preview-icon{display:grid;place-items:center;width:52px;height:52px;flex:0 0 auto;border:1px solid rgba(224,197,138,.25);border-radius:14px;color:#e1c17d;background:rgba(205,178,118,.06)}
+.vv-module-preview-head>div{display:grid;gap:4px}
+.vv-module-preview-head small{color:#9eaa9f;font:800 9px/1.35 system-ui,sans-serif;letter-spacing:.08em}
+.vv-module-preview-head strong{color:#f4f0e8;font:750 15px/1.45 system-ui,sans-serif}
+.vv-capabilities{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+.vv-capability{display:grid;gap:5px;padding:12px;border:1px solid rgba(255,255,255,.075);border-radius:11px;background:rgba(0,0,0,.12)}
+.vv-capability span{color:#ece9e2;font:720 11px/1.4 system-ui,sans-serif}
+.vv-capability small{color:#7f8982;font:10px/1.4 system-ui,sans-serif}
+@media(max-width:1180px){
+  #visionHome .vv-workspace{grid-template-columns:1fr}
+  #visionHome .vv-today{position:static;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+  #visionHome .vv-today-head,#visionHome .vv-today-note{grid-column:1/-1}
+  #visionHome .vv-today-item{margin-top:0}
+}
+@media(max-width:960px){
+  #visionHome .vv-category-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .vv-capabilities{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:620px){
+  #visionHome .vv-category{padding:10px}
+  #visionHome .vv-category-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #visionHome .vv-card{min-height:180px;padding:14px}
+  #visionHome .vv-card-top{align-items:flex-start}
+  #visionHome .vv-card-icon{width:40px;height:40px}
+  #visionHome .vv-card h3{font-size:14px}
+  #visionHome .vv-card p{font-size:11px}
+  #visionHome .vv-tag{font-size:8px;padding:4px 7px}
+  #visionHome .vv-today{grid-template-columns:1fr 1fr}
+}
+@media(max-width:430px){
+  #visionHome .vv-category-grid{grid-template-columns:1fr}
+  #visionHome .vv-today{grid-template-columns:1fr}
+  .vv-capabilities{grid-template-columns:1fr}
+}
+
+
+/* Interface System 4.0 — navigation intelligence: command palette, recents and favorites. */
+#visionHome .vv-card.is-favorite{box-shadow:inset 0 0 0 1px rgba(224,197,138,.22),0 12px 30px rgba(0,0,0,.16)}
+#visionHome .vv-card.is-favorite::before{content:"★";position:absolute;top:12px;right:12px;color:#e7ca88;font-size:11px;line-height:1}
+#visionHome .vv-card{position:relative}
+.vv-favorite-button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;margin-top:2px;padding:9px 12px;border:1px solid rgba(224,197,138,.20);border-radius:11px;background:rgba(205,178,118,.06);color:#e8cf97;font:750 12px/1.35 system-ui,sans-serif;cursor:pointer}
+.vv-favorite-button:hover{background:rgba(205,178,118,.12);border-color:rgba(224,197,138,.44)}
+#visionHome .vv-today-dynamic{align-content:start}
+#visionHome .vv-mini-list{display:grid;gap:6px;margin-top:2px}
+#visionHome .vv-mini-link{width:100%;min-height:34px;padding:7px 8px;border:1px solid rgba(255,255,255,.055);border-radius:8px;background:rgba(255,255,255,.02);color:#d9ded9;text-align:left;font:650 10px/1.35 system-ui,sans-serif;cursor:pointer;white-space:normal}
+#visionHome .vv-mini-link:hover{border-color:rgba(224,197,138,.25);background:rgba(205,178,118,.06);color:#f2dfb7}
+.vv-palette{width:min(720px,calc(100% - 28px));max-height:min(720px,calc(100dvh - 40px));padding:0;border:1px solid rgba(224,197,138,.24);border-radius:20px;background:#111713;color:#f5f1e9;box-shadow:0 32px 110px rgba(0,0,0,.58);overflow:hidden;font-family:system-ui,sans-serif}
+.vv-palette::backdrop{background:#060908cc;backdrop-filter:blur(9px)}
+.vv-palette-shell{display:grid;grid-template-rows:auto auto minmax(0,1fr);max-height:min(720px,calc(100dvh - 40px))}
+.vv-palette-head{display:flex;align-items:center;gap:12px;padding:18px 18px 13px;border-bottom:1px solid rgba(255,255,255,.07)}
+.vv-palette-mark{display:grid;place-items:center;width:38px;height:38px;border:1px solid rgba(224,197,138,.30);border-radius:11px;background:rgba(205,178,118,.08);color:#e8cb87;font:850 15px/1 system-ui,sans-serif}
+.vv-palette-head>div{display:grid;gap:3px}
+.vv-palette-head strong{font:760 14px/1.35 system-ui,sans-serif}
+.vv-palette-head small{color:#86918a;font:10px/1.4 system-ui,sans-serif}
+.vv-palette-input{height:50px;margin:14px 14px 10px;padding:0 15px;border:1px solid rgba(224,197,138,.16);border-radius:12px;background:#171e1a;color:#fff;font:650 14px/1 system-ui,sans-serif;outline:none}
+.vv-palette-input:focus{border-color:#d9bd7a;box-shadow:0 0 0 3px rgba(217,189,122,.13)}
+.vv-palette-input::placeholder{color:#6f7a73}
+.vv-palette-results{overflow:auto;padding:0 10px 12px}
+.vv-palette-row{width:100%;display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:11px;min-height:60px;padding:9px 10px;border:1px solid transparent;border-radius:11px;background:transparent;color:#ece8df;text-align:left;cursor:pointer}
+.vv-palette-row:hover,.vv-palette-row:focus-visible{background:rgba(205,178,118,.07);border-color:rgba(224,197,138,.18);outline:none}
+.vv-palette-icon{display:grid;place-items:center;width:40px;height:40px;border:1px solid rgba(224,197,138,.17);border-radius:11px;background:rgba(205,178,118,.045);color:#e2c27d}
+.vv-palette-icon svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+.vv-palette-copy{display:grid;gap:3px;min-width:0}
+.vv-palette-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:730 12px/1.35 system-ui,sans-serif}
+.vv-palette-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#88948d;font:10px/1.35 system-ui,sans-serif}
+.vv-palette-arrow{color:#9c8960;font-size:15px}
+.vv-palette-empty{margin:16px;padding:18px;border:1px dashed rgba(255,255,255,.10);border-radius:11px;color:#8e9891;text-align:center;font-size:12px}
+.vv-palette button:focus-visible,.vv-favorite-button:focus-visible,#visionHome .vv-mini-link:focus-visible{outline:3px solid #dfc17d;outline-offset:2px}
+@media(max-width:620px){
+  .vv-palette{width:calc(100% - 16px);max-height:calc(100dvh - 16px);border-radius:16px}
+  .vv-palette-shell{max-height:calc(100dvh - 16px)}
+  .vv-palette-row{min-height:64px}
+}
+
+
+/* Interface System 5.0 — My Day / Work Center entry points. */
+#visionHome .vv-today-button{width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer}
+#visionHome .vv-today-button:hover{border-color:rgba(224,197,138,.24);background:rgba(205,178,118,.055)}
+#visionHome .vv-today-button:focus-visible{outline:3px solid #dfc17d;outline-offset:2px}
+
+
+/* Interface System 8.0 — Notification / Escalation Center entry points. */
+#visionHome [data-vv-notifications="hero"]{display:inline-flex;align-items:center;gap:9px}
+#visionHome .vv-notification-count{display:grid;place-items:center;min-width:24px;height:24px;padding:0 7px;border:1px solid rgba(224,197,138,.22);border-radius:999px;background:rgba(214,185,113,.08);color:#efd699;font:850 10px/1 system-ui,sans-serif}
+#visionHome .vv-notification-count[data-connected="true"]{border-color:rgba(114,195,151,.22);background:rgba(114,195,151,.08);color:#9edabb}
+#visionHome [data-vv-notifications="attention"]{width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer}
+#visionHome [data-vv-notifications="attention"]:hover{border-color:rgba(224,197,138,.24);background:rgba(205,178,118,.055)}
+#visionHome [data-vv-notifications="attention"]:focus-visible{outline:3px solid #dfc17d;outline-offset:2px}

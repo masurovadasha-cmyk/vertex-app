@@ -1,0 +1,47 @@
+{
+  "id": "vertex-vision-interface-system-2.0",
+  "version": "2.0",
+  "name": "VERTEX VISION Interface System 2.0",
+  "visualLanguage": "Tech Sand",
+  "source": {
+    "provider": "Canva",
+    "designId": "DAHWuG0D0xk",
+    "viewUrl": "https://www.canva.com/d/2REVo-Km73I52F4",
+    "pageCount": 50
+  },
+  "principles": [
+    "readable-before-decorative",
+    "high-contrast",
+    "44px-mobile-targets",
+    "keyboard-focus-visible",
+    "progressive-disclosure",
+    "honest-system-states",
+    "reduced-motion"
+  ],
+  "tokens": {
+    "foundation": "graphite-olive-charcoal",
+    "surface": "warm-sand-ivory",
+    "brandAccent": "champagne-metal",
+    "secondaryAccent": "cool-steel"
+  },
+  "productTruth": {
+    "active": [
+      "views"
+    ],
+    "comingSoonCount": 18,
+    "jarvis": "separate-project",
+    "taxi": "separate-project-contract-integration",
+    "engineers": "separate-project-contract-integration"
+  },
+  "runtimeIntegration": {
+    "hub": "vision/platform/shell.css",
+    "views": "vision/platform/views-ops.css",
+    "navigation": "vision/platform/shell.js",
+    "serviceWorkerCacheSuffix": "interface-2"
+  },
+  "releaseSafety": {
+    "productionMasterChanged": false,
+    "productionDeployApproved": false,
+    "cloudDatabaseMigration": false
+  }
+}

@@ -64,3 +64,77 @@ suite refuses an existing database. Do not point it at staging or production.
 References: [PostgreSQL RLS](https://www.postgresql.org/docs/17/ddl-rowsecurity.html),
 [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security),
 [Supabase functions](https://supabase.com/docs/guides/database/functions).
+
+
+## Views Operations permissions
+
+The Views booking/stay vertical slice uses separate, exact permissions on the Views
+organization:
+
+| Permission | Scope |
+| --- | --- |
+| `views.operations.read` | Read operational properties, units, bookings and internal cleaning jobs |
+| `views.booking.create` | Create a pending booking |
+| `views.booking.manage` | Confirm, check in, check out or cancel a booking |
+| `views.cleaning.execute` | Start and submit an internal checkout-cleaning job |
+| `views.cleaning.verify` | Verify cleaning and return the unit to `READY` |
+
+Guests do not receive staff permissions. RLS may expose only bookings whose customer link
+belongs to the authenticated guest in the same Views organization. Direct client writes
+to Views operational tables remain revoked; mutations go through
+`vision_views_command(jsonb)`, which re-checks active identity, organization-scoped
+permission, version and idempotency inside the transaction.
+
+Booking confirmation serializes on the unit and rejects overlapping `CONFIRMED` or
+`CHECKED_IN` stays. Checkout atomically closes the stay, moves the unit to `CLEANING`,
+creates a cleaning job and writes audit/outbox records. Cleaning verification returns the
+unit to `READY` and completes the checked-out booking.
+
+
+## Server-authoritative application context
+
+Client code never supplies its own role or permission list. After Supabase Auth verifies
+the bearer token, the staging API calls
+`vision_session_context(tenant_id, organization_id)`. That function resolves the JWT
+subject through active VISION users, memberships, roles, permission grants, module
+installation state and the Views release state.
+
+The browser receives an allowlisted context DTO containing actor/tenant/organization IDs,
+roles, permissions, guest-link state and capability booleans. This context may control
+navigation and button visibility, but every query still relies on RLS and every command
+still re-authorizes inside PostgreSQL. UI capability checks are therefore convenience,
+not the security boundary.
+
+
+## Unified Work Feed permissions
+
+The Work Center does not introduce a browser-owned authorization model. It uses the
+same verified bearer token and PostgreSQL RLS as the source tables.
+
+- `vision_tasks`, `vision_orders`, and Views cleaning jobs remain governed by their existing policies.
+- `vision_approval_requests` is SELECT-only for authenticated clients and is visible only to an assigned user with an active membership in that organization or a membership with `vision.approval.read`.
+- `vision.approval.decide` is reserved for a later command path. No approval mutation is exposed in this release.
+- `vision_work_feed(uuid,uuid,integer)` is SECURITY INVOKER, so it does not bypass RLS.
+- Work Feed output is projected by `vision/contracts/work-feed.mjs`; unknown fields fail closed.
+
+
+## Work action permissions
+
+Interface System 7 does not let the browser invent task or approval actions. The server derives the action list from current state, actor identity and PostgreSQL permission checks.
+
+- `task_assign` requires `cleaning.order.assign`; the selected assignee must independently have both assigned-task read and update permissions.
+- `task_accept`, `task_wait`, `task_resume`, and `task_submit` require the authenticated actor to be the current assignee with `cleaning.task.update_assigned`.
+- `quality_pass` and `quality_reject` require a different actor with `cleaning.quality.review`.
+- `approval_approve` and `approval_reject` require `vision.approval.decide`; assigned approvals may only be decided by that assignee and a requester cannot decide their own approval.
+- All work mutations use `vision_work_command(jsonb)`, exact idempotency receipts, row locks, Expected-Version checks, audit events and outbox events.
+- Direct browser writes to tasks, approvals, audit, outbox and receipts remain unavailable.
+
+
+## Notification and escalation permissions
+
+- Notification rows are readable only by the recipient with an active membership in the notification's organization.
+- Browser roles receive SELECT only; direct updates to notification/escalation tables remain revoked.
+- Read/unread/dismiss is executed through `vision_notification_command(jsonb)` with Expected-Version, idempotency receipts and audit.
+- Escalations are visible only to the assigned user or memberships with `vision.escalation.read` / `vision.escalation.ack`.
+- `escalation_ack` is shown only when the server feed returns `canAck=true` and is re-authorized in PostgreSQL.
+- `vision_notification_consume` and `vision_reconcile_escalations` are not executable by `anon` or `authenticated`; operators must grant them only to dedicated worker principals.

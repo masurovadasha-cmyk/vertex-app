@@ -1,0 +1,288 @@
+{
+  "product": "VERTEX Vision",
+  "release": "0.1-RC1",
+  "platformVersion": "1.18-rc1",
+  "api": "v1",
+  "databaseMigration": "0018_engineers_readiness.sql",
+  "activeModules": [
+    "views"
+  ],
+  "comingSoonModules": [
+    "managing",
+    "real-estate",
+    "engineers",
+    "aura-design",
+    "travel",
+    "aviation",
+    "rent-car",
+    "taxi",
+    "concierge",
+    "cleaning",
+    "laundry",
+    "ditalia",
+    "market",
+    "bar",
+    "technologies",
+    "investment",
+    "ventures",
+    "training"
+  ],
+  "cloudStagingVerified": false,
+  "productionApproved": false,
+  "productionReady": false,
+  "jarvisIntegration": "external-api-only",
+  "notes": [
+    "Views is the only launchable module from the VERTEX Vision Hub.",
+    "All other divisions are registered future branches and expose no Hub launch actions.",
+    "Production and master deployment require a separate approval after staging verification."
+  ],
+  "viewsOperations": {
+    "status": "implemented-in-branch",
+    "apiBase": "/api/v1/views",
+    "commands": [
+      "create_booking",
+      "confirm_booking",
+      "check_in",
+      "check_out",
+      "cancel_booking",
+      "cleaning_start",
+      "cleaning_submit",
+      "cleaning_verify"
+    ],
+    "cloudStagingVerified": false
+  },
+  "viewsUI": {
+    "status": "implemented-in-branch",
+    "primaryAction": "operations",
+    "tabs": [
+      "dashboard",
+      "calendar",
+      "bookings",
+      "units",
+      "cleaning"
+    ],
+    "dataPolicy": "real-staging-only-no-demo-fallback",
+    "sessionPolicy": "server-authoritative-context-from-verified-jwt",
+    "cloudStagingVerified": false
+  },
+  "architectureVersion": "2.2",
+  "technicalStage": "staging-session-activation-0.1",
+  "viewsIntegrity": {
+    "status": "implemented-in-branch",
+    "inventory": "unique-tenant-unit-night",
+    "quality": "independent-executor-reviewer",
+    "moduleGate": "SQL-and-RLS",
+    "cloudMigrationApplied": false
+  },
+  "viewsReadAPI": {
+    "format": "array",
+    "defaultLimit": 50,
+    "maxLimit": 100,
+    "cursorHeader": "X-Next-Cursor",
+    "projection": "allowlisted-fields",
+    "organizationScope": "required"
+  },
+  "integratedAssembly": {
+    "status": "implemented-in-branch",
+    "manifest": "vision/assembly/manifest.json",
+    "verifier": "vision/tools/verify-assembly.mjs",
+    "workflow": ".github/workflows/vision-assembly.yml",
+    "productionApproved": false
+  },
+  "applicationKernel": {
+    "status": "implemented-in-branch",
+    "routePolicy": "vision/backend/kernel.mjs",
+    "sessionContext": "public.vision_session_context(uuid,uuid)",
+    "contextEndpoint": "/api/v1/context",
+    "permissionSource": "postgresql-rbac-only",
+    "clientPermissionClaimsTrusted": false,
+    "organizationScopeRequired": true,
+    "commandContract": "vision/modules/views/command-contract.mjs",
+    "commandValidation": "api-and-postgresql",
+    "commandSchemaVersion": "v1",
+    "responseContract": "vision/modules/views/response-contract.mjs",
+    "responseProjection": "allowlisted-command-dto",
+    "traceHeaders": [
+      "X-Request-ID",
+      "X-Correlation-ID"
+    ],
+    "workFeedEndpoint": "/api/v1/work-feed",
+    "workFeedContract": "vision/contracts/work-feed.mjs",
+    "workCommandsEndpoint": "/api/v1/work/commands",
+    "workCommandContract": "vision/contracts/work-command.mjs",
+    "workAssigneesEndpoint": "/api/v1/work-assignees",
+    "notificationFeedEndpoint": "/api/v1/notifications",
+    "notificationFeedContract": "vision/contracts/notification-feed.mjs",
+    "notificationCommandEndpoint": "/api/v1/notifications/commands"
+  },
+  "runtimeReadiness": {
+    "status": "implemented-in-branch",
+    "endpoint": "/readyz",
+    "rpc": "public.vision_runtime_readiness()",
+    "authRole": "anon-via-publishable-key",
+    "checks": [
+      "migration-level",
+      "required-tables",
+      "required-rpcs",
+      "rls",
+      "views-release-active",
+      "event-inbox",
+      "unified-work-feed",
+      "approval-rls",
+      "work-command-rpc",
+      "work-assignee-rpc",
+      "notifications-table",
+      "escalations-table",
+      "notification-feed-rpc",
+      "notification-command-rpc",
+      "notification-consumer-rpc",
+      "outbox-fail-rpc",
+      "background-scopes-rpc",
+      "session-scopes-rpc"
+    ],
+    "serviceRoleRequired": false,
+    "cloudVerified": false
+  },
+  "realStagingE2E": {
+    "status": "prepared-blocked-on-external-staging-configuration",
+    "workflow": ".github/workflows/vision-cloud-e2e.yml",
+    "provisioning": "vision/staging/provision.mjs",
+    "authHelper": "vision/staging/auth.mjs",
+    "e2eRunner": "vision/staging/cloud-e2e.mjs",
+    "identities": [
+      "guest",
+      "views",
+      "dispatcher",
+      "staff",
+      "quality",
+      "audit"
+    ],
+    "appliesChecksumTrackedMigrations": true,
+    "genuineSupabaseAuthRequired": true,
+    "directRLSVerification": true,
+    "cloudVerified": false,
+    "productionChanged": false
+  },
+  "eventReliability": {
+    "status": "implemented-in-branch",
+    "migration": "0011_event_inbox.sql",
+    "deliveryModel": "at-least-once",
+    "deduplication": "tenant-consumer-event-id",
+    "leaseSeconds": 60,
+    "productionConsumerConnected": false
+  },
+  "productionSafety": {
+    "status": "implemented-in-branch",
+    "workflow": ".github/workflows/vision-rc2-safety.yml",
+    "safetyManifest": "vision/production/safety-manifest.json",
+    "rollbackPlan": "vision/production/rollback-plan.json",
+    "migrationPolicy": "expand-only-after-foundation",
+    "readOnlyPreflight": "vision/production/preflight.mjs",
+    "backupRestoreDrill": "postgresql-native-dump-restore-synthetic-ci",
+    "productionApproved": false,
+    "productionChanged": false,
+    "nMinusOneCompatibility": "vision/production/check-n-minus-one-compatibility.mjs",
+    "ciBackupRestoreDrill": "implemented-and-required",
+    "productionBackupRestoreVerified": false,
+    "stagingDeployMode": "manual-only"
+  },
+  "productionPromotion": {
+    "status": "implemented-blocked-by-required-external-evidence",
+    "policy": "vision/production/promotion-policy.json",
+    "evaluator": "vision/production/evaluate-promotion.mjs",
+    "workflow": ".github/workflows/vision-promotion-gate.yml",
+    "productionBackupWorkflow": ".github/workflows/vision-production-backup-restore.yml",
+    "mutationAllowed": false,
+    "requiredEvidence": [
+      "integrated-assembly",
+      "rc2-safety",
+      "real-staging-auth-e2e",
+      "background-staging-smoke",
+      "production-backup-restore"
+    ],
+    "ownerApprovalRequired": true,
+    "passed": false,
+    "backgroundSmokeWorkflow": ".github/workflows/vision-background-staging-smoke.yml"
+  },
+  "trustedReleaseControl": {
+    "status": "implemented-requires-protected-master-controller",
+    "version": "0.1",
+    "workflow": ".github/workflows/vision-promotion-gate.yml",
+    "controllerRef": "refs/heads/master",
+    "policySource": "trusted-controller",
+    "candidateCheckout": "separate-exact-sha",
+    "evidenceWorkflowMetadataVerified": true,
+    "firstPartyActionsPinnedByCommit": true,
+    "backupPrincipalPolicyVerifiedInRC2": true,
+    "candidateControlsPromotionPolicy": false,
+    "productionMutationAllowed": false
+  },
+  "unifiedWorkFeed": {
+    "status": "implemented-in-branch",
+    "endpoint": "/api/v1/work-feed",
+    "mode": "read-write-via-versioned-command-endpoint",
+    "sources": [
+      "vision_tasks",
+      "vision_orders",
+      "vision_views_cleaning_jobs",
+      "vision_approval_requests"
+    ],
+    "approvalsDecisionCommand": false,
+    "fabricatedData": false,
+    "cloudStagingVerified": false,
+    "commandEndpoint": "/api/v1/work/commands",
+    "assigneesEndpoint": "/api/v1/work-assignees",
+    "approvalDecisions": true,
+    "liveRefresh": "polling-30s-not-push"
+  },
+  "notifications": {
+    "status": "implemented-in-branch",
+    "feedEndpoint": "/api/v1/notifications",
+    "commandEndpoint": "/api/v1/notifications/commands",
+    "eventProjection": "vision_notification_consume",
+    "escalationReconciliation": "vision_reconcile_escalations",
+    "consumerConnected": false,
+    "schedulerConnected": false,
+    "refresh": "polling-30s-not-push",
+    "fabricatedEvents": false,
+    "cloudStagingVerified": false
+  },
+  "backgroundOperations": {
+    "status": "implemented-in-branch",
+    "runtime": "vision/runtime/background-operations.mjs",
+    "postgresAdapter": "vision/runtime/postgres-background-adapter.mjs",
+    "stagingRunner": "vision/runtime/run-staging-background.mjs",
+    "grantContract": "vision/staging/background-principal-grants.sql",
+    "stagingSmokeWorkflow": ".github/workflows/vision-background-staging-smoke.yml",
+    "principal": "vision_background_staging",
+    "tableAccess": false,
+    "rpcOnly": true,
+    "notificationConsumerConnected": false,
+    "escalationSchedulerConnected": false,
+    "cloudStagingVerified": false,
+    "productionConnected": false
+  },
+  "systemStatus": {
+    "status": "implemented-in-branch",
+    "endpoint": "/system-status",
+    "uiRuntime": "vision/platform/system-status-center.js",
+    "privacy": "non-sensitive-runtime-metadata-only",
+    "readinessSource": "public.vision_runtime_readiness()",
+    "fabricatedFallback": false,
+    "backgroundFlagsFromRuntimeConfig": true,
+    "cloudStagingVerified": false
+  },
+  "sessionActivation": {
+    "status": "implemented-in-branch",
+    "authConfigEndpoint": "/auth-config",
+    "sessionScopesEndpoint": "/api/v1/session-scopes",
+    "uiRuntime": "vision/platform/session-center.js",
+    "authProvider": "supabase-staging",
+    "tokenPersistence": "memory-only",
+    "passwordPersistence": false,
+    "refreshTokenPersistence": false,
+    "scopeAuthority": "postgresql-rbac-and-guest-links",
+    "browserPermissionClaimsTrusted": false,
+    "cloudStagingVerified": false
+  }
+}

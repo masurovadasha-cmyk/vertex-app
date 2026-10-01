@@ -1,0 +1,141 @@
+/* VERTEX VISION / Views Operations — Interface System 2.0 */
+.vvo-dialog{
+  --vvo-bg:#f3eee4;--vvo-surface:#fffdf8;--vvo-surface-2:#ebe2d2;--vvo-ink:#1c211f;--vvo-muted:#6c756f;
+  --vvo-line:#dcd3c4;--vvo-gold:#b69655;--vvo-gold-soft:#eadbbd;--vvo-steel:#7f91a2;
+  --vvo-success:#347a57;--vvo-info:#3f6f9f;--vvo-warning:#936627;--vvo-danger:#a34747;
+  width:min(1220px,calc(100% - 24px));height:min(880px,calc(100dvh - 24px));max-width:none;max-height:none;padding:0;
+  border:1px solid #cfc5b5;border-radius:24px;background:var(--vvo-bg);color:var(--vvo-ink);overflow:hidden;
+  font:14px/1.5 system-ui,sans-serif;box-shadow:0 30px 100px rgba(16,20,18,.34)
+}
+.vvo-dialog::backdrop{background:#0b0f0dcc;backdrop-filter:blur(7px)}
+.vvo-shell{height:100%;display:grid;grid-template-rows:auto auto 1fr}
+.vvo-head{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:23px 26px 18px;background:rgba(255,253,248,.94);border-bottom:1px solid var(--vvo-line)}
+.vvo-head small{display:block;color:#806b3e;font-weight:850;letter-spacing:.13em;margin-bottom:5px;text-transform:uppercase}
+.vvo-head h2{margin:0;font-size:30px;letter-spacing:-.04em;font-weight:780}
+.vvo-head p{margin:6px 0 0;color:var(--vvo-muted)}
+.vvo-head-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.vvo-head-actions button,.vvo-connect button,.vvo-error button,.vvo-row-actions button{border:1px solid #d8cfbf;background:#fffdf8;color:#242a27;border-radius:11px;min-height:44px;padding:9px 13px;font-weight:750;cursor:pointer;transition:background .14s ease,border-color .14s ease,transform .14s ease}
+.vvo-head-actions button:hover,.vvo-connect button:hover,.vvo-error button:hover,.vvo-row-actions button:hover{border-color:var(--vvo-gold);background:#f8f1e3;transform:translateY(-1px)}
+.vvo-head-actions button[data-vvo-close]{width:44px;font-size:24px;line-height:1;padding:0}
+.vvo-connection{display:inline-flex;align-items:center;min-height:32px;border-radius:999px;padding:7px 10px;background:#e7e2d8;color:#65706a;font-size:10px;font-weight:850;letter-spacing:.08em}
+.vvo-connection.is-on{background:#e1f0e7;color:#2f6e4e;border:1px solid #c8e2d2}
+.vvo-tabs{display:flex;gap:5px;padding:10px 18px;background:#fffaf2;border-bottom:1px solid var(--vvo-line);overflow:auto;scrollbar-width:thin}
+.vvo-tabs button{border:1px solid transparent;background:transparent;color:#657069;border-radius:10px;min-height:44px;padding:10px 14px;font-weight:760;white-space:nowrap;cursor:pointer}
+.vvo-tabs button:hover{background:#f0e8da;color:#2f3532}
+.vvo-tabs button[aria-current="page"]{background:#18201d;color:#f6f2e9;border-color:#18201d;box-shadow:0 8px 20px rgba(24,32,29,.10)}
+.vvo-main{padding:22px;overflow:auto;min-width:0;background:linear-gradient(180deg,#f4efe6 0%,#efe8dc 100%)}
+.vvo-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:20px}
+.vvo-kpis article{background:var(--vvo-surface);border:1px solid var(--vvo-line);border-radius:15px;padding:16px;min-width:0;box-shadow:0 7px 18px rgba(38,35,28,.035)}
+.vvo-kpis span{display:block;color:#737d77;font-size:11px;line-height:1.4;font-weight:700}
+.vvo-kpis strong{display:block;margin-top:8px;font-size:28px;line-height:1;letter-spacing:-.04em}
+.vvo-columns{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.vvo-columns>section{min-width:0}
+.vvo-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 10px}
+.vvo-section-head h3{margin:0;font-size:19px;letter-spacing:-.025em}
+.vvo-section-head>span{color:#777f7a;font-size:12px;font-weight:650}
+.vvo-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;background:var(--vvo-surface);border:1px solid var(--vvo-line);border-radius:14px;padding:15px;margin-bottom:9px;box-shadow:0 6px 18px rgba(38,35,28,.03)}
+.vvo-row>div{display:grid;gap:4px;min-width:0}
+.vvo-row>div:last-child{justify-items:end;text-align:right}
+.vvo-row small,.vvo-row span{color:#727b75;font-size:11px;overflow-wrap:anywhere}
+.vvo-row strong{font-size:14px;overflow-wrap:anywhere}
+.vvo-row b{font-size:12px}
+.vvo-row-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap;margin-top:5px}
+.vvo-row-actions button{min-height:36px;padding:7px 10px;font-size:11px}
+.vvo-status{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:5px 9px;background:#e5e2da;color:#5f6962;font-size:9px;font-weight:850;letter-spacing:.045em;border:1px solid transparent}
+.vvo-status-checked-in,.vvo-status-occupied{background:#e3edf7;color:var(--vvo-info);border-color:#cadbea}
+.vvo-status-confirmed,.vvo-status-ready,.vvo-status-verified{background:#e4f0e8;color:var(--vvo-success);border-color:#cce1d4}
+.vvo-status-cleaning,.vvo-status-in-progress,.vvo-status-inspection,.vvo-status-required{background:#f7ecd7;color:var(--vvo-warning);border-color:#ecd8b1}
+.vvo-status-cancelled,.vvo-status-blocked,.vvo-status-maintenance{background:#f7e2e2;color:var(--vvo-danger);border-color:#edc6c6}
+.vvo-unit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.vvo-unit-grid article{background:var(--vvo-surface);border:1px solid var(--vvo-line);border-radius:14px;padding:15px}
+.vvo-unit-grid article>div{display:flex;align-items:end;justify-content:space-between;gap:10px;margin-bottom:10px}
+.vvo-unit-grid small{color:#747c77}.vvo-unit-grid strong{font-size:21px}.vvo-unit-grid p{margin:9px 0 0;color:#727a75;font-size:12px}
+.vvo-calendar{display:grid;gap:8px}
+.vvo-calendar article{display:grid;grid-template-columns:92px 1fr;gap:12px;align-items:start;background:var(--vvo-surface);border:1px solid var(--vvo-line);border-radius:13px;padding:13px}
+.vvo-calendar article>strong{font-size:15px}
+.vvo-calendar article>div{display:flex;gap:7px;flex-wrap:wrap}
+.vvo-calendar article>div>span{display:inline-flex;align-items:center;gap:4px;border:1px solid #ddd4c5;border-radius:9px;padding:6px 8px;font-size:11px;background:#faf6ed}
+.vvo-calendar em{font-style:normal;color:#89908c;font-size:11px}
+.vvo-empty,.vvo-connect,.vvo-error{display:grid;gap:9px;place-items:start;background:var(--vvo-surface);border:1px dashed #d1c7b7;border-radius:15px;padding:24px;color:#626c65}
+.vvo-empty strong,.vvo-connect strong,.vvo-error strong{color:#262d29;font-size:17px}
+.vvo-empty p,.vvo-connect p,.vvo-error p{margin:0;max-width:700px}
+.vvo-connect{border-style:solid;border-left:4px solid var(--vvo-gold)}
+.vvo-error{border-style:solid;border-left:4px solid var(--vvo-danger)}
+.vvo-loading{display:grid;gap:10px}
+.vvo-loading span{height:78px;border-radius:14px;background:linear-gradient(90deg,#e5ded1,#f6f2ea,#e5ded1);background-size:220% 100%;animation:vvoPulse 1.2s linear infinite}
+@keyframes vvoPulse{to{background-position:-220% 0}}
+.vvo-dialog button:focus-visible{outline:3px solid #c1a15d;outline-offset:3px}
+@media(max-width:900px){.vvo-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.vvo-columns{grid-template-columns:1fr}.vvo-unit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){
+  .vvo-dialog{width:100%;height:100dvh;border:0;border-radius:0}
+  .vvo-shell{grid-template-rows:auto 1fr auto}
+  .vvo-head{grid-row:1;padding:16px 14px 12px;display:grid;gap:12px}
+  .vvo-head h2{font-size:25px}.vvo-head-actions{justify-content:flex-start}
+  .vvo-main{grid-row:2;padding:13px 13px 18px}
+  .vvo-tabs{grid-row:3;border-top:1px solid var(--vvo-line);border-bottom:0;padding:7px 6px max(7px,env(safe-area-inset-bottom));justify-content:space-between;background:#fffdf8;box-shadow:0 -10px 28px rgba(35,31,24,.08)}
+  .vvo-tabs button{flex:1 1 20%;min-height:52px;padding:7px 5px;font-size:11px;white-space:normal}
+  .vvo-tabs button[aria-current="page"]{background:#202824}
+  .vvo-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.vvo-unit-grid{grid-template-columns:1fr}
+  .vvo-calendar article{grid-template-columns:64px 1fr}.vvo-row{display:grid}
+  .vvo-row>div:last-child{justify-items:start;text-align:left}.vvo-row-actions{justify-content:flex-start}
+}
+@media(max-width:380px){.vvo-kpis{grid-template-columns:1fr}.vvo-tabs button{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.vvo-loading span{animation:none}.vvo-head-actions button,.vvo-row-actions button{transition:none;transform:none!important}}
+
+
+/* Interface System 3.0 — dark premium Views workspace, matching the VERTEX VISION control-center boards. */
+.vvo-dialog{
+  --vvo-bg:#0f1412;--vvo-surface:#161d19;--vvo-surface-2:#1b241f;--vvo-ink:#f4efe5;--vvo-muted:#99a49d;
+  --vvo-line:rgba(221,194,135,.16);--vvo-gold:#cdb276;--vvo-gold-soft:#5f5133;--vvo-steel:#8498ab;
+  --vvo-success:#70c294;--vvo-info:#79a7d0;--vvo-warning:#d9a95f;--vvo-danger:#db7e7e;
+  background:
+    radial-gradient(circle at 92% 6%,rgba(132,152,171,.08),transparent 30rem),
+    linear-gradient(180deg,#111713,#0d1210);
+  border-color:rgba(221,194,135,.24);color:var(--vvo-ink);box-shadow:0 34px 110px rgba(0,0,0,.5)
+}
+.vvo-head{background:rgba(18,24,21,.97);border-bottom-color:var(--vvo-line)}
+.vvo-head small{color:#dfc17d}
+.vvo-head h2{color:#fff}
+.vvo-head p{color:#9ba59e}
+.vvo-head-actions button,.vvo-connect button,.vvo-error button,.vvo-row-actions button{
+  border-color:rgba(221,194,135,.18);background:#171e1a;color:#ece8df
+}
+.vvo-head-actions button:hover,.vvo-connect button:hover,.vvo-error button:hover,.vvo-row-actions button:hover{
+  border-color:var(--vvo-gold);background:rgba(205,178,118,.10)
+}
+.vvo-connection{background:rgba(132,152,171,.10);color:#aab8c4;border:1px solid rgba(132,152,171,.16)}
+.vvo-connection.is-on{background:rgba(112,194,148,.10);color:#9bd9b6;border-color:rgba(112,194,148,.24)}
+.vvo-tabs{background:#121814;border-bottom-color:var(--vvo-line)}
+.vvo-tabs button{color:#9fa8a2}
+.vvo-tabs button:hover{background:rgba(205,178,118,.06);color:#eeeae2}
+.vvo-tabs button[aria-current="page"]{background:linear-gradient(180deg,#5b4b2e,#3e3523);color:#fff2d3;border-color:#967f50;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+.vvo-main{background:
+  linear-gradient(rgba(205,178,118,.025) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(205,178,118,.025) 1px,transparent 1px),
+  linear-gradient(180deg,#101612,#0d1210);
+  background-size:28px 28px,28px 28px,auto}
+.vvo-kpis article,.vvo-row,.vvo-unit-grid article,.vvo-calendar article{
+  background:linear-gradient(180deg,rgba(25,33,29,.98),rgba(18,24,21,.98));
+  border-color:rgba(221,194,135,.13);box-shadow:0 8px 24px rgba(0,0,0,.16)
+}
+.vvo-kpis article{position:relative;overflow:hidden}
+.vvo-kpis article::after{content:"";position:absolute;left:16px;bottom:0;width:38px;height:1px;background:linear-gradient(90deg,var(--vvo-gold),transparent)}
+.vvo-kpis span,.vvo-row small,.vvo-row span,.vvo-unit-grid small,.vvo-unit-grid p,.vvo-section-head>span,.vvo-calendar em{color:#8e9992}
+.vvo-kpis strong,.vvo-section-head h3,.vvo-row strong,.vvo-row b,.vvo-unit-grid strong,.vvo-calendar article>strong{color:#f6f1e8}
+.vvo-row-actions button{min-height:38px}
+.vvo-status{background:rgba(132,152,171,.09);color:#aeb9c3;border-color:rgba(132,152,171,.14)}
+.vvo-status-checked-in,.vvo-status-occupied{background:rgba(121,167,208,.10);color:#9ec5e6;border-color:rgba(121,167,208,.20)}
+.vvo-status-confirmed,.vvo-status-ready,.vvo-status-verified{background:rgba(112,194,148,.10);color:#9bd8b6;border-color:rgba(112,194,148,.20)}
+.vvo-status-cleaning,.vvo-status-in-progress,.vvo-status-inspection,.vvo-status-required{background:rgba(217,169,95,.10);color:#e6be7f;border-color:rgba(217,169,95,.20)}
+.vvo-status-cancelled,.vvo-status-blocked,.vvo-status-maintenance{background:rgba(219,126,126,.10);color:#e9a5a5;border-color:rgba(219,126,126,.20)}
+.vvo-calendar article>div>span{background:#151c18;border-color:rgba(221,194,135,.13);color:#d7d8d2}
+.vvo-empty,.vvo-connect,.vvo-error{background:#151c18;border-color:rgba(221,194,135,.18);color:#9da7a0}
+.vvo-empty strong,.vvo-connect strong,.vvo-error strong{color:#f4efe6}
+.vvo-connect{border-left-color:var(--vvo-gold)}
+.vvo-error{border-left-color:var(--vvo-danger)}
+.vvo-loading span{background:linear-gradient(90deg,#19211d,#242e28,#19211d);background-size:220% 100%}
+.vvo-dialog button:focus-visible{outline-color:#e1c47f}
+@media(max-width:600px){
+  .vvo-tabs{background:#111713;border-top-color:var(--vvo-line);box-shadow:0 -12px 32px rgba(0,0,0,.34)}
+  .vvo-tabs button[aria-current="page"]{background:#4f422a}
+}

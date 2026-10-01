@@ -1,0 +1,98 @@
+name: VERTEX VISION Interface 10 APK
+
+on:
+  push:
+    branches:
+      - vision-foundation-interface-10-20261001
+    paths:
+      - '.github/workflows/vision-interface-10-apk.yml'
+      - 'vision/platform/**'
+      - 'vision/backend/**'
+      - 'vision/design/interface-system-10.0.json'
+      - 'vision/tests/**'
+      - 'vision/assembly/manifest.json'
+      - 'vision/release/0.1-RC1.json'
+      - 'android/app/build.gradle'
+      - 'package.json'
+      - 'scripts/browser-vision.py'
+      - 'vertex/tools/app-release.test.cjs'
+      - 'vision/tools/verify-assembly.mjs'
+      - 'vision/wrangler.jsonc'
+      - '.github/workflows/vision-cloud-e2e.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vertex-vision-interface-10-apk
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+      - name: Install and verify source
+        run: |
+          set -euo pipefail
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          npm test
+          node scripts/check-android-sync.cjs
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a
+        with:
+          gradle-version: '8.11.1'
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407
+        with:
+          packages: 'platform-tools'
+      - name: Install Android SDK 35
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Build Interface 10 debug APK
+        run: gradle -p android --no-daemon assembleDebug
+      - name: Verify and package APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          mkdir -p release-apk
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK" | tee release-apk/apk-signature.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" > release-apk/apk-badging.txt
+          grep -q "package: name='com.vertex.vision.demo'" release-apk/apk-badging.txt
+          grep -q "versionCode='21'" release-apk/apk-badging.txt
+          grep -q "versionName='1.17-rc1'" release-apk/apk-badging.txt
+          python - <<'PY'
+          from pathlib import Path
+          import zipfile
+          apk=Path('android/app/build/outputs/apk/debug/app-debug.apk')
+          root=Path('android/app/src/main/assets/site')
+          with zipfile.ZipFile(apk) as z:
+              for file in root.rglob('*'):
+                  if file.is_file():
+                      target='assets/site/'+file.relative_to(root).as_posix()
+                      assert z.read(target)==file.read_bytes(), target
+          Path('release-apk/apk-assets.txt').write_text(
+              'PASS: every embedded web asset matches Interface System 10 generated assets.\n'
+              'Native device runtime smoke is not included in this workflow.\n'
+          )
+          PY
+          cp "$APK" release-apk/Vertex-Vision-Interface-10-1.17-rc1-code21.apk
+          (cd release-apk && sha256sum Vertex-Vision-Interface-10-1.17-rc1-code21.apk > SHA256SUMS.txt)
+          git rev-parse HEAD > release-apk/source-commit.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: Vertex-Vision-Interface-10-APK-${{ github.sha }}
+          path: release-apk/
+          if-no-files-found: error
+          retention-days: 30

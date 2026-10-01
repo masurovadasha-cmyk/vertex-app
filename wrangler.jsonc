@@ -3,12 +3,14 @@
   "main": "vision/platform/worker.mjs",
   "compatibility_date": "2026-09-30",
   "keep_vars": true,
+  "preview_urls": true,
+  "previews": {},
   "build": {
     "command": "npm run build:vision"
   },
   "assets": {
     "directory": "./vertex/dist",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*", "/health", "/vision", "/vision/*"]
+    "run_worker_first": ["/api/*", "/health", "/readyz", "/vision", "/vision/*"]
   }
 }

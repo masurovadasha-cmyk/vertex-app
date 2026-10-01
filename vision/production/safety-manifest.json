@@ -1,0 +1,48 @@
+{
+  "stage": "rc2-trusted-release-control-0.4",
+  "productionApproved": false,
+  "productionDeployAllowed": false,
+  "databasePolicy": {
+    "migrations": "expand-only-after-foundation",
+    "baselineThrough": "0004_private_subject_permissions.sql",
+    "downMigrations": false,
+    "forwardFixOnly": true,
+    "checksumTracked": true
+  },
+  "backupPolicy": {
+    "requiredBeforeProductionMigration": true,
+    "restoreVerificationRequired": true,
+    "backupArtifactRetention": "provider-controlled",
+    "ciDrillUsesSyntheticDataOnly": true,
+    "ciRestoreDrillRequired": true,
+    "productionBackupRestoreVerified": false,
+    "effectiveReadOnlyPrincipalRequired": true
+  },
+  "rollbackPolicy": {
+    "application": "previous-known-good-deployment",
+    "database": "no-automatic-down-migration",
+    "schemaCompatibility": "n-minus-one-application-must-remain-compatible-with-expanded-schema",
+    "nMinusOneSchemaCompatibilityCheck": "vision/production/check-n-minus-one-compatibility.mjs"
+  },
+  "gates": [
+    "migration-safety-scan",
+    "read-only-database-preflight",
+    "n-minus-one-schema-compatibility",
+    "backup-created",
+    "restore-verified",
+    "restored-readiness",
+    "rollback-compatibility",
+    "real-staging-auth-e2e",
+    "background-staging-smoke",
+    "explicit-owner-approval",
+    "effective-read-only-backup-principal",
+    "trusted-release-controller"
+  ],
+  "releaseControl": {
+    "trustedControllerRequired": true,
+    "controllerRef": "refs/heads/master",
+    "candidatePolicyAuthority": false,
+    "immutableActionPinsRequired": true,
+    "evidenceWorkflowMetadataRequired": true
+  }
+}

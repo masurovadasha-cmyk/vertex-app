@@ -1,0 +1,82 @@
+{
+  "version": 1,
+  "module": "engineers",
+  "moduleVersion": "0.2.0",
+  "name": "VERTEX Engineers Integration API",
+  "visionMount": "/engineers",
+  "transport": {
+    "browser": "not-connected",
+    "serverToServer": "external-api",
+    "basePath": "/api/v1/engineers"
+  },
+  "authentication": {
+    "type": "delegated-identity",
+    "requiredHeaders": [
+      "authorization",
+      "x-tenant-id",
+      "x-organization-id",
+      "x-correlation-id"
+    ],
+    "databaseCredentialsFromVision": false
+  },
+  "endpoints": {
+    "health": {
+      "method": "GET",
+      "path": "/health"
+    },
+    "projects": {
+      "method": "GET",
+      "path": "/projects"
+    },
+    "createProject": {
+      "method": "POST",
+      "path": "/projects",
+      "idempotencyRequired": true
+    },
+    "projectStage": {
+      "method": "POST",
+      "path": "/projects/{projectId}/stage",
+      "idempotencyRequired": true
+    },
+    "assets": {
+      "method": "GET",
+      "path": "/assets"
+    },
+    "workOrders": {
+      "method": "GET",
+      "path": "/work-orders"
+    },
+    "createWorkOrder": {
+      "method": "POST",
+      "path": "/work-orders",
+      "idempotencyRequired": true
+    },
+    "transitionWorkOrder": {
+      "method": "POST",
+      "path": "/work-orders/{workOrderId}/transition",
+      "idempotencyRequired": true
+    }
+  },
+  "responseRules": {
+    "sourceOfTruth": "vertex-engineers-core",
+    "visionMayPersistReferenceOnly": true,
+    "visionMayNotPersistEngineersPrivateState": true
+  },
+  "activation": {
+    "state": "not-connected",
+    "enableByDefault": false,
+    "requires": [
+      "verified_staging_identity",
+      "verified_rls_mapping",
+      "engineers_persistent_adapter",
+      "staging_e2e",
+      "explicit_owner_approval"
+    ]
+  },
+  "failurePolicy": {
+    "timeoutMs": 2500,
+    "retries": 2,
+    "retryOnlyIdempotentRequests": true,
+    "failClosed": true
+  }
+}
