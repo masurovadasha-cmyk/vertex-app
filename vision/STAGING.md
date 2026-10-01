@@ -164,13 +164,13 @@ bearer tokens or unrestricted request/response bodies when using these IDs for d
 
 ## Runtime readiness gate
 
-After migration `0011_event_inbox.sql`, the staging Worker exposes:
+After migration `0012_unified_work_feed.sql`, the staging Worker exposes:
 
 - `GET /health` — liveness/configuration/source metadata only.
 - `GET|HEAD /readyz` — schema/runtime readiness.
 
 When Supabase staging is configured, `/readyz` must return HTTP 200 with
-`ready=true`, `latestMigration=0011_event_inbox.sql`, all table/function/RLS
+`ready=true`, `latestMigration=0012_unified_work_feed.sql`, all table/function/RLS
 checks true, and `viewsReleaseActive=true`. A green health response alone is not
 sufficient for a staging release.
 
@@ -205,7 +205,7 @@ The workflow:
 
 1. validates all targets without printing secrets;
 2. runs the complete source/assembly test suite;
-3. applies checksum-tracked migrations through `0011_event_inbox.sql` to the
+3. applies checksum-tracked migrations through `0012_unified_work_feed.sql` to the
    dedicated Supabase staging database;
 4. signs in the six synthetic accounts through genuine Supabase Auth and maps their real
    Auth UUIDs into VISION RBAC;
@@ -226,7 +226,7 @@ A green local/CI suite does **not** substitute for this cloud gate. Until a real
 
 ## Event inbox reliability
 
-Migration `0011_event_inbox.sql` adds the durable inbound idempotency boundary for future
+Migration `0012_unified_work_feed.sql` adds the durable inbound idempotency boundary for future
 at-least-once consumers. The uniqueness key is `(tenant_id, consumer, event_id)`; repeated
 delivery with the same identity/payload does not create duplicate business work.
 
@@ -237,3 +237,17 @@ hard conflict.
 
 No end-user or anonymous role receives direct table access or EXECUTE on inbox mutation
 functions. Those grants belong only to future dedicated consumer principals.
+
+
+## Unified Work Feed
+
+Migration `0012_unified_work_feed.sql` adds the read-only foundation behind **My Day**:
+
+- `GET /api/v1/work-feed?tenant_id=<uuid>&organization_id=<uuid>&limit=50`
+- source data is constrained by the caller's verified JWT and PostgreSQL RLS;
+- output contains allowlisted Tasks, Approvals, Attention and Requests projections;
+- approvals are read-only in this RC; no approve/reject command is exposed;
+- Attention is derived only from real overdue tasks/approvals, high-priority open orders and cleaning inspection state;
+- the public production Worker still fails closed because the cloud backend is not connected there.
+
+The migration creates `vision_approval_requests` with RLS and SELECT-only client grants. Direct browser writes remain revoked.
