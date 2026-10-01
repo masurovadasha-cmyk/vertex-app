@@ -58,6 +58,7 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
   }
   const command=(u,c,client=db)=>as(u,async d=>(await d.query('select public.vision_command($1::jsonb) result',[JSON.stringify(c)])).rows[0].result,client);
   const workCommand=(u,c,client=db)=>as(u,async d=>(await d.query('select public.vision_work_command($1::jsonb) result',[JSON.stringify(c)])).rows[0].result,client);
+  const notificationCommand=(u,c,client=db)=>as(u,async d=>(await d.query('select public.vision_notification_command($1::jsonb) result',[JSON.stringify(c)])).rows[0].result,client);
   const create=(key=id())=>({type:'create',tenant_id:tenant,idempotency_key:key,customer_id:customer,requester_organization_id:views,service_id:service});
   const denied=(f,pattern=/forbidden|permission denied/)=>assert.rejects(f,pattern);
   const counts=async()=> (await db.query(`select
@@ -279,6 +280,69 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
 
     const actions=(await db.query("select action from public.vision_audit_events where entity_type in ('task','approval') order by created_at")).rows.map(x=>x.action);
     for(const required of ['order.assigned','task.started','task.waiting','task.resumed','task.completed','quality.rejected','quality.passed','approval.rejected'])assert.ok(actions.includes(required),required);
+  });
+
+  await t.test('Notifications deduplicate events, isolate recipients and acknowledge reconciled escalations',async()=>{
+    await db.query(`insert into public.vision_role_permissions(role_id,permission_id)
+      select mr.role_id,p.id
+      from public.vision_memberships m
+      join public.vision_membership_roles mr on (mr.tenant_id,mr.membership_id)=(m.tenant_id,m.id)
+      cross join public.vision_permissions p
+      where m.tenant_id=$1 and m.organization_id=$2 and m.user_id=$3 and p.code in ('vision.escalation.read','vision.escalation.ack')
+      on conflict do nothing`,[tenant,cleaning,dispatcher]);
+
+    const approval=id();
+    await db.query(`insert into public.vision_approval_requests(
+      id,tenant_id,organization_id,kind,title,status,priority,assigned_user_id,requested_by,due_at,entity_type,entity_id
+    ) values($1,$2,$3,'maintenance.spend','Approval notification','PENDING','HIGH',$4,$5,now()+interval '1 hour','order',$6)`,
+      [approval,tenant,cleaning,quality,staff,order.order_id]);
+    const event=(await db.query("select * from public.vision_outbox_events where aggregate_type='approval' and aggregate_id=$1 and event_type='approval.requested' order by created_at desc limit 1",[approval])).rows[0];
+    assert.ok(event);
+
+    const consumeArgs=[tenant,event.id,event.event_type,event.aggregate_type,event.aggregate_id,event.correlation_id,'a'.repeat(64),event.payload];
+    const first=(await db.query('select public.vision_notification_consume($1,$2,$3,$4,$5,$6,$7,$8::jsonb) result',consumeArgs)).rows[0].result;
+    assert.equal(first.processed,true);assert.ok(first.notifications_created>=1);
+    const duplicate=(await db.query('select public.vision_notification_consume($1,$2,$3,$4,$5,$6,$7,$8::jsonb) result',consumeArgs)).rows[0].result;
+    assert.equal(duplicate.duplicate,true);
+
+    const qualityFeed=(await as(quality,d=>d.query('select public.vision_notification_feed($1,$2,50) feed',[tenant,cleaning]))).rows[0].feed;
+    assert.equal(qualityFeed.counts.unread,1);
+    const notification=qualityFeed.notifications.find(x=>x.event_type==='approval.requested');
+    assert.ok(notification);assert.equal(notification.status,'UNREAD');
+    const staffFeed=(await as(staff,d=>d.query('select public.vision_notification_feed($1,$2,50) feed',[tenant,cleaning]))).rows[0].feed;
+    assert.equal(staffFeed.notifications.length,0);
+
+    const read={type:'notification_read',tenant_id:tenant,idempotency_key:id(),notification_id:notification.id,expected_version:1};
+    const readResult=await notificationCommand(quality,read);
+    assert.equal(readResult.status,'READ');assert.equal(readResult.version,2);
+    assert.deepEqual(await notificationCommand(quality,read),readResult);
+    await denied(()=>notificationCommand(staff,{type:'notification_read',tenant_id:tenant,idempotency_key:id(),notification_id:notification.id,expected_version:2}));
+    await denied(()=>as(quality,d=>d.query("update public.vision_notifications set status='DISMISSED' where id=$1",[notification.id])));
+
+    const escalationOrder=await command(guest,create());
+    const escalationTask=(await db.query('select * from public.vision_tasks where order_id=$1',[escalationOrder.order_id])).rows[0];
+    await db.query("update public.vision_tasks set due_at=now()-interval '30 minutes' where id=$1",[escalationTask.id]);
+    const reconciled=(await db.query('select public.vision_reconcile_escalations($1,$2) result',[tenant,cleaning])).rows[0].result;
+    assert.ok(reconciled.upserted>=1);
+
+    const dispatcherNotifications=(await as(dispatcher,d=>d.query('select public.vision_notification_feed($1,$2,50) feed',[tenant,cleaning]))).rows[0].feed;
+    const escalation=dispatcherNotifications.escalations.find(x=>x.source_id===escalationTask.id&&x.rule_code==='TASK_SLA_BREACH');
+    assert.ok(escalation);assert.equal(escalation.status,'OPEN');assert.equal(escalation.can_ack,true);
+
+    const ack={type:'escalation_ack',tenant_id:tenant,idempotency_key:id(),escalation_id:escalation.id,expected_version:escalation.version};
+    const acked=await notificationCommand(dispatcher,ack);
+    assert.equal(acked.status,'ACKNOWLEDGED');
+    assert.deepEqual(await notificationCommand(dispatcher,ack),acked);
+    await denied(()=>notificationCommand(staff,{type:'escalation_ack',tenant_id:tenant,idempotency_key:id(),escalation_id:escalation.id,expected_version:acked.version}));
+
+    await db.query("update public.vision_tasks set status='CANCELLED' where id=$1",[escalationTask.id]);
+    const resolved=(await db.query('select public.vision_reconcile_escalations($1,$2) result',[tenant,cleaning])).rows[0].result;
+    assert.ok(resolved.resolved>=1);
+    const row=(await db.query('select status from public.vision_escalations where id=$1',[escalation.id])).rows[0];
+    assert.equal(row.status,'RESOLVED');
+
+    await denied(()=>as(quality,d=>d.query('select public.vision_notification_consume($1,$2,$3,$4,$5,$6,$7,$8::jsonb)',consumeArgs)));
+    await denied(()=>as(dispatcher,d=>d.query('select public.vision_reconcile_escalations($1,$2)',[tenant,cleaning])));
   });
 
   await t.test('two PostgreSQL connections serialize retries and reject stale concurrent updates',{skip:!url},async()=>{
