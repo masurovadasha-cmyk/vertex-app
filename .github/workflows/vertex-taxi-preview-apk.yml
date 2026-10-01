@@ -34,6 +34,7 @@ jobs:
           mkdir -p .taxi-apk/app/src/main/res/values
           mkdir -p .taxi-apk/app/src/main/res/drawable
           mkdir -p .taxi-apk/app/src/main/res/mipmap-anydpi-v26
+          mkdir -p .taxi-apk/app/src/main/res/values-v31
 
           cat > .taxi-apk/settings.gradle.kts <<'EOF'
           pluginManagement {
@@ -73,8 +74,8 @@ jobs:
                   applicationId = "com.vertex.taxi.preview"
                   minSdk = 26
                   targetSdk = 35
-                  versionCode = 3
-                  versionName = "0.3-preview"
+                  versionCode = 4
+                  versionName = "0.4-preview"
               }
 
               buildTypes {
@@ -102,6 +103,21 @@ jobs:
                   <item name="android:navigationBarColor">@color/vertex_background</item>
                   <item name="android:windowBackground">@color/vertex_background</item>
                   <item name="android:colorAccent">@color/vertex_red</item>
+              </style>
+          </resources>
+          EOF
+
+          cat > .taxi-apk/app/src/main/res/values-v31/styles.xml <<'EOF'
+          <resources>
+              <style name="Theme.VertexTaxiPreview" parent="android:style/Theme.Material.Light.NoActionBar">
+                  <item name="android:fontFamily">sans</item>
+                  <item name="android:windowLightStatusBar">false</item>
+                  <item name="android:statusBarColor">@color/vertex_background</item>
+                  <item name="android:navigationBarColor">@color/vertex_background</item>
+                  <item name="android:windowBackground">@color/vertex_background</item>
+                  <item name="android:colorAccent">@color/vertex_red</item>
+                  <item name="android:windowSplashScreenBackground">@color/vertex_background</item>
+                  <item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
               </style>
           </resources>
           EOF
@@ -138,6 +154,10 @@ jobs:
               <uses-permission android:name="android.permission.INTERNET"/>
               <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
               <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
+              <uses-permission android:name="android.permission.WAKE_LOCK"/>
               <application
                   android:allowBackup="false"
                   android:usesCleartextTraffic="false"
@@ -145,6 +165,10 @@ jobs:
                   android:icon="@mipmap/ic_launcher"
                   android:roundIcon="@mipmap/ic_launcher_round"
                   android:theme="@style/Theme.VertexTaxiPreview">
+                  <service
+                      android:name=".DriverForegroundService"
+                      android:exported="false"
+                      android:foregroundServiceType="location"/>
                   <activity
                       android:name=".MainActivity"
                       android:exported="true"
@@ -176,11 +200,13 @@ jobs:
           import android.content.pm.PackageManager;
           import android.graphics.Color;
           import android.net.Uri;
+          import android.os.Build;
           import android.os.Bundle;
           import android.util.Base64;
           import android.view.ViewGroup;
           import android.webkit.CookieManager;
           import android.webkit.GeolocationPermissions;
+          import android.webkit.JavascriptInterface;
           import android.webkit.WebChromeClient;
           import android.webkit.WebResourceRequest;
           import android.webkit.WebSettings;
@@ -207,10 +233,24 @@ jobs:
                   setContentView(webView);
                   if (savedInstanceState == null) webView.loadUrl(HOME);
                   else webView.restoreState(savedInstanceState);
-                  if (android.os.Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                      requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 2001);
-                  }
+                  requestRuntimePermissions();
                   handleDeepLink(getIntent());
+              }
+
+              private void requestRuntimePermissions() {
+                  if (Build.VERSION.SDK_INT < 23) return;
+                  java.util.ArrayList<String> permissions = new java.util.ArrayList<>();
+                  if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                      permissions.add(Manifest.permission.ACCESS_FINE_LOCATION);
+                      permissions.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+                  }
+                  if (Build.VERSION.SDK_INT >= 33 &&
+                      checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                      permissions.add(Manifest.permission.POST_NOTIFICATIONS);
+                  }
+                  if (!permissions.isEmpty()) {
+                      requestPermissions(permissions.toArray(new String[0]), 2001);
+                  }
               }
 
               @Override
@@ -248,19 +288,29 @@ jobs:
                   }
               }
 
-              private boolean shouldOpenExternally(Uri uri, boolean popup) {
-                  if (!"https".equalsIgnoreCase(uri.getScheme())) return false;
-                  String host = uri.getHost();
-                  if (host == null) return false;
-                  return popup && !APP_HOST.equalsIgnoreCase(host);
-              }
-
               private void openExternal(Uri uri) {
-                  Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                  startActivity(intent);
+                  startActivity(new Intent(Intent.ACTION_VIEW, uri));
               }
 
-              @SuppressLint("SetJavaScriptEnabled")
+              private final class VertexNativeBridge {
+                  @JavascriptInterface
+                  public void setDriverOnline(boolean online) {
+                      runOnUiThread(() -> {
+                          Intent intent = new Intent(MainActivity.this, DriverForegroundService.class);
+                          if (online) {
+                              intent.setAction(DriverForegroundService.ACTION_START);
+                              if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent);
+                              else startService(intent);
+                          } else {
+                              intent.setAction(DriverForegroundService.ACTION_STOP);
+                              if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent);
+                              else startService(intent);
+                          }
+                      });
+                  }
+              }
+
+              @SuppressLint({"SetJavaScriptEnabled", "AddJavascriptInterface"})
               private void configure(WebView view, boolean popup) {
                   WebSettings settings = view.getSettings();
                   settings.setJavaScriptEnabled(true);
@@ -273,32 +323,41 @@ jobs:
                   settings.setSupportMultipleWindows(true);
                   settings.setJavaScriptCanOpenWindowsAutomatically(true);
                   settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-                  settings.setUserAgentString(settings.getUserAgentString() + " VertexTaxiPreview/0.3");
+                  settings.setUserAgentString(settings.getUserAgentString() + " VertexTaxiPreview/0.4");
 
                   CookieManager cookies = CookieManager.getInstance();
                   cookies.setAcceptCookie(true);
                   cookies.setAcceptThirdPartyCookies(view, true);
                   view.setBackgroundColor(Color.rgb(17, 19, 23));
+                  if (!popup) {
+                      view.addJavascriptInterface(new VertexNativeBridge(), "VertexNative");
+                  }
 
                   view.setWebViewClient(new WebViewClient() {
                       @Override
                       public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest request) {
                           Uri uri = request.getUrl();
-                          if (shouldOpenExternally(uri, popup)) {
-                              openExternal(uri);
-                              return true;
-                          }
-                          if ("https".equalsIgnoreCase(uri.getScheme())) return false;
+                          if (!"https".equalsIgnoreCase(uri.getScheme())) return true;
+                          String host = uri.getHost();
+                          if (APP_HOST.equalsIgnoreCase(host)) return false;
+                          openExternal(uri);
                           return true;
                       }
                   });
 
                   view.setWebChromeClient(new WebChromeClient() {
                       @Override
-                      public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
-                          boolean granted = android.os.Build.VERSION.SDK_INT < 23 || checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+                      public void onGeolocationPermissionsShowPrompt(
+                          String origin,
+                          GeolocationPermissions.Callback callback
+                      ) {
+                          boolean granted =
+                              Build.VERSION.SDK_INT < 23 ||
+                              checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
+                                  PackageManager.PERMISSION_GRANTED;
                           callback.invoke(origin, granted, false);
                       }
+
                       @Override
                       @SuppressLint("SetJavaScriptEnabled")
                       public boolean onCreateWindow(
@@ -360,6 +419,295 @@ jobs:
           }
           EOF
 
+          cat > .taxi-apk/app/src/main/java/com/vertex/taxi/preview/DriverForegroundService.java <<'EOF'
+          package com.vertex.taxi.preview;
+
+          import android.Manifest;
+          import android.app.Notification;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.app.Service;
+          import android.content.Intent;
+          import android.content.pm.PackageManager;
+          import android.location.Location;
+          import android.location.LocationListener;
+          import android.location.LocationManager;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.os.IBinder;
+          import android.webkit.CookieManager;
+
+          import org.json.JSONObject;
+
+          import java.io.BufferedReader;
+          import java.io.InputStream;
+          import java.io.InputStreamReader;
+          import java.io.OutputStream;
+          import java.net.HttpURLConnection;
+          import java.net.URL;
+          import java.nio.charset.StandardCharsets;
+          import java.util.concurrent.Executors;
+          import java.util.concurrent.ScheduledExecutorService;
+          import java.util.concurrent.TimeUnit;
+
+          public class DriverForegroundService extends Service implements LocationListener {
+              public static final String ACTION_START = "com.vertex.taxi.preview.START_DRIVER";
+              public static final String ACTION_STOP = "com.vertex.taxi.preview.STOP_DRIVER";
+              private static final String BASE = "https://vertex-taxi-core-staging.floot.app";
+              private static final String SERVICE_CHANNEL = "vertex_driver_service";
+              private static final String ORDER_CHANNEL = "vertex_new_orders";
+              private static final int SERVICE_NOTIFICATION_ID = 4101;
+
+              private ScheduledExecutorService executor;
+              private LocationManager locationManager;
+              private volatile double latitude = 41.3111;
+              private volatile double longitude = 69.2797;
+              private volatile String lastRideId = null;
+
+              @Override
+              public void onCreate() {
+                  super.onCreate();
+                  createChannels();
+                  executor = Executors.newSingleThreadScheduledExecutor();
+                  locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+              }
+
+              @Override
+              public int onStartCommand(Intent intent, int flags, int startId) {
+                  String action = intent == null ? ACTION_START : intent.getAction();
+                  if (ACTION_STOP.equals(action)) {
+                      if (executor != null) {
+                          executor.execute(() -> {
+                              postAvailability(false);
+                              stopForeground(true);
+                              stopSelf();
+                          });
+                      } else {
+                          stopForeground(true);
+                          stopSelf();
+                      }
+                      return START_NOT_STICKY;
+                  }
+
+                  startForeground(SERVICE_NOTIFICATION_ID, serviceNotification());
+                  startLocationUpdates();
+                  if (executor != null) {
+                      executor.scheduleAtFixedRate(() -> {
+                          try {
+                              postAvailability(true);
+                              pollForOrder();
+                          } catch (Exception ignored) {
+                          }
+                      }, 2, 20, TimeUnit.SECONDS);
+                  }
+                  return START_STICKY;
+              }
+
+              private void createChannels() {
+                  if (Build.VERSION.SDK_INT < 26) return;
+                  NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                  NotificationChannel service = new NotificationChannel(
+                      SERVICE_CHANNEL,
+                      "Vertex Taxi driver service",
+                      NotificationManager.IMPORTANCE_LOW
+                  );
+                  service.setDescription("Геопозиция и поиск заказов, пока водитель на линии");
+                  nm.createNotificationChannel(service);
+
+                  NotificationChannel orders = new NotificationChannel(
+                      ORDER_CHANNEL,
+                      "Новые заказы Vertex Taxi",
+                      NotificationManager.IMPORTANCE_HIGH
+                  );
+                  orders.enableVibration(true);
+                  nm.createNotificationChannel(orders);
+              }
+
+              private Notification serviceNotification() {
+                  Intent open = new Intent(this, MainActivity.class);
+                  PendingIntent pending = PendingIntent.getActivity(
+                      this,
+                      0,
+                      open,
+                      PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+                  );
+                  Notification.Builder builder =
+                      Build.VERSION.SDK_INT >= 26
+                          ? new Notification.Builder(this, SERVICE_CHANNEL)
+                          : new Notification.Builder(this);
+                  return builder
+                      .setContentTitle("Vertex Taxi · Вы на линии")
+                      .setContentText("Геопозиция и новые заказы обновляются в фоне")
+                      .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+                      .setOngoing(true)
+                      .setContentIntent(pending)
+                      .build();
+              }
+
+              private void startLocationUpdates() {
+                  if (Build.VERSION.SDK_INT >= 23 &&
+                      checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) !=
+                          PackageManager.PERMISSION_GRANTED &&
+                      checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) !=
+                          PackageManager.PERMISSION_GRANTED) {
+                      return;
+                  }
+                  try {
+                      locationManager.requestLocationUpdates(
+                          LocationManager.GPS_PROVIDER,
+                          15000L,
+                          20f,
+                          this
+                      );
+                  } catch (Exception ignored) {
+                  }
+                  try {
+                      locationManager.requestLocationUpdates(
+                          LocationManager.NETWORK_PROVIDER,
+                          20000L,
+                          30f,
+                          this
+                      );
+                  } catch (Exception ignored) {
+                  }
+              }
+
+              @Override
+              public void onLocationChanged(Location location) {
+                  latitude = location.getLatitude();
+                  longitude = location.getLongitude();
+              }
+
+              @Override public void onStatusChanged(String provider, int status, Bundle extras) {}
+              @Override public void onProviderEnabled(String provider) {}
+              @Override public void onProviderDisabled(String provider) {}
+
+              private String cookie() {
+                  try {
+                      return CookieManager.getInstance().getCookie(BASE);
+                  } catch (Exception ignored) {
+                      return null;
+                  }
+              }
+
+              private String request(String method, String path, String body) throws Exception {
+                  URL url = new URL(BASE + path);
+                  HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                  connection.setRequestMethod(method);
+                  connection.setConnectTimeout(8000);
+                  connection.setReadTimeout(8000);
+                  connection.setRequestProperty("Accept", "application/json");
+                  String cookie = cookie();
+                  if (cookie != null && !cookie.isEmpty()) {
+                      connection.setRequestProperty("Cookie", cookie);
+                  }
+                  if (body != null) {
+                      connection.setDoOutput(true);
+                      connection.setRequestProperty("Content-Type", "application/json");
+                      try (OutputStream output = connection.getOutputStream()) {
+                          output.write(body.getBytes(StandardCharsets.UTF_8));
+                      }
+                  }
+                  int status = connection.getResponseCode();
+                  InputStream stream =
+                      status >= 200 && status < 400
+                          ? connection.getInputStream()
+                          : connection.getErrorStream();
+                  if (stream == null) return "";
+                  StringBuilder result = new StringBuilder();
+                  try (BufferedReader reader = new BufferedReader(
+                      new InputStreamReader(stream, StandardCharsets.UTF_8)
+                  )) {
+                      String line;
+                      while ((line = reader.readLine()) != null) result.append(line);
+                  }
+                  return result.toString();
+              }
+
+              private void postAvailability(boolean online) {
+                  try {
+                      JSONObject payload = new JSONObject();
+                      payload.put("online", online);
+                      if (online) {
+                          payload.put("lat", latitude);
+                          payload.put("lng", longitude);
+                      }
+                      JSONObject superjson = new JSONObject();
+                      superjson.put("json", payload);
+                      request("POST", "/_api/driver/availability", superjson.toString());
+                  } catch (Exception ignored) {
+                  }
+              }
+
+              private void pollForOrder() {
+                  try {
+                      String response = request("GET", "/_api/driver/next", null);
+                      if (response == null || response.isEmpty()) return;
+                      JSONObject root = new JSONObject(response);
+                      JSONObject json = root.optJSONObject("json");
+                      if (json == null) return;
+                      JSONObject order = json.optJSONObject("order");
+                      if (order == null) return;
+                      String status = order.optString("status", "");
+                      String rideId = order.optString("rideId", "");
+                      if (!"REQUESTED".equals(status) || rideId.isEmpty()) return;
+                      if (rideId.equals(lastRideId)) return;
+                      lastRideId = rideId;
+                      showOrderNotification(order);
+                  } catch (Exception ignored) {
+                  }
+              }
+
+              private void showOrderNotification(JSONObject order) {
+                  String pickup = order.optString("pickup", "Точка подачи");
+                  String destination = order.optString("destination", "Точка назначения");
+                  int fareMinor = order.optInt("fareMinor", 0);
+                  String price = String.format(java.util.Locale.US, "$%.2f", fareMinor / 100.0);
+
+                  Intent open = new Intent(this, MainActivity.class);
+                  open.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                  PendingIntent pending = PendingIntent.getActivity(
+                      this,
+                      order.optString("rideId", "").hashCode(),
+                      open,
+                      PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+                  );
+                  Notification.Builder builder =
+                      Build.VERSION.SDK_INT >= 26
+                          ? new Notification.Builder(this, ORDER_CHANNEL)
+                          : new Notification.Builder(this);
+                  Notification notification = builder
+                      .setContentTitle("Новый заказ · " + price)
+                      .setContentText(pickup + " → " + destination)
+                      .setSmallIcon(android.R.drawable.ic_dialog_map)
+                      .setAutoCancel(true)
+                      .setPriority(Notification.PRIORITY_HIGH)
+                      .setContentIntent(pending)
+                      .build();
+                  NotificationManager nm =
+                      (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+                  nm.notify(5000 + Math.abs(order.optString("rideId", "").hashCode() % 1000), notification);
+              }
+
+              @Override
+              public void onDestroy() {
+                  try {
+                      if (locationManager != null) locationManager.removeUpdates(this);
+                  } catch (Exception ignored) {
+                  }
+                  if (executor != null) executor.shutdownNow();
+                  super.onDestroy();
+              }
+
+              @Override
+              public IBinder onBind(Intent intent) {
+                  return null;
+              }
+          }
+          EOF
+          EOF
+
       - name: Build preview APK
         working-directory: .taxi-apk
         run: gradle --no-daemon :app:assembleDebug
@@ -367,10 +715,10 @@ jobs:
       - name: Prepare deliverable
         run: |
           mkdir -p artifacts
-          cp .taxi-apk/app/build/outputs/apk/debug/app-debug.apk artifacts/Vertex-Taxi-Preview-v0.3.apk
-          sha256sum artifacts/Vertex-Taxi-Preview-v0.3.apk | tee artifacts/Vertex-Taxi-Preview.sha256.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs artifacts/Vertex-Taxi-Preview-v0.3.apk | tee artifacts/apk-signature.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Vertex-Taxi-Preview-v0.3.apk | tee artifacts/apk-badging.txt
+          cp .taxi-apk/app/build/outputs/apk/debug/app-debug.apk artifacts/Vertex-Taxi-Preview-v0.4.apk
+          sha256sum artifacts/Vertex-Taxi-Preview-v0.4.apk | tee artifacts/Vertex-Taxi-Preview.sha256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs artifacts/Vertex-Taxi-Preview-v0.4.apk | tee artifacts/apk-signature.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Vertex-Taxi-Preview-v0.4.apk | tee artifacts/apk-badging.txt
 
       - uses: actions/upload-artifact@v4
         with:
