@@ -1,13 +1,13 @@
 {
   "product": "VERTEX Vision",
   "assembly": "0.1",
-  "architectureVersion": "1.9",
+  "architectureVersion": "2.0",
   "releaseManifest": "vision/release/0.1-RC1.json",
   "platformVersion": "1.16-rc1",
   "apiVersion": "v1",
   "database": {
-    "latestMigration": "0014_notifications_escalations.sql",
-    "migrationsExpected": 14,
+    "latestMigration": "0015_background_runtime.sql",
+    "migrationsExpected": 15,
     "sourceOfTruth": "PostgreSQL/Supabase",
     "productionApplied": false
   },
@@ -142,7 +142,9 @@
       "escalations-table",
       "notification-feed-rpc",
       "notification-command-rpc",
-      "notification-consumer-rpc"
+      "notification-consumer-rpc",
+      "outbox-fail-rpc",
+      "background-scopes-rpc"
     ],
     "serviceRoleRequired": false
   },
@@ -207,7 +209,7 @@
     "activeRuntimeModule": "views",
     "inactiveModules": "coming-soon",
     "integratedAt": "2026-10-01",
-    "experienceIteration": "8.0",
+    "experienceIteration": "9.0",
     "experienceStyle": "Dark Premium Tech Sand",
     "visualReference": "VERTEX VISION dark control-center boards",
     "runtimeEnhancements": [
