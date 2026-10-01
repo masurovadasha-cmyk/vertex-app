@@ -1,12 +1,13 @@
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function taxiRoute(pathname){
-  if(pathname==='/api/taxi/capabilities')return '/integration/v1/capabilities';
-  if(pathname==='/api/taxi/health')return '/integration/v1/health';
-  if(pathname==='/api/taxi/rides')return '/integration/v1/rides';
-  const ride=pathname.match(/^\/api\/taxi\/rides\/([^/]+)$/);
+export function taxiRoute(pathname,method){
+  const verb=String(method||'').toUpperCase();
+  if(verb==='GET'&&pathname==='/api/taxi/capabilities')return '/integration/v1/capabilities';
+  if(verb==='GET'&&pathname==='/api/taxi/health')return '/integration/v1/health';
+  if(verb==='POST'&&pathname==='/api/taxi/rides')return '/integration/v1/rides';
+  const ride=verb==='GET'&&pathname.match(/^\/api\/taxi\/rides\/([^/]+)$/);
   if(ride)return '/integration/v1/rides/'+encodeURIComponent(ride[1]);
-  const command=pathname.match(/^\/api\/taxi\/rides\/([^/]+)\/commands$/);
+  const command=verb==='POST'&&pathname.match(/^\/api\/taxi\/rides\/([^/]+)\/commands$/);
   if(command)return '/integration/v1/rides/'+encodeURIComponent(command[1])+'/commands';
   return null;
 }
