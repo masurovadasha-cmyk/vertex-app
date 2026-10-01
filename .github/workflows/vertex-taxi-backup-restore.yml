@@ -40,20 +40,16 @@ jobs:
           INSERT INTO taxi_quotes(user_id,pickup_lat,pickup_lng,pickup_label,destination_lat,destination_lng,destination_label,service_class,distance_km,fare_minor,currency,expires_at)
           VALUES('restore-test',41.3111,69.2797,'NRG U-Tower',41.2995,69.2401,'Tashkent City Mall','comfort',12,1300,'USD',now()+interval '1 hour');
           SQL
-      - name: Install PostgreSQL 17 client
+      - name: Logical backup with PostgreSQL 17 client
         run: |
-          sudo install -d /usr/share/postgresql-common/pgdg
-          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg
-          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.gpg] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo ${VERSION_CODENAME})-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client-17
-          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
-      - name: Logical backup
-        run: /usr/lib/postgresql/17/bin/pg_dump -h 127.0.0.1 -U vertex -d vertex_taxi -Fc -f vertex-taxi.dump
+          docker run --rm --network host -e PGPASSWORD=vertex -v "$PWD:/work" postgres:17 \
+            pg_dump -h 127.0.0.1 -U vertex -d vertex_taxi -Fc -f /work/vertex-taxi.dump
       - name: Restore into clean database
         run: |
-          /usr/lib/postgresql/17/bin/createdb -h 127.0.0.1 -U vertex vertex_taxi_restore
-          /usr/lib/postgresql/17/bin/pg_restore -h 127.0.0.1 -U vertex -d vertex_taxi_restore --no-owner --no-privileges vertex-taxi.dump
+          docker run --rm --network host -e PGPASSWORD=vertex postgres:17 \
+            createdb -h 127.0.0.1 -U vertex vertex_taxi_restore
+          docker run --rm --network host -e PGPASSWORD=vertex -v "$PWD:/work" postgres:17 \
+            pg_restore -h 127.0.0.1 -U vertex -d vertex_taxi_restore --no-owner --no-privileges /work/vertex-taxi.dump
       - name: Verify restored schema and data
         run: |
           test "$(psql -h 127.0.0.1 -U vertex -d vertex_taxi_restore -Atc "select count(*) from taxi_quotes where user_id='restore-test'")" = "1"
