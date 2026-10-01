@@ -8,7 +8,7 @@ const eventType=/^[a-z][a-z0-9._-]{1,127}$/;
 const entityType=/^[a-z][a-z0-9._-]{1,63}$/;
 const rootKeys=new Set(['generated_at','notifications','escalations','counts']);
 const notificationKeys=new Set(['id','type','kind','title','body','severity','status','event_type','entity_type','entity_id','correlation_id','version','created_at','read_at','dismissed_at']);
-const escalationKeys=new Set(['id','type','source_type','source_id','rule_code','title','severity','status','assigned_user_id','correlation_id','version','opened_at','acknowledged_at','resolved_at','severity_rank']);
+const escalationKeys=new Set(['id','type','source_type','source_id','rule_code','title','severity','status','assigned_user_id','correlation_id','version','opened_at','acknowledged_at','resolved_at','severity_rank','can_ack']);
 const countKeys=new Set(['unread','escalations']);
 
 function exactKeys(value,allowed){
@@ -49,7 +49,8 @@ function projectEscalation(item){
     id:id(item.id),type:'escalation',sourceType:item.source_type,sourceId:id(item.source_id),ruleCode:item.rule_code,
     title:text(item.title,240),severity:item.severity,status:item.status,assignedUserId:id(item.assigned_user_id,true),
     correlationId:id(item.correlation_id),version:version(item.version),openedAt:instant(item.opened_at,false),
-    acknowledgedAt:instant(item.acknowledged_at,true),resolvedAt:instant(item.resolved_at,true)
+    acknowledgedAt:instant(item.acknowledged_at,true),resolvedAt:instant(item.resolved_at,true),
+    canAck:typeof item.can_ack==='boolean'?item.can_ack:(()=>{throw new Error('upstream_invalid_response');})()
   });
 }
 export function projectNotificationFeed(body){
