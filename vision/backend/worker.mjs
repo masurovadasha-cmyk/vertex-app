@@ -99,12 +99,15 @@ async function taxiFetch(env,path,request,body,userId){
   }
   throw lastError??new Error('taxi_integration_unavailable');
 }
-function taxiPath(pathname){
-  if(pathname==='/api/taxi/capabilities')return '/integration/v1/capabilities';
-  if(pathname==='/api/taxi/health')return '/integration/v1/health';
-  const ride=pathname.match(/^\/api\/taxi\/rides\/([^/]+)$/);if(ride)return '/integration/v1/rides/'+encodeURIComponent(ride[1]);
-  if(pathname==='/api/taxi/rides')return '/integration/v1/rides';
-  const command=pathname.match(/^\/api\/taxi\/rides\/([^/]+)\/commands$/);if(command)return '/integration/v1/rides/'+encodeURIComponent(command[1])+'/commands';
+function taxiPath(pathname,method){
+  const verb=String(method||'').toUpperCase();
+  if(verb==='GET'&&pathname==='/api/taxi/capabilities')return '/integration/v1/capabilities';
+  if(verb==='GET'&&pathname==='/api/taxi/health')return '/integration/v1/health';
+  if(verb==='POST'&&pathname==='/api/taxi/rides')return '/integration/v1/rides';
+  const ride=verb==='GET'&&pathname.match(/^\/api\/taxi\/rides\/([^/]+)$/);
+  if(ride)return '/integration/v1/rides/'+encodeURIComponent(ride[1]);
+  const command=verb==='POST'&&pathname.match(/^\/api\/taxi\/rides\/([^/]+)\/commands$/);
+  if(command)return '/integration/v1/rides/'+encodeURIComponent(command[1])+'/commands';
   return null;
 }
 
@@ -209,13 +212,13 @@ export async function handle(request,env,fetcher=fetch){
     const user=await upstreamJSON(identity,65536);
     if(!uuid.test(user.id||''))return reply({error:'unauthorized'},401);
 
-    const taxiTarget=taxiPath(url.pathname);
+    const taxiTarget=taxiPath(url.pathname,request.method);
     if(taxiTarget){
       const tenantId=request.headers.get('x-vertex-tenant-id')||'';
       const organizationId=request.headers.get('x-vertex-organization-id')||'';
       const correlation=request.headers.get('x-vertex-correlation-id')||'';
       if(!uuid.test(tenantId)||!uuid.test(organizationId))return reply({error:'tenant_context_required'},400);
-      if(correlation.length>128)return reply({error:'correlation_id_too_long'},400);
+      if(correlation&&!uuid.test(correlation))return reply({error:'invalid_correlation_id'},400);
       const delegation=await upstream('/rest/v1/rpc/vision_external_module_context_allowed',{method:'POST',body:JSON.stringify({t:tenantId,org:organizationId,module_id:'taxi'})});
       if(!delegation.ok)return reply({error:'backend_unavailable'},503);
       if((await upstreamJSON(delegation,65536))!==true)return reply({error:'forbidden'},403);
@@ -230,6 +233,11 @@ export async function handle(request,env,fetcher=fetch){
       const taxiResponse=await taxiFetch(env,taxiTarget,request,body,user.id);
       if(!taxiResponse)return reply({error:'taxi_integration_not_configured'},503);
       const taxiBody=await upstreamJSON(taxiResponse,1048576);
+      if(!taxiResponse.ok){
+        const status=[400,403,404,409].includes(taxiResponse.status)?taxiResponse.status:503;
+        const error=status===403?'forbidden':status===404?'not_found':status===409?'conflict':status===400?'invalid_command':'taxi_unavailable';
+        return reply({error},status,{'x-correlation-id':correlation||requestId});
+      }
       return reply(taxiBody,taxiResponse.status,{'x-correlation-id':correlation||requestId});
     }
 
