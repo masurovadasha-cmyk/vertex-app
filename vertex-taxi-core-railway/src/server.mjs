@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import crypto from "node:crypto";
 import Fastify from "fastify";
 import websocket from "@fastify/websocket";
+import cors from "@fastify/cors";
 import { Pool } from "pg";
 import { createClient } from "redis";
 import { latLngToCell, gridDisk } from "h3-js";
@@ -11,6 +12,7 @@ const PORT = Number(process.env.PORT || 3000);
 const DATABASE_URL = process.env.DATABASE_URL;
 const REDIS_URL = process.env.REDIS_URL;
 const API_TOKEN = process.env.STAGING_API_TOKEN || "";
+const MOBILE_DEMO_TOKEN = process.env.MOBILE_DEMO_TOKEN || "";
 const H3_RESOLUTION = Number(process.env.H3_RESOLUTION || 9);
 const LOCATION_TTL_SECONDS = Number(process.env.LOCATION_TTL_SECONDS || 20);
 const OFFER_TTL_MS = Number(process.env.OFFER_TTL_MS || 12000);
@@ -24,19 +26,25 @@ redis.on("error", (err) => console.error("redis", err));
 await redis.connect();
 
 const migration = await fs.readFile(new URL("../migrations/001_init.sql", import.meta.url), "utf8");
+const presentationMigration = await fs.readFile(new URL("../migrations/002_presentation.sql", import.meta.url), "utf8");
 await db.query(migration);
+await db.query(presentationMigration);
 
 const app = Fastify({
   logger: true,
   bodyLimit: 32 * 1024,
   requestTimeout: 5000,
 });
+await app.register(cors, { origin: true });
 await app.register(websocket);
 
 function auth(req, reply) {
-  if (!API_TOKEN) return;
   const value = req.headers.authorization || "";
-  if (value !== `Bearer ${API_TOKEN}`) {
+  const allowed = new Set(
+    [API_TOKEN, MOBILE_DEMO_TOKEN].filter(Boolean).map((token) => `Bearer ${token}`)
+  );
+  if (allowed.size === 0) return;
+  if (!allowed.has(value)) {
     return reply.code(401).send({ error: "unauthorized" });
   }
 }
@@ -299,6 +307,177 @@ app.post("/v1/offers/:offerId/accept", { preHandler: auth }, async (req, reply) 
     await publishRideEvent(offer.ride_id,{type:"ride.driver_assigned",rideId:offer.ride_id,driverId:offer.driver_id});
     return {data:updated.rows[0]};
   } finally { client.release(); }
+});
+
+
+const rideCommandInput = z.object({
+  command: z.enum([
+    "DRIVER_EN_ROUTE","ARRIVED","RIDER_ONBOARD","START","COMPLETE",
+    "RIDER_CANCEL","DRIVER_CANCEL"
+  ]),
+  actorId: z.string().min(1).max(128).optional(),
+  expectedVersion: z.number().int().positive().optional(),
+});
+
+const transitions = {
+  DRIVER_EN_ROUTE: { from:["DRIVER_ASSIGNED"], to:"DRIVER_EN_ROUTE" },
+  ARRIVED: { from:["DRIVER_EN_ROUTE"], to:"DRIVER_ARRIVED" },
+  RIDER_ONBOARD: { from:["DRIVER_ARRIVED"], to:"RIDER_ONBOARD" },
+  START: { from:["RIDER_ONBOARD","DRIVER_ARRIVED"], to:"IN_PROGRESS" },
+  COMPLETE: { from:["IN_PROGRESS"], to:"COMPLETED" },
+  RIDER_CANCEL: { from:["REQUESTED","SEARCHING","DRIVER_OFFERED","DRIVER_ASSIGNED","DRIVER_EN_ROUTE","DRIVER_ARRIVED","RIDER_ONBOARD"], to:"RIDER_CANCELLED" },
+  DRIVER_CANCEL: { from:["DRIVER_OFFERED","DRIVER_ASSIGNED","DRIVER_EN_ROUTE","DRIVER_ARRIVED"], to:"DRIVER_CANCELLED" },
+};
+
+app.post("/v1/rides/:rideId/commands", { preHandler: auth }, async (req, reply) => {
+  const rideId=z.string().uuid().parse(req.params.rideId);
+  const input=rideCommandInput.parse(req.body);
+  const rule=transitions[input.command];
+  const client=await db.connect();
+  try{
+    await client.query("begin");
+    const current=await client.query("select * from taxi_rides where id=$1 for update",[rideId]);
+    if(!current.rowCount){ await client.query("rollback"); return reply.code(404).send({error:"ride_not_found"}); }
+    const ride=current.rows[0];
+    if(input.expectedVersion && Number(ride.version)!==input.expectedVersion){
+      await client.query("rollback");
+      return reply.code(409).send({error:"version_conflict",currentVersion:Number(ride.version)});
+    }
+    if(!rule.from.includes(ride.state)){
+      await client.query("rollback");
+      return reply.code(409).send({error:"invalid_transition",from:ride.state,command:input.command});
+    }
+    const updated=await client.query(
+      "update taxi_rides set state=$2,version=version+1,updated_at=now() where id=$1 returning *",
+      [rideId,rule.to]
+    );
+    const next=updated.rows[0];
+    await client.query(
+      `insert into taxi_outbox(event_type,aggregate_id,aggregate_version,payload,correlation_id)
+       values($1,$2,$3,$4,$5)`,
+      [`taxi.ride.v2.${String(rule.to).toLowerCase()}`,rideId,next.version,
+       JSON.stringify({ride_id:rideId,state:rule.to,actor_id:input.actorId??null}),next.correlation_id]
+    );
+    await client.query(
+      `insert into taxi_audit_timeline
+       (ride_id,actor_type,actor_id,action,before_json,after_json,reason,correlation_id)
+       values($1,$2,$3,$4,$5,$6,$7,$8)`,
+      [rideId,input.command.startsWith("DRIVER")?"driver":"user",input.actorId??null,input.command,
+       JSON.stringify({state:ride.state,version:ride.version}),
+       JSON.stringify({state:next.state,version:next.version}),
+       "presentation_command",next.correlation_id]
+    );
+    await client.query("commit");
+    if(["COMPLETED","RIDER_CANCELLED","DRIVER_CANCELLED"].includes(rule.to)){
+      if(next.driver_id) await redis.del(driverLeaseKey(next.driver_id));
+      await redis.del(rideLeaseKey(rideId));
+    }
+    await publishRideEvent(rideId,{type:"ride.state_changed",rideId,state:next.state,version:next.version});
+    return {data:next};
+  } catch(error){
+    try{ await client.query("rollback"); }catch{}
+    throw error;
+  } finally { client.release(); }
+});
+
+app.get("/v1/users/:userId/rides", { preHandler: auth }, async (req) => {
+  const userId=z.string().min(1).max(128).parse(req.params.userId);
+  const r=await db.query(
+    "select * from taxi_rides where user_id=$1 order by created_at desc limit 50",
+    [userId]
+  );
+  return {data:r.rows};
+});
+
+app.get("/v1/drivers/:driverId/current", { preHandler: auth }, async (req) => {
+  const driverId=z.string().min(1).max(128).parse(req.params.driverId);
+  const r=await db.query(
+    `select * from taxi_rides where driver_id=$1
+     and state not in ('COMPLETED','RIDER_CANCELLED','DRIVER_CANCELLED','SYSTEM_CANCELLED','NO_DRIVER','EXPIRED')
+     order by updated_at desc limit 1`,
+    [driverId]
+  );
+  return {data:r.rows[0]??null};
+});
+
+app.get("/v1/drivers/:driverId/earnings", { preHandler: auth }, async (req) => {
+  const driverId=z.string().min(1).max(128).parse(req.params.driverId);
+  const r=await db.query(
+    `select count(*)::int trips,
+       coalesce(sum(fare_minor),0)::int gross_minor,
+       coalesce(avg(fare_minor),0)::numeric(10,2) avg_fare_minor
+     from taxi_rides where driver_id=$1 and state='COMPLETED'`,
+    [driverId]
+  );
+  const rating=await db.query(
+    "select coalesce(avg(stars),0)::numeric(3,2) rating from taxi_ratings where driver_id=$1",
+    [driverId]
+  );
+  return {data:{...r.rows[0],rating:Number(rating.rows[0]?.rating??0),currency:"USD"}};
+});
+
+app.post("/v1/rides/:rideId/demo-payment", { preHandler: auth }, async (req, reply) => {
+  const rideId=z.string().uuid().parse(req.params.rideId);
+  const body=z.object({
+    last4:z.string().regex(/^\d{4}$/).default("4242"),
+  }).parse(req.body??{});
+  const r=await db.query("select * from taxi_rides where id=$1",[rideId]);
+  if(!r.rowCount) return reply.code(404).send({error:"ride_not_found"});
+  const ride=r.rows[0];
+  if(ride.state!=="COMPLETED") return reply.code(409).send({error:"ride_not_completed"});
+  const total=Number(ride.fare_minor);
+  const fee=Math.max(20,Math.round(total*0.05));
+  const waiting=0;
+  const subtotal=Math.max(0,total-fee-waiting);
+  const payment=await db.query(
+    `insert into taxi_demo_payments
+     (ride_id,method,last4,status,subtotal_minor,waiting_minor,service_fee_minor,total_minor,currency)
+     values($1,'demo_card',$2,'PAID',$3,$4,$5,$6,$7)
+     on conflict(ride_id) do update set last4=excluded.last4
+     returning *`,
+    [rideId,body.last4,subtotal,waiting,fee,total,ride.currency]
+  );
+  return {data:payment.rows[0]};
+});
+
+app.post("/v1/rides/:rideId/rating", { preHandler: auth }, async (req, reply) => {
+  const rideId=z.string().uuid().parse(req.params.rideId);
+  const body=z.object({
+    userId:z.string().min(1).max(128),
+    stars:z.number().int().min(1).max(5),
+    comment:z.string().max(500).optional(),
+  }).parse(req.body);
+  const r=await db.query("select * from taxi_rides where id=$1",[rideId]);
+  if(!r.rowCount) return reply.code(404).send({error:"ride_not_found"});
+  const ride=r.rows[0];
+  if(ride.state!=="COMPLETED") return reply.code(409).send({error:"ride_not_completed"});
+  if(ride.user_id!==body.userId) return reply.code(403).send({error:"forbidden"});
+  const rating=await db.query(
+    `insert into taxi_ratings(ride_id,user_id,driver_id,stars,comment)
+     values($1,$2,$3,$4,$5)
+     on conflict(ride_id) do update set stars=excluded.stars,comment=excluded.comment
+     returning *`,
+    [rideId,body.userId,ride.driver_id,body.stars,body.comment??null]
+  );
+  return {data:rating.rows[0]};
+});
+
+app.get("/v1/admin/summary", { preHandler: auth }, async () => {
+  const states=await db.query("select state,count(*)::int count from taxi_rides group by state");
+  const total=await db.query("select count(*)::int rides,coalesce(sum(fare_minor),0)::int gross_minor from taxi_rides");
+  const drivers=await redis.keys("taxi:driver:*:location");
+  const recent=await db.query(
+    "select * from taxi_rides order by created_at desc limit 20"
+  );
+  return {
+    data:{
+      rides:total.rows[0],
+      states:Object.fromEntries(states.rows.map(row=>[row.state,row.count])),
+      onlineDrivers:drivers.length,
+      recentRides:recent.rows,
+      currency:"USD",
+    }
+  };
 });
 
 app.get("/v1/realtime/rides/:rideId", { websocket:true }, (socket, req) => {
