@@ -15,6 +15,10 @@ on:
       - 'vision/release/0.1-RC1.json'
       - 'android/app/build.gradle'
       - 'package.json'
+      - 'vertex/tools/app-release.test.cjs'
+      - 'vision/tools/verify-assembly.mjs'
+      - 'vision/wrangler.jsonc'
+      - '.github/workflows/vision-cloud-e2e.yml'
 
 permissions:
   contents: read
