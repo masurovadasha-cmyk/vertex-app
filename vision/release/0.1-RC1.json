@@ -3,7 +3,7 @@
   "release": "0.1-RC1",
   "platformVersion": "1.16-rc1",
   "api": "v1",
-  "databaseMigration": "0013_work_actions.sql",
+  "databaseMigration": "0014_notifications_escalations.sql",
   "activeModules": [
     "views"
   ],
@@ -65,8 +65,8 @@
     "sessionPolicy": "server-authoritative-context-from-verified-jwt",
     "cloudStagingVerified": false
   },
-  "architectureVersion": "1.8",
-  "technicalStage": "work-actions-and-sla-0.1",
+  "architectureVersion": "1.9",
+  "technicalStage": "notifications-escalations-foundation-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -110,7 +110,10 @@
     "workFeedContract": "vision/contracts/work-feed.mjs",
     "workCommandsEndpoint": "/api/v1/work/commands",
     "workCommandContract": "vision/contracts/work-command.mjs",
-    "workAssigneesEndpoint": "/api/v1/work-assignees"
+    "workAssigneesEndpoint": "/api/v1/work-assignees",
+    "notificationFeedEndpoint": "/api/v1/notifications",
+    "notificationFeedContract": "vision/contracts/notification-feed.mjs",
+    "notificationCommandEndpoint": "/api/v1/notifications/commands"
   },
   "runtimeReadiness": {
     "status": "implemented-in-branch",
@@ -127,7 +130,12 @@
       "unified-work-feed",
       "approval-rls",
       "work-command-rpc",
-      "work-assignee-rpc"
+      "work-assignee-rpc",
+      "notifications-table",
+      "escalations-table",
+      "notification-feed-rpc",
+      "notification-command-rpc",
+      "notification-consumer-rpc"
     ],
     "serviceRoleRequired": false,
     "cloudVerified": false
@@ -221,5 +229,17 @@
     "assigneesEndpoint": "/api/v1/work-assignees",
     "approvalDecisions": true,
     "liveRefresh": "polling-30s-not-push"
+  },
+  "notifications": {
+    "status": "implemented-in-branch",
+    "feedEndpoint": "/api/v1/notifications",
+    "commandEndpoint": "/api/v1/notifications/commands",
+    "eventProjection": "vision_notification_consume",
+    "escalationReconciliation": "vision_reconcile_escalations",
+    "consumerConnected": false,
+    "schedulerConnected": false,
+    "refresh": "polling-30s-not-push",
+    "fabricatedEvents": false,
+    "cloudStagingVerified": false
   }
 }
