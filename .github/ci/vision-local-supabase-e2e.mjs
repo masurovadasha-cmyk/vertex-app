@@ -1,7 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import pg from 'pg';
+import {createRequire} from 'node:module';
 import {randomUUID} from 'node:crypto';
+const requireVision=createRequire(new URL('../../vision/package.json',import.meta.url));
+const pg=requireVision('pg');
 import {migrate} from '../../vision/backend/migrate.mjs';
 import {provisionDemo,demo} from '../../vision/backend/demo.mjs';
 import {handle} from '../../vision/backend/worker.mjs';
