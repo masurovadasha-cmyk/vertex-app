@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "viewport": "single-screen",
+  "pageScroll": false,
+  "persistentShell": ["MapShell","TopControls","BottomSheet"],
+  "passenger": ["HOME","DESTINATION","ROUTE_PREVIEW","QUOTE","PAYMENT","REQUESTED","SEARCHING","DRIVER_ASSIGNED","DRIVER_ARRIVED","PIN_VERIFICATION","IN_TRIP","COMPLETED","RATING"],
+  "driver": ["OFFLINE","ONLINE","OFFERED","RESERVED","EN_ROUTE","ARRIVED","WAITING","PIN_VERIFICATION","ON_TRIP","COMPLETED"],
+  "control": ["OPERATIONS","DRIVERS","DISPATCH","INCIDENTS","AUDIT"],
+  "rule": "UI renders server/domain state; UI never authorizes or invents a ride transition."
+}
