@@ -130,7 +130,25 @@
       for(const pair of experience.capabilities){const cap=element('div','vv-capability');cap.append(element('span','',tx(...pair)),element('small','',module.status==='active'?tx('Доступность зависит от прав и данных','Subject to permissions & data'):tx('Не активировано','Not activated')));caps.append(cap);}
       preview.append(caps);dialog.append(preview);
     }
-    dialog.append(element('p','vv-disclosure',module.status==='active'?tx('Views — активный модуль VERTEX VISION. Ниже доступны проверенные функции Views.','Views is the active VERTEX VISION module. Verified Views functions are available below.'):tx('Coming Soon · Направление уже зарегистрировано в архитектуре VERTEX VISION, но рабочие функции ещё не включены.','Coming Soon · This direction is registered in the VERTEX VISION architecture, but operational functions are not enabled yet.')));
+    const landing=element('section','vv-direction-landing');
+    const landingBrand=element('div','vv-direction-brand');
+    const landingMark=element('span','vv-direction-mark');landingMark.innerHTML=iconMarkup(module.id);
+    const landingCopy=element('div');
+    landingCopy.append(element('small','',module.status==='active'?tx('РАБОЧИЙ МОДУЛЬ RC','ACTIVE RC MODULE'):tx('ИНТЕРФЕЙС НАПРАВЛЕНИЯ · PREVIEW','DIRECTION INTERFACE · PREVIEW')),element('h3','',module.name),element('p','',experience?tx(...experience.tagline):tx(module.description.ru,module.description.en)));
+    landingBrand.append(landingMark,landingCopy);landing.append(landingBrand);
+    if(experience){
+      const launchGrid=element('div','vv-direction-grid');
+      for(const pair of experience.capabilities){
+        const tile=element('button','vv-direction-tile');tile.type='button';tile.disabled=module.status!=='active';
+        tile.append(element('strong','',tx(...pair)),element('span','',module.status==='active'?tx('Открыть раздел','Open section'):tx('Интерфейс подготовлен','Interface prepared')));
+        launchGrid.append(tile);
+      }
+      landing.append(launchGrid);
+    }
+    const landingFoot=element('div','vv-direction-foot');
+    landingFoot.append(element('span','vv-direction-status',module.status==='active'?tx('● ACTIVE · функции зависят от прав','● ACTIVE · permission-aware'):module.backend==='external-contract'?tx('○ EXTERNAL MODULE · подключение через API','○ EXTERNAL MODULE · API boundary'):tx('○ COMING SOON · backend не активирован','○ COMING SOON · backend not enabled')));
+    landing.append(landingFoot);dialog.append(landing);
+    dialog.append(element('p','vv-disclosure',module.status==='active'?tx('Views — активный модуль VERTEX VISION. Ниже доступны проверенные функции Views.','Views is the active VERTEX VISION module. Verified Views functions are available below.'):tx('Это стартовая страница интерфейса направления. Она кликабельна из VERTEX VISION, но рабочие операции намеренно не включены до готовности backend и прав доступа.','This is the direction interface landing page. It is reachable from VERTEX VISION, while operational actions stay disabled until backend and permissions are ready.')));
     const meta=element('dl','vv-meta');
     for(const [label,value] of [[tx('Основа','Foundation'),'VISION Core '+core.coreVersion],[tx('Общие сервисы','Shared services'),tx('Клиенты · заказы · задачи · права · аудит','Customers · orders · tasks · permissions · audit')],[tx('Серверный процесс','Backend workflow'),module.backend==='local-tested'?tx('Views → Cleaning проверен локально; не запущен в облаке','Views → Cleaning tested locally; not running in the cloud'):tx('Планируется','Planned')],[tx('Общая база','Shared database'),tx('Целевая PostgreSQL / Supabase; не подключена','Target: PostgreSQL / Supabase; not connected')]]){meta.append(element('dt','',label),element('dd','',value));}
     dialog.append(meta);
