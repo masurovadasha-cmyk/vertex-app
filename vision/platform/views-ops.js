@@ -37,6 +37,11 @@
     const join=path.includes('?')?'&':'?';
     return api(path+join+'tenant_id='+encodeURIComponent(state.session.tenantId)+'&organization_id='+encodeURIComponent(state.session.organizationId));
   }
+  async function workFeed(limit=50){
+    if(!Number.isSafeInteger(limit)||limit<1||limit>100)throw new Error('invalid_work_feed_limit');
+    return read('/api/v1/work-feed?limit='+limit);
+  }
+
   async function refresh(){
     if(!configured()){state.error=null;render();return;}
     state.loading=true;state.error=null;render();
@@ -185,5 +190,5 @@
     return true;
   }
   function status(){return {configured:configured(),tenantId:state.session?.tenantId||null,organizationId:state.session?.organizationId||null,roles:[...(state.session?.roles||[])],permissions:[...(state.session?.permissions||[])],tab:state.tab,counts:{bookings:state.data.bookings.length,units:state.data.units.length,cleaning:state.data.cleaning.length}};}
-  root.VertexVisionViews=Object.freeze({open,refresh,configure,clearSession,status});
+  root.VertexVisionViews=Object.freeze({open,refresh,workFeed,configure,clearSession,status});
 })(window);
