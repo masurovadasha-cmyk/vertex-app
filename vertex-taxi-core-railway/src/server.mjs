@@ -37,10 +37,12 @@ const migration = await fs.readFile(new URL("../migrations/001_init.sql", import
 const presentationMigration = await fs.readFile(new URL("../migrations/002_presentation.sql", import.meta.url), "utf8");
 const notificationMigration = await fs.readFile(new URL("../migrations/003_notifications_realtime.sql", import.meta.url), "utf8");
 const fencingMigration = await fs.readFile(new URL("../migrations/004_fencing.sql", import.meta.url), "utf8");
+const coreFoundationMigration = await fs.readFile(new URL("../migrations/005_core_foundation.sql", import.meta.url), "utf8");
 await db.query(migration);
 await db.query(presentationMigration);
 await db.query(notificationMigration);
 await db.query(fencingMigration);
+await db.query(coreFoundationMigration);
 
 const app = Fastify({
   logger: true,
