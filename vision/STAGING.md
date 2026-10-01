@@ -251,3 +251,15 @@ Migration `0012_unified_work_feed.sql` adds the read-only foundation behind **My
 - the public production Worker still fails closed because the cloud backend is not connected there.
 
 The migration creates `vision_approval_requests` with RLS and SELECT-only client grants. Direct browser writes remain revoked.
+
+
+## Work Actions and SLA
+
+Migration `0013_work_actions.sql` adds the command layer used by Interface System 7.
+
+- Task transitions are versioned and idempotent: assign → accept → wait/resume → submit → independent quality pass/reject.
+- Work assignment candidates come from `vision_work_assignees(tenant, organization)` and are returned only when the caller has dispatcher permission.
+- SLA in this release is deterministic: `NONE`, `ACTIVE`, or `BREACHED` from the authoritative `due_at`; there is no invented “due soon” threshold.
+- Approval decisions require `vision.approval.decide`, respect the assigned reviewer, forbid self-approval when `requested_by` is known, require Expected-Version, and write audit/outbox records.
+- Work Center refreshes the feed every 30 seconds while visible. This is polling, not a push/realtime subscription.
+- The public Cloudflare Preview still fails closed for all Work APIs because the real staging Auth/database is not connected there.
