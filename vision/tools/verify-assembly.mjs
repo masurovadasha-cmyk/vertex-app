@@ -52,10 +52,10 @@ assert.match(gradle,new RegExp("applicationId\\s+'"+assembly.runtimes.android.pa
 assert.match(gradle,new RegExp("versionName\\s+'"+assembly.runtimes.android.versionName.replaceAll('.','\\.')+"'"));
 assert.match(gradle,new RegExp('versionCode\\s+'+assembly.runtimes.android.versionCode+'\\b'));
 
-for(const asset of ['vision-core.js','vision-views.js','vision-shell.js']){
+for(const asset of ['vision-core.js','vision-views.js','vision-work-center.js','vision-shell.js']){
   assert.ok(index.includes('src="'+asset+'"'),'missing generated runtime '+asset);
 }
-for(const asset of ['vision-views.css','vision-shell.css']){
+for(const asset of ['vision-views.css','vision-work-center.css','vision-shell.css']){
   assert.ok(index.includes('href="'+asset+'"'),'missing generated stylesheet '+asset);
 }
 const requiredComponents=Object.freeze([
@@ -75,6 +75,10 @@ const requiredComponents=Object.freeze([
   'vision/database/migrations/0009_application_kernel.sql',
   'vision/database/migrations/0010_runtime_readiness.sql',
   'vision/database/migrations/0011_event_inbox.sql',
+  'vision/database/migrations/0012_unified_work_feed.sql',
+  'vision/contracts/work-feed.mjs',
+  'vision/platform/work-center.js',
+  'vision/platform/work-center.css',
   'vision/staging/auth.mjs',
   'vision/staging/provision.mjs',
   'vision/staging/cloud-e2e.mjs',
