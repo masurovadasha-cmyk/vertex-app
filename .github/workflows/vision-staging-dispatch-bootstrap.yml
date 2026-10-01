@@ -1,8 +1,9 @@
 name: VERTEX VISION Staging Dispatch Bootstrap
 
 on:
-  issue_comment:
-    types: [created]
+  workflow_run:
+    workflows: ["VERTEX VISION Integrated Assembly"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -10,7 +11,7 @@ permissions:
 
 jobs:
   dispatch:
-    if: ${{ github.actor == 'masurovadasha-cmyk' && github.event.comment.body == '/vision-staging-e2e' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_sha == '57bd9cee2d293e56313ddc0b9e0ea3a01ff0d642' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
