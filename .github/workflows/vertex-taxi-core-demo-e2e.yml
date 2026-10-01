@@ -118,8 +118,74 @@ jobs:
             );
             result.finalState=accepted.data.state;
             if(result.finalState!=='DRIVER_ASSIGNED'){
-              throw new Error('final state '+result.finalState+' != DRIVER_ASSIGNED');
+              throw new Error('assigned state '+result.finalState+' != DRIVER_ASSIGNED');
             }
+
+            const selectedDriverId=result.candidateIds[0];
+            async function command(command,actorId){
+              const response=await call(
+                'command-'+command.toLowerCase(),
+                '/demo/v1/rides/'+result.ids.rideId+'/commands',
+                {method:'POST',body:JSON.stringify({command,actorId})}
+              );
+              return response.data;
+            }
+
+            let lifecycle=await command('DRIVER_EN_ROUTE',selectedDriverId);
+            if(lifecycle.state!=='DRIVER_EN_ROUTE') throw new Error('DRIVER_EN_ROUTE failed');
+            lifecycle=await command('ARRIVED',selectedDriverId);
+            if(lifecycle.state!=='DRIVER_ARRIVED') throw new Error('ARRIVED failed');
+            lifecycle=await command('RIDER_ONBOARD','demo-client-ci');
+            if(lifecycle.state!=='RIDER_ONBOARD') throw new Error('RIDER_ONBOARD failed');
+            lifecycle=await command('START',selectedDriverId);
+            if(lifecycle.state!=='IN_PROGRESS') throw new Error('START failed');
+            lifecycle=await command('COMPLETE',selectedDriverId);
+            if(lifecycle.state!=='COMPLETED') throw new Error('COMPLETE failed');
+            result.finalState=lifecycle.state;
+
+            const payment=await call(
+              'demo-payment',
+              '/demo/v1/rides/'+result.ids.rideId+'/demo-payment',
+              {method:'POST',body:JSON.stringify({last4:'4242'})}
+            );
+            if(payment.data.status!=='PAID') throw new Error('payment not PAID');
+            result.ids.paymentId=payment.data.id;
+
+            const rating=await call(
+              'rating',
+              '/demo/v1/rides/'+result.ids.rideId+'/rating',
+              {method:'POST',body:JSON.stringify({
+                userId:'demo-client-ci',stars:5,comment:'Great ride!'
+              })}
+            );
+            if(Number(rating.data.stars)!==5) throw new Error('rating failed');
+            result.ids.ratingId=rating.data.id;
+
+            const rideAfter=await call(
+              'ride-after',
+              '/demo/v1/rides/'+result.ids.rideId
+            );
+            if(rideAfter.data.state!=='COMPLETED') throw new Error('ride-after not COMPLETED');
+
+            const history=await call(
+              'history',
+              '/demo/v1/users/demo-client-ci/rides'
+            );
+            if(!history.data.some(x=>x.id===result.ids.rideId)) throw new Error('ride absent from history');
+
+            const earnings=await call(
+              'earnings',
+              '/demo/v1/drivers/'+selectedDriverId+'/earnings'
+            );
+            if(Number(earnings.data.trips)<1) throw new Error('earnings missing completed trip');
+
+            const admin=await call('admin-summary','/demo/v1/admin/summary');
+            if(admin.data.demo!==true) throw new Error('admin summary is not demo scoped');
+
+            result.paymentStatus=payment.data.status;
+            result.ratingStars=Number(rating.data.stars);
+            result.driverTrips=Number(earnings.data.trips);
+            result.adminRideCount=Number(admin.data.rides.rides);
             result.success=true;
           }catch(error){
             result.error=String(error);
