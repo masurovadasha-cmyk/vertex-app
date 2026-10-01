@@ -157,3 +157,38 @@ test('every API response has a request ID and separate requests do not reuse it'
   const first=a.headers.get('x-request-id'),second=b.headers.get('x-request-id');
   assert.match(first||'',/^[0-9a-f-]{36}$/i);assert.match(second||'',/^[0-9a-f-]{36}$/i);assert.notEqual(first,second);
 });
+
+
+test('Unified Work Feed uses scoped RPC and returns only projected read data',async()=>{
+  const calls=[];const now='2026-10-01T01:00:00.000Z';
+  const upstream={
+    generated_at:now,
+    tasks:[{id:uid,type:'task',source:'core.task',title:'Prepare unit',status:'IN_PROGRESS',priority:'HIGH',due_at:null,assigned_to_me:true,source_id:uid,created_at:now,updated_at:now}],
+    approvals:[],attention:[],requests:[],
+    counts:{tasks:1,approvals:0,attention:0,requests:0}
+  };
+  const response=await handle(request('/api/v1/work-feed?tenant_id='+uid+'&organization_id='+org+'&limit=25'),env,async(url,options)=>{
+    calls.push({url,options});
+    if(url.endsWith('/auth/v1/user'))return Response.json({id:uid});
+    return Response.json({...upstream,private_note:'must-not-leak'});
+  });
+  // Unknown upstream fields fail closed instead of crossing the trust boundary.
+  assert.equal(response.status,503);
+  assert.equal(calls[1].url,env.SUPABASE_URL+'/rest/v1/rpc/vision_work_feed');
+  assert.deepEqual(JSON.parse(calls[1].options.body),{p_tenant:uid,p_organization:org,p_limit:25});
+
+  calls.length=0;
+  const ok=await handle(request('/api/v1/work-feed?tenant_id='+uid+'&organization_id='+org+'&limit=25'),env,async(url,options)=>{
+    calls.push({url,options});return Response.json(url.endsWith('/auth/v1/user')?{id:uid}:upstream);
+  });
+  assert.equal(ok.status,200);
+  const body=await ok.json();
+  assert.equal(body.tasks[0].assignedToMe,true);
+  assert.equal(body.tasks[0].sourceId,uid);
+  assert.equal(body.counts.tasks,1);
+  assert.equal(Object.hasOwn(body,'private_note'),false);
+
+  let invalidCalls=0;
+  const invalid=await handle(request('/api/v1/work-feed?tenant_id='+uid+'&organization_id='+org+'&limit=999'),env,async url=>{invalidCalls++;return Response.json({id:uid});});
+  assert.equal(invalid.status,400);assert.equal(invalidCalls,1);assert.equal((await invalid.json()).error,'invalid_work_feed_query');
+});
