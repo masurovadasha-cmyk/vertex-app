@@ -9,6 +9,7 @@ interface __BaseEnv_Env {
 	TAXI_INTEGRATION_PATH_PREFIX?: string;
 	TAXI_INTEGRATION_KEY_ID?: string;
 	TAXI_INTEGRATION_PRIVATE_JWK?: string;
+	TAXI_INTEGRATION_PATH_PREFIX?: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
