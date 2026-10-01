@@ -155,7 +155,7 @@ jobs:
             compatibility_flags:['nodejs_compat'],
             workers_dev:true,
             preview_urls:false,
-            assets:{directory:'candidate/vertex/dist',binding:'ASSETS',run_worker_first:['/api/*','/health','/readyz','/system-status']},
+            assets:{directory:'candidate/vertex/dist',binding:'ASSETS',run_worker_first:['/api/*','/health','/readyz','/system-status','/auth-config']},
             vars:{
               VISION_ENV:'staging',
               VISION_SOURCE_COMMIT:process.env.VISION_CANDIDATE_SHA,
