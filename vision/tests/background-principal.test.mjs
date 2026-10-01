@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const sql=fs.readFileSync(path.resolve('vision/staging/background-principal-grants.sql'),'utf8');
+const executable=sql.split('\n').filter(line=>!line.trim().startsWith('--')).join('\n');
 
 test('background staging principal is RPC-only and password-free',()=>{
   assert.match(sql,/rolname='vision_background_staging'/);
