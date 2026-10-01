@@ -3,7 +3,7 @@
   "release": "0.1-RC1",
   "platformVersion": "1.18-rc1",
   "api": "v1",
-  "databaseMigration": "0018_engineers_readiness.sql",
+  "databaseMigration": "0019_external_module_delegation.sql",
   "activeModules": [
     "views"
   ],
@@ -65,7 +65,7 @@
     "sessionPolicy": "server-authoritative-context-from-verified-jwt",
     "cloudStagingVerified": false
   },
-  "architectureVersion": "2.2",
+  "architectureVersion": "2.3",
   "technicalStage": "staging-session-activation-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
@@ -138,7 +138,8 @@
       "notification-consumer-rpc",
       "outbox-fail-rpc",
       "background-scopes-rpc",
-      "session-scopes-rpc"
+      "session-scopes-rpc",
+      "external-module-delegation-rpc"
     ],
     "serviceRoleRequired": false,
     "cloudVerified": false
@@ -284,5 +285,23 @@
     "scopeAuthority": "postgresql-rbac-and-guest-links",
     "browserPermissionClaimsTrusted": false,
     "cloudStagingVerified": false
+  },
+  "taxiIntegration": {
+    "status": "staging-gateway-implemented",
+    "sourceOfTruth": "vertex-taxi-core",
+    "visionRoutes": [
+      "/api/taxi/capabilities",
+      "/api/taxi/health",
+      "/api/taxi/rides/{ride_id}",
+      "/api/taxi/rides",
+      "/api/taxi/rides/{ride_id}/commands"
+    ],
+    "delegatedIdentity": "verified-vision-auth",
+    "serviceProof": "ecdsa-p256",
+    "sharedSecretFallback": false,
+    "sharedDatabase": false,
+    "eventInbox": "generic-vision-event-inbox",
+    "cloudStagingVerified": false,
+    "productionConnected": false
   }
 }
