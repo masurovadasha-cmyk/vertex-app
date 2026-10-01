@@ -6,7 +6,15 @@
     "browser": "external-app",
     "serverToServer": "cloudflare-service-binding-preferred",
     "publicHttpFallback": true,
-    "httpFallbackAuthentication": "p256-signed-delegation"
+    "httpFallbackAuthentication": "p256-signed-delegation",
+    "httpAdapters": {
+      "flootStaticV1": {
+        "pathPrefix": "/_api",
+        "dynamicRideRead": "/_api/integration/v1/ride?rideId={ride_id}",
+        "dynamicRideCommand": "/_api/integration/v1/commands",
+        "commandRideIdLocation": "json-body"
+      }
+    }
   },
   "authentication": {
     "type": "delegated-identity",
