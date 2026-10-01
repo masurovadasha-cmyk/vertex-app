@@ -232,3 +232,46 @@ test('Work assignee directory is scoped and allowlisted',async()=>{
   );
   assert.equal(malformed.status,503);assert.equal((await malformed.json()).error,'backend_unavailable');
 });
+
+
+test('Notification feed is organization-scoped, projected and rejects unknown upstream fields',async()=>{
+  const now='2026-10-01T02:00:00.000Z';
+  const upstream={
+    generated_at:now,
+    notifications:[{id:uid,type:'notification',kind:'task',title:'Task assigned',body:null,severity:'INFO',status:'UNREAD',event_type:'order.assigned',entity_type:'task',entity_id:org,correlation_id:uid,version:1,created_at:now,read_at:null,dismissed_at:null}],
+    escalations:[{id:org,type:'escalation',source_type:'TASK',source_id:uid,rule_code:'TASK_SLA_BREACH',title:'Prepare unit',severity:'WARNING',status:'OPEN',assigned_user_id:uid,correlation_id:org,version:1,opened_at:now,acknowledged_at:null,resolved_at:null,severity_rank:1,can_ack:true}],
+    counts:{unread:1,escalations:1}
+  };
+  const calls=[];
+  const ok=await handle(request('/api/v1/notifications?tenant_id='+uid+'&organization_id='+org+'&limit=25'),env,async(url,options)=>{
+    calls.push({url,options});return Response.json(url.endsWith('/auth/v1/user')?{id:uid}:upstream);
+  });
+  assert.equal(ok.status,200);assert.equal(calls[1].url,env.SUPABASE_URL+'/rest/v1/rpc/vision_notification_feed');
+  assert.deepEqual(JSON.parse(calls[1].options.body),{p_tenant:uid,p_organization:org,p_limit:25});
+  const body=await ok.json();assert.equal(body.notifications[0].eventType,'order.assigned');assert.equal(body.escalations[0].canAck,true);assert.equal(body.counts.unread,1);
+
+  const malformed=await handle(request('/api/v1/notifications?tenant_id='+uid+'&organization_id='+org),env,async url=>
+    url.endsWith('/auth/v1/user')?Response.json({id:uid}):Response.json({...upstream,private_note:'leak'})
+  );
+  assert.equal(malformed.status,503);assert.equal((await malformed.json()).error,'backend_unavailable');
+});
+
+test('Notification commands are typed, versioned and projected',async()=>{
+  const command={type:'notification_read',tenant_id:uid,idempotency_key:'notif-1',notification_id:org,expected_version:1};
+  const calls=[];
+  const response=await handle(request('/api/v1/notifications/commands',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(command)}),env,async(url,options)=>{
+    calls.push({url,options});
+    if(url.endsWith('/auth/v1/user'))return Response.json({id:uid});
+    return Response.json({entity_type:'notification',notification_id:org,status:'READ',version:2,correlation_id:uid});
+  });
+  assert.equal(response.status,200);assert.equal(calls[1].url,env.SUPABASE_URL+'/rest/v1/rpc/vision_notification_command');
+  assert.deepEqual(JSON.parse(calls[1].options.body),{command});
+  assert.deepEqual(await response.json(),{entityType:'notification',notificationId:org,status:'READ',version:2,correlationId:uid});
+  assert.equal(response.headers.get('x-correlation-id'),uid);
+
+  let invalidCalls=0;
+  const invalid=await handle(request('/api/v1/notifications/commands',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...command,admin:true})}),env,async url=>{
+    invalidCalls++;assert.ok(url.endsWith('/auth/v1/user'));return Response.json({id:uid});
+  });
+  assert.equal(invalid.status,400);assert.equal(invalidCalls,1);assert.equal((await invalid.json()).error,'invalid_command');
+});
