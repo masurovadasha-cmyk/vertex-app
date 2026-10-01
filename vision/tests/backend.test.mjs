@@ -192,3 +192,43 @@ test('Unified Work Feed uses scoped RPC and returns only projected read data',as
   const invalid=await handle(request('/api/v1/work-feed?tenant_id='+uid+'&organization_id='+org+'&limit=999'),env,async url=>{invalidCalls++;return Response.json({id:uid});});
   assert.equal(invalid.status,400);assert.equal(invalidCalls,1);assert.equal((await invalid.json()).error,'invalid_work_feed_query');
 });
+
+
+test('Work action commands are typed, versioned and projected before reaching the browser',async()=>{
+  const calls=[];
+  const command={type:'task_accept',tenant_id:uid,idempotency_key:'work-1',task_id:org,expected_version:1,expected_order_version:1};
+  const response=await handle(request('/api/v1/work/commands',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(command)}),env,async(url,options)=>{
+    calls.push({url,options});
+    if(url.endsWith('/auth/v1/user'))return Response.json({id:uid});
+    return Response.json({entity_type:'task',task_id:org,task_status:'IN_PROGRESS',task_version:2,order_id:uid,order_status:'IN_PROGRESS',order_version:2,correlation_id:uid});
+  });
+  assert.equal(response.status,200);assert.equal(calls.length,2);
+  assert.equal(calls[1].url,env.SUPABASE_URL+'/rest/v1/rpc/vision_work_command');
+  assert.deepEqual(JSON.parse(calls[1].options.body),{command});
+  const body=await response.json();
+  assert.equal(body.taskStatus,'IN_PROGRESS');assert.equal(body.taskVersion,2);assert.equal(body.correlationId,uid);
+  assert.equal(response.headers.get('x-correlation-id'),uid);
+
+  let invalidCalls=0;
+  const invalid=await handle(request('/api/v1/work/commands',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...command,admin:true})}),env,async url=>{
+    invalidCalls++;assert.ok(url.endsWith('/auth/v1/user'));return Response.json({id:uid});
+  });
+  assert.equal(invalid.status,400);assert.equal(invalidCalls,1);assert.equal((await invalid.json()).error,'invalid_command');
+});
+
+test('Work assignee directory is scoped and allowlisted',async()=>{
+  const calls=[];
+  const response=await handle(request('/api/v1/work-assignees?tenant_id='+uid+'&organization_id='+org),env,async(url,options)=>{
+    calls.push({url,options});
+    if(url.endsWith('/auth/v1/user'))return Response.json({id:uid});
+    return Response.json([{id:uid,display_name:'Cleaner'}]);
+  });
+  assert.equal(response.status,200);assert.equal(calls[1].url,env.SUPABASE_URL+'/rest/v1/rpc/vision_work_assignees');
+  assert.deepEqual(JSON.parse(calls[1].options.body),{p_tenant:uid,p_organization:org});
+  assert.deepEqual(await response.json(),[{id:uid,displayName:'Cleaner'}]);
+
+  const malformed=await handle(request('/api/v1/work-assignees?tenant_id='+uid+'&organization_id='+org),env,async url=>
+    url.endsWith('/auth/v1/user')?Response.json({id:uid}):Response.json([{id:uid,display_name:'Cleaner',email:'private@example.invalid'}])
+  );
+  assert.equal(malformed.status,503);assert.equal((await malformed.json()).error,'backend_unavailable');
+});
