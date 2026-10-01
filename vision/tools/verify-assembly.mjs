@@ -41,6 +41,7 @@ assert.equal(prod.name,assembly.runtimes.productionWorker.name);
 assert.notEqual(staging.name,prod.name);
 assert.equal(staging.vars?.VISION_ENV,'staging');
 assert.ok(staging.assets?.run_worker_first?.includes('/readyz'));
+assert.ok(staging.assets?.run_worker_first?.includes('/system-status'));
 assert.ok(prod.assets?.run_worker_first?.includes('/readyz'));
 assert.equal(assembly.runtimes.productionWorker.approved,false);
 assert.equal(release.productionApproved,false);
@@ -52,10 +53,10 @@ assert.match(gradle,new RegExp("applicationId\\s+'"+assembly.runtimes.android.pa
 assert.match(gradle,new RegExp("versionName\\s+'"+assembly.runtimes.android.versionName.replaceAll('.','\\.')+"'"));
 assert.match(gradle,new RegExp('versionCode\\s+'+assembly.runtimes.android.versionCode+'\\b'));
 
-for(const asset of ['vision-core.js','vision-views.js','vision-work-center.js','vision-notifications.js','vision-shell.js']){
+for(const asset of ['vision-core.js','vision-views.js','vision-work-center.js','vision-notifications.js','vision-shell.js','vision-system-status.js']){
   assert.ok(index.includes('src="'+asset+'"'),'missing generated runtime '+asset);
 }
-for(const asset of ['vision-views.css','vision-work-center.css','vision-notifications.css','vision-shell.css']){
+for(const asset of ['vision-views.css','vision-work-center.css','vision-notifications.css','vision-shell.css','vision-system-status.css']){
   assert.ok(index.includes('href="'+asset+'"'),'missing generated stylesheet '+asset);
 }
 const requiredComponents=Object.freeze([
@@ -67,6 +68,7 @@ const requiredComponents=Object.freeze([
   'vision/backend/worker.mjs',
   'vision/backend/kernel.mjs',
   'vision/backend/readiness.mjs',
+  'vision/backend/system-status.mjs',
   'vision/modules/views/command-contract.mjs',
   'vision/modules/views/response-contract.mjs',
   'vision/modules/views/manifest.json',
@@ -87,6 +89,8 @@ const requiredComponents=Object.freeze([
   'vision/platform/work-center.css',
   'vision/platform/notifications-center.js',
   'vision/platform/notifications-center.css',
+  'vision/platform/system-status-center.js',
+  'vision/platform/system-status-center.css',
   'vision/staging/auth.mjs',
   'vision/staging/provision.mjs',
   'vision/staging/cloud-e2e.mjs',
@@ -142,6 +146,11 @@ assert.equal(release.realStagingE2E.cloudVerified,false);
 assert.equal(release.realStagingE2E.genuineSupabaseAuthRequired,true);
 assert.equal(release.realStagingE2E.directRLSVerification,true);
 assert.equal(assembly.readiness.endpoint,'/readyz');
+assert.equal(assembly.kernel.systemStatusEndpoint,'/system-status');
+assert.equal(release.systemStatus.endpoint,'/system-status');
+assert.equal(release.systemStatus.fabricatedFallback,false);
+assert.equal(assembly.designSystem.systemStatus.enabled,true);
+assert.equal(assembly.designSystem.systemStatus.secretsExposed,false);
 assert.equal(assembly.readiness.serviceRoleRequired,false);
 assert.equal(release.runtimeReadiness.rpc,'public.vision_runtime_readiness()');
 assert.equal(release.trustedReleaseControl.status,'implemented-requires-protected-master-controller');
