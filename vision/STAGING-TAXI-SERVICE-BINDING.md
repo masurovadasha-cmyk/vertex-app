@@ -30,7 +30,8 @@ Deploy VISION with `vision/wrangler.jsonc`, then configure:
 - `TAXI_INTEGRATION_URL` as a non-secret staging variable containing only the HTTPS origin (no path, query, credentials or fragment);
 - `TAXI_INTEGRATION_PATH_PREFIX` as `/_api` when the external Taxi runtime is Floot; omit it for a native `/integration/v1` runtime;
 - `TAXI_INTEGRATION_KEY_ID` as a non-secret key identifier;
-- `TAXI_INTEGRATION_PRIVATE_JWK` as a Worker secret.
+- `TAXI_INTEGRATION_PRIVATE_JWK` as a Worker secret;
+- `TAXI_INTEGRATION_PATH_PREFIX=/_api` when the temporary Taxi Core is hosted on Floot.
 
 **Same Cloudflare account**
 
@@ -61,3 +62,17 @@ Floot exposes server endpoints under `/_api` and does not support dynamic backen
 - `POST /integration/v1/rides/{ride_id}/commands` → `POST /_api/integration/v1/commands` with `rideId` added to the signed JSON body
 
 The P-256 signature always covers the actual outbound Floot path/query and adapted body. Browser/client-facing VISION routes do not change.
+
+
+## Floot staging adapter
+
+Current standalone Taxi Core staging is hosted at `https://vertex-taxi-core-staging.floot.app`.
+Floot backend routes are static, so VISION adapts transport paths without changing the public VISION API:
+
+- `/integration/v1/capabilities` → `/_api/integration/v1/capabilities`
+- `/integration/v1/health` → `/_api/integration/v1/health`
+- `/integration/v1/rides` → `/_api/integration/v1/rides`
+- `/integration/v1/rides/{ride_id}` → `/_api/integration/v1/ride?rideId={ride_id}`
+- `/integration/v1/rides/{ride_id}/commands` → `/_api/integration/v1/commands`, with `rideId` added to the JSON body.
+
+The ECDSA P-256 signature is calculated over the actual adapted HTTP path/query and adapted JSON body. This keeps Taxi Core verification exact while preserving the stable VISION-facing contract.
