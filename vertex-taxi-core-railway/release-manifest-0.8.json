@@ -1,0 +1,43 @@
+{
+  "product": "Vertex Taxi",
+  "releaseTrack": "staging-rc",
+  "targetRelease": "0.8-rc",
+  "core": {
+    "branch": "vertex-taxi-core-railway-staging",
+    "runtime": "Railway",
+    "database": "PostgreSQL 17",
+    "ephemeral": "Redis/Valkey",
+    "geo": "H3 v4"
+  },
+  "android": {
+    "branch": "vertex-taxi-apk-preview",
+    "currentVerified": "0.7-rc",
+    "package": "com.vertex.taxi.preview",
+    "targetSdk": 35,
+    "persistentSigningRequiredForProduction": true
+  },
+  "migrations": [
+    "001_init.sql",
+    "002_presentation.sql",
+    "003_notifications_realtime.sql",
+    "004_fencing.sql"
+  ],
+  "requiredGates": [
+    "Vertex Taxi Core Demo E2E",
+    "Vertex Taxi Reliability Gate",
+    "Vertex Taxi Presentation Smoke",
+    "Vertex Taxi Migration Preflight",
+    "Vertex Taxi Backup Restore Drill",
+    "Vertex Taxi Failure Injection",
+    "Vertex Taxi Cloudflare Edge CI",
+    "Android APK build/signature/manifest"
+  ],
+  "externalCredentialGates": [
+    "persistent Android release keystore",
+    "Google OAuth client configuration",
+    "Firebase/FCM project credentials",
+    "Cloudflare deployment credentials"
+  ],
+  "productionMasterModified": false,
+  "visionCoupling": "API/events only"
+}
