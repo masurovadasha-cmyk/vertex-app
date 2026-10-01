@@ -74,8 +74,8 @@ jobs:
                   applicationId = "com.vertex.taxi.preview"
                   minSdk = 26
                   targetSdk = 35
-                  versionCode = 4
-                  versionName = "0.4-preview"
+                  versionCode = 5
+                  versionName = "0.5-rc"
               }
 
               buildTypes {
@@ -83,6 +83,10 @@ jobs:
                       isMinifyEnabled = false
                   }
               }
+          }
+
+          dependencies {
+              implementation("com.squareup.okhttp3:okhttp:4.12.0")
           }
           EOF
 
@@ -154,6 +158,7 @@ jobs:
               <uses-permission android:name="android.permission.INTERNET"/>
               <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
               <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+              <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
               <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
@@ -220,6 +225,7 @@ jobs:
               private static final String APP_HOST = "vertex-taxi-core-api-production.up.railway.app";
               private static final String APP_SCHEME = "com.vertex.taxi.preview";
               private WebView webView;
+              private RideRealtimeClient realtimeClient;
               private Dialog oauthDialog;
 
               @Override
@@ -230,6 +236,7 @@ jobs:
                   getWindow().setNavigationBarColor(Color.rgb(7, 16, 24));
                   webView = new WebView(this);
                   configure(webView, false);
+                  realtimeClient = new RideRealtimeClient(webView);
                   setContentView(webView);
                   if (savedInstanceState == null) webView.loadUrl(HOME);
                   else webView.restoreState(savedInstanceState);
@@ -288,6 +295,16 @@ jobs:
                   }
               }
 
+              @JavascriptInterface
+              public void connectRideRealtime(String rideId) {
+                  runOnUiThread(() -> realtimeClient.connect(rideId));
+              }
+
+              @JavascriptInterface
+              public void disconnectRideRealtime() {
+                  runOnUiThread(() -> realtimeClient.disconnect());
+              }
+
               private void openExternal(Uri uri) {
                   startActivity(new Intent(Intent.ACTION_VIEW, uri));
               }
@@ -313,6 +330,7 @@ jobs:
               private void configure(WebView view, boolean popup) {
                   WebSettings settings = view.getSettings();
                   settings.setJavaScriptEnabled(true);
+                  view.addJavascriptInterface(this, "VertexNative");
                   settings.setDomStorageEnabled(true);
                   settings.setDatabaseEnabled(true);
                   settings.setGeolocationEnabled(true);
@@ -414,6 +432,104 @@ jobs:
                   } else {
                       super.onBackPressed();
                   }
+              }
+          }
+          EOF
+
+          cat > .taxi-apk/app/src/main/java/com/vertex/taxi/preview/RideRealtimeClient.java <<'EOF'
+          package com.vertex.taxi.preview;
+
+          import android.os.Handler;
+          import android.os.Looper;
+          import android.webkit.WebView;
+          import org.json.JSONObject;
+          import java.util.concurrent.TimeUnit;
+          import okhttp3.OkHttpClient;
+          import okhttp3.Request;
+          import okhttp3.Response;
+          import okhttp3.WebSocket;
+          import okhttp3.WebSocketListener;
+
+          public final class RideRealtimeClient {
+              private static final String WS_BASE = "wss://vertex-taxi-core-api-production.up.railway.app/v1/realtime/rides/";
+              private final OkHttpClient client = new OkHttpClient.Builder()
+                  .pingInterval(20, TimeUnit.SECONDS)
+                  .connectTimeout(8, TimeUnit.SECONDS)
+                  .readTimeout(0, TimeUnit.MILLISECONDS)
+                  .build();
+              private final Handler handler = new Handler(Looper.getMainLooper());
+              private final WebView webView;
+              private WebSocket socket;
+              private String rideId;
+              private long generation = 0;
+              private int reconnectAttempt = 0;
+              private String lastFingerprint = "";
+
+              public RideRealtimeClient(WebView webView) {
+                  this.webView = webView;
+              }
+
+              public synchronized void connect(String nextRideId) {
+                  if (nextRideId == null || nextRideId.isBlank()) return;
+                  if (nextRideId.equals(rideId) && socket != null) return;
+                  disconnect();
+                  rideId = nextRideId;
+                  long current = ++generation;
+                  Request request = new Request.Builder().url(WS_BASE + nextRideId).build();
+                  socket = client.newWebSocket(request, new WebSocketListener() {
+                      @Override public void onOpen(WebSocket ws, Response response) {
+                          reconnectAttempt = 0;
+                          postStatus("connected");
+                      }
+                      @Override public void onMessage(WebSocket ws, String text) {
+                          if (current != generation) return;
+                          String fingerprint = Integer.toHexString(text.hashCode());
+                          if (fingerprint.equals(lastFingerprint)) return;
+                          lastFingerprint = fingerprint;
+                          handler.post(() -> webView.evaluateJavascript(
+                              "window.dispatchEvent(new CustomEvent('vertex:realtime',{detail:" +
+                              JSONObject.quote(text) + "}));", null));
+                      }
+                      @Override public void onFailure(WebSocket ws, Throwable t, Response response) {
+                          if (current != generation) return;
+                          postStatus("disconnected");
+                          scheduleReconnect(current);
+                      }
+                      @Override public void onClosed(WebSocket ws, int code, String reason) {
+                          if (current != generation) return;
+                          postStatus("closed");
+                          scheduleReconnect(current);
+                      }
+                  });
+              }
+
+              private void scheduleReconnect(long current) {
+                  if (rideId == null || current != generation) return;
+                  long delay = Math.min(30_000L, 1000L << Math.min(reconnectAttempt++, 5));
+                  handler.postDelayed(() -> {
+                      synchronized (RideRealtimeClient.this) {
+                          if (rideId == null || current != generation) return;
+                          String target = rideId;
+                          socket = null;
+                          rideId = null;
+                          connect(target);
+                      }
+                  }, delay);
+              }
+
+              private void postStatus(String status) {
+                  handler.post(() -> webView.evaluateJavascript(
+                      "window.dispatchEvent(new CustomEvent('vertex:realtime-status',{detail:" +
+                      JSONObject.quote(status) + "}));", null));
+              }
+
+              public synchronized void disconnect() {
+                  generation++;
+                  if (socket != null) socket.close(1000, "screen changed");
+                  socket = null;
+                  rideId = null;
+                  reconnectAttempt = 0;
+                  lastFingerprint = "";
               }
           }
           EOF
@@ -717,6 +833,26 @@ jobs:
               }
           }
           EOF
+
+      - name: Prepare persistent signing
+        env:
+          KEYSTORE_B64: ${{ secrets.VERTEX_TAXI_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.VERTEX_TAXI_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.VERTEX_TAXI_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.VERTEX_TAXI_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > .taxi-apk/vertex-taxi.keystore
+            cat >> .taxi-apk/gradle.properties <<EOF
+          VERTEX_KEYSTORE_FILE=vertex-taxi.keystore
+          VERTEX_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD
+          VERTEX_KEY_ALIAS=$KEY_ALIAS
+          VERTEX_KEY_PASSWORD=$KEY_PASSWORD
+          EOF
+            echo "Persistent Vertex signing material prepared."
+          else
+            echo "No persistent signing secret configured; preview debug signing will be used."
+          fi
 
       - name: Build preview APK
         working-directory: .taxi-apk
