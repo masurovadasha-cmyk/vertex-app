@@ -1,5 +1,5 @@
 {
-  "stage": "rc2-trusted-release-control-0.3",
+  "stage": "rc2-trusted-release-control-0.4",
   "productionApproved": false,
   "productionDeployAllowed": false,
   "databasePolicy": {
@@ -33,6 +33,7 @@
     "restored-readiness",
     "rollback-compatibility",
     "real-staging-auth-e2e",
+    "background-staging-smoke",
     "explicit-owner-approval",
     "effective-read-only-backup-principal",
     "trusted-release-controller"
