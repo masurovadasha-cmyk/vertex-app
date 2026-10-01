@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "namespace": "engineers",
+  "shared_required": [
+    "event_id",
+    "tenant_id",
+    "organization_id",
+    "correlation_id",
+    "occurred_at"
+  ],
+  "delivery": "at-least-once",
+  "consumer_rule": "deduplicate_by_event_id",
+  "events": {
+    "engineers.project.created": {
+      "required": [
+        "project_id",
+        "client_id",
+        "project_type"
+      ]
+    },
+    "engineers.project.stage_changed": {
+      "required": [
+        "project_id",
+        "from_stage",
+        "to_stage"
+      ]
+    },
+    "engineers.asset.commissioned": {
+      "required": [
+        "project_id",
+        "asset_id",
+        "asset_type",
+        "commissioned_at"
+      ]
+    },
+    "engineers.maintenance.requested": {
+      "required": [
+        "asset_id",
+        "work_order_id",
+        "priority"
+      ]
+    },
+    "engineers.maintenance.completed": {
+      "required": [
+        "asset_id",
+        "work_order_id",
+        "technician_ids",
+        "completed_at"
+      ]
+    },
+    "engineers.compliance.expiring": {
+      "required": [
+        "subject_type",
+        "subject_id",
+        "document_type",
+        "expires_at"
+      ]
+    },
+    "engineers.incident.opened": {
+      "required": [
+        "asset_id",
+        "incident_id",
+        "severity"
+      ]
+    },
+    "engineers.incident.closed": {
+      "required": [
+        "asset_id",
+        "incident_id",
+        "resolution_code",
+        "closed_at"
+      ]
+    }
+  }
+}
