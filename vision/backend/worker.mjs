@@ -11,10 +11,102 @@ import {validateWorkCommand,projectWorkCommandResponse} from '../contracts/work-
 import {projectWorkAssignees} from '../contracts/work-assignees.mjs';
 import {projectNotificationFeed} from '../contracts/notification-feed.mjs';
 import {validateNotificationCommand,projectNotificationCommandResponse} from '../contracts/notification-command.mjs';
-import {taxiRoute,taxiContext,taxiScopeAllowed,taxiForward} from './taxi-gateway.mjs';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const json=(body,status=200,extra={})=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...extra}});
+
+
+function taxiIntegrationHeaders(request,correlationId,userId){
+  const headers=new Headers({
+    'x-vertex-correlation-id':correlationId,
+    'x-vertex-caller':'vertex-vision',
+    'x-vertex-integration-version':'1',
+    'x-vertex-user-id':userId,
+    'cache-control':'no-store'
+  });
+  for(const name of ['authorization','x-vertex-tenant-id','x-vertex-organization-id','idempotency-key']){
+    const value=request.headers.get(name);if(value)headers.set(name,value);
+  }
+  return headers;
+}
+function b64url(bytes){let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);return btoa(binary).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');}
+function exactBuffer(bytes){const copy=new Uint8Array(bytes.byteLength);copy.set(bytes);return copy.buffer;}
+async function taxiDigest(value){
+  const bytes=typeof value==='string'?new TextEncoder().encode(value):value;
+  return b64url(new Uint8Array(await crypto.subtle.digest('SHA-256',exactBuffer(bytes))));
+}
+async function signTaxiHeaders(env,path,method,headers,body){
+  if(!env.TAXI_INTEGRATION_PRIVATE_JWK||!env.TAXI_INTEGRATION_KEY_ID)return null;
+  let jwk;try{jwk=JSON.parse(env.TAXI_INTEGRATION_PRIVATE_JWK);}catch{return null;}
+  if(jwk?.kty!=='EC'||jwk?.crv!=='P-256'||!jwk?.d||!jwk?.x||!jwk?.y)return null;
+  const key=await crypto.subtle.importKey('jwk',jwk,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
+  const timestamp=String(Math.floor(Date.now()/1000));
+  const canonical=[
+    method.toUpperCase(),path,timestamp,
+    headers.get('x-vertex-tenant-id')||'',headers.get('x-vertex-organization-id')||'',
+    headers.get('x-vertex-user-id')||'',headers.get('x-vertex-correlation-id')||'',
+    headers.get('x-vertex-caller')||'',await taxiDigest(headers.get('authorization')||''),
+    await taxiDigest(new TextEncoder().encode(body??''))
+  ].join('\n');
+  const signature=new Uint8Array(await crypto.subtle.sign({name:'ECDSA',hash:'SHA-256'},key,new TextEncoder().encode(canonical)));
+  headers.set('x-vertex-key-id',env.TAXI_INTEGRATION_KEY_ID);
+  headers.set('x-vertex-timestamp',timestamp);
+  headers.set('x-vertex-signature',b64url(signature));
+  return headers;
+}
+function taxiHttpOrigin(value){
+  if(!value)return null;
+  try{const url=new URL(value);if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash)return null;if(url.pathname!=='/'&&url.pathname!=='')return null;return url.origin;}catch{return null;}
+}
+function taxiHttpAdapter(prefix,path,body){
+  if(prefix===undefined||prefix===null||prefix==='')return {path,body};
+  if(prefix!=='/_api')return null;
+  if(path==='/integration/v1/capabilities')return {path:'/_api/integration/v1/capabilities',body};
+  if(path==='/integration/v1/health')return {path:'/_api/integration/v1/health',body};
+  if(path==='/integration/v1/rides')return {path:'/_api/integration/v1/rides',body};
+  const ride=path.match(/^\/integration\/v1\/rides\/([^/]+)$/);
+  if(ride)return {path:'/_api/integration/v1/ride?rideId='+encodeURIComponent(decodeURIComponent(ride[1])),body};
+  const command=path.match(/^\/integration\/v1\/rides\/([^/]+)\/commands$/);
+  if(command){
+    let payload;try{payload=body===undefined?{}:JSON.parse(body);}catch{return null;}
+    return {path:'/_api/integration/v1/commands',body:JSON.stringify({...payload,rideId:decodeURIComponent(command[1])})};
+  }
+  return null;
+}
+async function taxiFetch(env,path,request,body,userId){
+  const correlationId=request.headers.get('x-vertex-correlation-id')||crypto.randomUUID();
+  const baseHeaders=taxiIntegrationHeaders(request,correlationId,userId);
+  if(body!==undefined)baseHeaders.set('content-type','application/json');
+  let mode,targetPath=path,origin=null;
+  if(env.VERTEX_TAXI_CORE&&typeof env.VERTEX_TAXI_CORE.fetch==='function')mode='binding';
+  else if(env.TAXI_INTEGRATION_URL){
+    origin=taxiHttpOrigin(env.TAXI_INTEGRATION_URL);
+    const adapted=taxiHttpAdapter(env.TAXI_INTEGRATION_PATH_PREFIX,path,body);
+    if(!origin||!adapted)return null;targetPath=adapted.path;body=adapted.body;mode='http';
+  }else return null;
+  const headers=new Headers(baseHeaders);
+  if(!(await signTaxiHeaders(env,targetPath,request.method,headers,body)))return null;
+  const retryable=request.method==='GET'||Boolean(request.headers.get('idempotency-key'));
+  const maxAttempts=retryable?3:1;let lastError;
+  for(let attempt=0;attempt<maxAttempts;attempt+=1){
+    try{
+      const response=mode==='binding'
+        ?await env.VERTEX_TAXI_CORE.fetch(new Request('https://vertex-taxi-core.internal'+targetPath,{method:request.method,headers,body:body===undefined?undefined:body}))
+        :await fetch(origin+targetPath,{method:request.method,headers,body:body===undefined?undefined:body,redirect:'error',signal:AbortSignal.timeout(2500)});
+      if(!retryable||![502,503,504].includes(response.status)||attempt===maxAttempts-1)return response;
+    }catch(error){lastError=error;if(!retryable||attempt===maxAttempts-1)throw error;}
+    await new Promise(resolve=>setTimeout(resolve,75*(attempt+1)));
+  }
+  throw lastError??new Error('taxi_integration_unavailable');
+}
+function taxiPath(pathname){
+  if(pathname==='/api/taxi/capabilities')return '/integration/v1/capabilities';
+  if(pathname==='/api/taxi/health')return '/integration/v1/health';
+  const ride=pathname.match(/^\/api\/taxi\/rides\/([^/]+)$/);if(ride)return '/integration/v1/rides/'+encodeURIComponent(ride[1]);
+  if(pathname==='/api/taxi/rides')return '/integration/v1/rides';
+  const command=pathname.match(/^\/api\/taxi\/rides\/([^/]+)\/commands$/);if(command)return '/integration/v1/rides/'+encodeURIComponent(command[1])+'/commands';
+  return null;
+}
 
 async function boundedJSON(source,limit){
   if(Number(source.headers.get('content-length'))>limit)throw new Error('body_too_large');
@@ -43,7 +135,7 @@ export async function handle(request,env,fetcher=fetch){
   if(env.VISION_ENV!=='staging')return reply({error:'staging_only'},503);
   if(url.pathname==='/health')return reply({
     service:'VERTEX VISION',environment:'staging',configured:configured(env),probe:'liveness-config-only',
-    architectureVersion:'2.2',requiredMigration:'0018_engineers_readiness.sql',
+    architectureVersion:'2.3',requiredMigration:'0019_external_module_delegation.sql',
     sourceCommit:/^[a-f0-9]{40}$/.test(env.VISION_SOURCE_COMMIT||'')?env.VISION_SOURCE_COMMIT:null
   });
   if(url.pathname==='/auth-config'){
@@ -117,22 +209,16 @@ export async function handle(request,env,fetcher=fetch){
     const user=await upstreamJSON(identity,65536);
     if(!uuid.test(user.id||''))return reply({error:'unauthorized'},401);
 
-    const taxiTarget=taxiRoute(url.pathname,request.method);
+    const taxiTarget=taxiPath(url.pathname);
     if(taxiTarget){
-      let context;
-      try{context=taxiContext(request);}catch(error){
-        if(error.message==='tenant_context_required')return reply({error:'tenant_context_required'},400);
-        if(error.message==='invalid_correlation_id')return reply({error:'invalid_correlation_id'},400);
-        throw error;
-      }
-      const scopesResponse=await upstream('/rest/v1/rpc/vision_session_scopes',{method:'POST',body:'{}'});
-      const scopesBody=await upstreamJSON(scopesResponse,65536);
-      if(!scopesResponse.ok){
-        const mapped=mapUpstreamError(scopesBody,scopesResponse.status);
-        return reply({error:mapped.error},mapped.status);
-      }
-      const scopes=projectSessionScopes(scopesBody);
-      if(!taxiScopeAllowed(scopes,context))return reply({error:'forbidden'},403);
+      const tenantId=request.headers.get('x-vertex-tenant-id')||'';
+      const organizationId=request.headers.get('x-vertex-organization-id')||'';
+      const correlation=request.headers.get('x-vertex-correlation-id')||'';
+      if(!uuid.test(tenantId)||!uuid.test(organizationId))return reply({error:'tenant_context_required'},400);
+      if(correlation.length>128)return reply({error:'correlation_id_too_long'},400);
+      const delegation=await upstream('/rest/v1/rpc/vision_external_module_context_allowed',{method:'POST',body:JSON.stringify({t:tenantId,org:organizationId,module_id:'taxi'})});
+      if(!delegation.ok)return reply({error:'backend_unavailable'},503);
+      if((await upstreamJSON(delegation,65536))!==true)return reply({error:'forbidden'},403);
       const mutation=request.method==='POST';
       if(mutation&&!request.headers.get('idempotency-key'))return reply({error:'idempotency_required'},400);
       let body;
@@ -141,15 +227,10 @@ export async function handle(request,env,fetcher=fetch){
         if(mediaType!=='application/json')return reply({error:'json_required'},415);
         body=JSON.stringify(await boundedJSON(request,8192));
       }
-      const taxiResponse=await taxiForward(env,taxiTarget,request,body,user.id,context,fetcher);
+      const taxiResponse=await taxiFetch(env,taxiTarget,request,body,user.id);
       if(!taxiResponse)return reply({error:'taxi_integration_not_configured'},503);
       const taxiBody=await upstreamJSON(taxiResponse,1048576);
-      if(!taxiResponse.ok){
-        const status=[400,401,403,404,409].includes(taxiResponse.status)?taxiResponse.status:503;
-        const error=status===403?'forbidden':status===404?'not_found':status===409?'conflict':status===400?'invalid_command':'taxi_unavailable';
-        return reply({error},status,{'x-correlation-id':context.correlation});
-      }
-      return reply(taxiBody,taxiResponse.status,{'x-correlation-id':context.correlation});
+      return reply(taxiBody,taxiResponse.status,{'x-correlation-id':correlation||requestId});
     }
 
     const plan=routePlan(url,request.method);
