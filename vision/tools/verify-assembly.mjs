@@ -85,6 +85,8 @@ const requiredComponents=Object.freeze([
   'vision/database/migrations/0014_notifications_escalations.sql',
   'vision/database/migrations/0015_background_runtime.sql',
   'vision/database/migrations/0016_staging_session_activation.sql',
+  'vision/database/migrations/0017_engineers_module_v0_2.sql',
+  'vision/database/migrations/0018_engineers_readiness.sql',
   'vision/contracts/work-feed.mjs',
   'vision/contracts/work-command.mjs',
   'vision/contracts/work-assignees.mjs',
