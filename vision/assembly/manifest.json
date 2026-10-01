@@ -184,7 +184,7 @@
     "activeRuntimeModule": "views",
     "inactiveModules": "coming-soon",
     "integratedAt": "2026-10-01",
-    "experienceIteration": "4.0",
+    "experienceIteration": "5.0",
     "experienceStyle": "Dark Premium Tech Sand",
     "visualReference": "VERTEX VISION dark control-center boards",
     "runtimeEnhancements": [
@@ -195,7 +195,10 @@
       "dark-views-operations",
       "command-palette",
       "favorites",
-      "recent-modules"
+      "recent-modules",
+      "my-day-work-center",
+      "role-aware-quick-actions",
+      "honest-work-feed-states"
     ],
     "navigationIntelligence": {
       "commandPalette": true,
@@ -207,6 +210,21 @@
       "localRecents": true,
       "sensitiveDataStored": false,
       "backendWorkFeedConnected": false
+    },
+    "workCenter": {
+      "enabled": true,
+      "tabs": [
+        "today",
+        "tasks",
+        "approvals",
+        "requests",
+        "operations"
+      ],
+      "workFeedConnected": false,
+      "approvalFeedConnected": false,
+      "requestFeedConnected": false,
+      "viewsReadSource": "VertexVisionViews.status()",
+      "fabricatedMetrics": false
     }
   }
 }
