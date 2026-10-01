@@ -1,0 +1,138 @@
+name: Vertex Taxi Core Demo E2E
+
+on:
+  push:
+    branches: [vertex-taxi-core-railway-staging]
+    paths:
+      - 'vertex-taxi-core-railway/**'
+      - '.github/workflows/vertex-taxi-core-demo-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  demo-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Wait for Railway demo gateway
+        run: |
+          node <<'NODE'
+          const url='https://vertex-taxi-core-api-production.up.railway.app/demo/health';
+          for(let i=0;i<30;i++){
+            try{
+              const r=await fetch(url);
+              if(r.ok){ console.log('demo health',r.status); process.exit(0); }
+              console.log('waiting',r.status);
+            }catch(e){ console.log('waiting',e.message); }
+            await new Promise(r=>setTimeout(r,5000));
+          }
+          process.exit(1);
+          NODE
+
+      - name: Run Golden E2E
+        run: |
+          node <<'NODE'
+          import fs from 'node:fs';
+
+          const base='https://vertex-taxi-core-api-production.up.railway.app';
+          const result={steps:[],ids:{},candidateIds:[],finalState:null,success:false};
+
+          async function call(name,path,options={}){
+            const started=Date.now();
+            const res=await fetch(base+path,{
+              ...options,
+              headers:{'content-type':'application/json',...(options.headers||{})}
+            });
+            const text=await res.text();
+            let body;
+            try{body=JSON.parse(text)}catch{body=text}
+            result.steps.push({name,path,status:res.status,durationMs:Date.now()-started});
+            if(!res.ok) throw new Error(name+' failed '+res.status+' '+text.slice(0,500));
+            return body;
+          }
+
+          try{
+            await call('health','/demo/health');
+
+            const q=await call('quote','/demo/v1/quotes',{
+              method:'POST',
+              body:JSON.stringify({
+                userId:'demo-client-ci',
+                pickup:{lat:41.3111,lng:69.2797,label:'NRG U-Tower'},
+                destination:{lat:41.2995,lng:69.2401,label:'Tashkent City Mall'},
+                serviceClass:'comfort',
+                distanceKm:12
+              })
+            });
+            result.ids.quoteId=q.data.id;
+
+            const ride=await call('ride','/demo/v1/rides',{
+              method:'POST',
+              body:JSON.stringify({userId:'demo-client-ci',quoteId:result.ids.quoteId})
+            });
+            result.ids.rideId=ride.data.id;
+
+            for(const d of [
+              {id:'demo-driver-1',lat:41.312,lng:69.28},
+              {id:'demo-driver-2',lat:41.314,lng:69.282}
+            ]){
+              await call('location-'+d.id,'/demo/v1/drivers/'+d.id+'/location',{
+                method:'POST',
+                body:JSON.stringify({
+                  lat:d.lat,lng:d.lng,accuracyM:8,available:true,serviceClasses:['comfort']
+                })
+              });
+            }
+
+            const candidates=await call(
+              'candidates',
+              '/demo/v1/dispatch/'+result.ids.rideId+'/candidates'
+            );
+            result.candidateIds=candidates.data.map(x=>x.driverId);
+            result.ids.candidateCount=result.candidateIds.length;
+            if(!result.candidateIds.includes('demo-driver-1')||!result.candidateIds.includes('demo-driver-2')){
+              throw new Error('expected both demo drivers, got '+JSON.stringify(result.candidateIds));
+            }
+
+            const offer=await call('offer','/demo/v1/offers',{
+              method:'POST',
+              body:JSON.stringify({
+                rideId:result.ids.rideId,
+                driverId:result.candidateIds[0]
+              })
+            });
+            result.ids.offerId=offer.data.offerId;
+
+            const accepted=await call(
+              'accept',
+              '/demo/v1/offers/'+result.ids.offerId+'/accept',
+              {method:'POST',body:'{}'}
+            );
+            result.finalState=accepted.data.state;
+            if(result.finalState!=='DRIVER_ASSIGNED'){
+              throw new Error('final state '+result.finalState+' != DRIVER_ASSIGNED');
+            }
+            result.success=true;
+          }catch(error){
+            result.error=String(error);
+          }
+
+          fs.writeFileSync('vertex-taxi-demo-e2e-result.json',JSON.stringify(result,null,2));
+          console.log(JSON.stringify(result,null,2));
+          if(!result.success) process.exit(1);
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vertex-taxi-demo-e2e-result
+          path: vertex-taxi-demo-e2e-result.json
+          retention-days: 14
