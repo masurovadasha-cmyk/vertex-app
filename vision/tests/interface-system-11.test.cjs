@@ -17,9 +17,9 @@ test('Interface System 11 defines real staging sign-in without demo fallback',()
   assert.equal(design.auth.refreshTokenPersistence,false);
   assert.equal(design.scopeDiscovery.clientSuppliedPermissionsTrusted,false);
   assert.equal(design.safety.demoSignInFallback,false);
-  assert.equal(assembly.architectureVersion,'2.1');
-  assert.equal(assembly.database.latestMigration,'0016_staging_session_activation.sql');
-  assert.equal(assembly.database.migrationsExpected,16);
+  assert.equal(assembly.architectureVersion,'2.2');
+  assert.equal(assembly.database.latestMigration,'0018_engineers_readiness.sql');
+  assert.equal(assembly.database.migrationsExpected,18);
   assert.equal(assembly.designSystem.experienceIteration,'11.0');
   assert.equal(release.platformVersion,'1.18-rc1');
   assert.equal(release.productionReady,false);
