@@ -6,6 +6,7 @@ on:
     paths:
       - 'vision/**'
       - 'package.json'
+      - '.github/ci/vision-local-supabase-e2e.mjs'
       - '.github/workflows/vision-supabase-e2e.yml'
   workflow_dispatch:
 
@@ -62,7 +63,7 @@ jobs:
             echo "LOCAL_SUPABASE_SERVICE_KEY=$LOCAL_SERVICE"
           } >> "$GITHUB_ENV"
       - name: Run genuine Supabase Auth, Worker and direct-RLS E2E
-        run: node vision/staging/local-supabase-e2e.mjs artifacts/local-supabase/e2e.json
+        run: node .github/ci/vision-local-supabase-e2e.mjs artifacts/local-supabase/e2e.json
       - name: Verify sanitized evidence
         run: |
           set -euo pipefail
