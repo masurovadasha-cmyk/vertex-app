@@ -34,7 +34,7 @@ test('Session Center is separate, memory-only and activates existing Views conte
   assert.match(build,/session-center\.css','vision-session\.css'/);
   assert.match(build,/UI_CACHE_SUFFIX='interface-11'/);
   assert.match(shell,/visionUi='11\.0'/);
-  assert.match(shell,/Interface 11\.0/);
+  assert.match(shell,/Interface 14\.0/);
   assert.match(js,/\/auth-config/);
   assert.match(js,/\/api\/v1\/session-scopes/);
   assert.match(js,/VertexVisionViews\.configure/);
