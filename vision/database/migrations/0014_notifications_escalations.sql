@@ -375,7 +375,11 @@ begin
  from (
    select id,'escalation'::text as type,source_type,source_id,rule_code,title,severity,status,
      assigned_user_id,correlation_id,version,opened_at,acknowledged_at,resolved_at,
-     case severity when 'CRITICAL' then 2 else 1 end as severity_rank
+     case severity when 'CRITICAL' then 2 else 1 end as severity_rank,
+     (status='OPEN' and (
+       assigned_user_id=vision_private.actor()
+       or vision_private.permitted(tenant_id,organization_id,'vision.escalation.ack')
+     )) as can_ack
    from public.vision_escalations
    where tenant_id=p_tenant and organization_id=p_organization and status<>'RESOLVED'
    order by severity_rank desc,opened_at desc,id
