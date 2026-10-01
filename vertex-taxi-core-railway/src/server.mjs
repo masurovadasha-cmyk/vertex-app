@@ -55,7 +55,7 @@ function demoRateLimit(req, reply) {
   }
 }
 
-function auth(req, reply) {
+async function auth(req, reply) {
   const value = req.headers.authorization || "";
   const allowed = new Set(
     [API_TOKEN, MOBILE_DEMO_TOKEN].filter(Boolean).map((token) => `Bearer ${token}`)
@@ -66,7 +66,7 @@ function auth(req, reply) {
   }
 }
 
-function demoOnly(req, reply) {
+async function demoOnly(req, reply) {
   const limited = demoRateLimit(req, reply);
   if (limited) return limited;
   req.vertexDemo = true;
