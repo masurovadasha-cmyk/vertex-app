@@ -15,9 +15,9 @@ function boundedInt(value,min,max,name){
 }
 export function validateOutboxEvent(event){
   if(!event||typeof event!=='object'||Array.isArray(event)) throw new TypeError('invalid_outbox_event');
-  const required=['id','tenant_id','event_type','aggregate_type','aggregate_id','correlation_id','payload_sha256','payload'];
+  const required=['id','tenant_id','event_type','aggregate_type','aggregate_id','correlation_id','lease_token','payload_sha256','payload'];
   if(required.some(k=>!(k in event))) throw new TypeError('invalid_outbox_event');
-  if(!UUID.test(event.id)||!UUID.test(event.tenant_id)||!UUID.test(event.aggregate_id)||!UUID.test(event.correlation_id)) throw new TypeError('invalid_outbox_event');
+  if(!UUID.test(event.id)||!UUID.test(event.tenant_id)||!UUID.test(event.aggregate_id)||!UUID.test(event.correlation_id)||!UUID.test(event.lease_token)) throw new TypeError('invalid_outbox_event');
   if(typeof event.event_type!=='string'||!event.event_type.match(/^[a-z][a-z0-9._-]{1,127}$/)) throw new TypeError('invalid_outbox_event');
   if(typeof event.aggregate_type!=='string'||!event.aggregate_type.match(/^[a-z][a-z0-9._-]{1,63}$/)) throw new TypeError('invalid_outbox_event');
   if(typeof event.payload_sha256!=='string'||!HEX64.test(event.payload_sha256)) throw new TypeError('invalid_outbox_event');
@@ -43,7 +43,7 @@ export async function drainNotificationOutbox(adapter,options={}){
       const result=await consume(event);
       if(result?.duplicate===true) duplicates++;
       else processed++;
-      await ack(event.id);
+      const acknowledged=await ack(event.id,event.lease_token);\n      if(acknowledged!==true) throw new Error('outbox_ack_rejected');
     }catch(error){
       failed++;
       const id=event?.id||raw?.id;
