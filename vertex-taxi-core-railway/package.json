@@ -1,6 +1,6 @@
 {
   "name": "vertex-taxi-core-railway",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -16,6 +16,7 @@
     "h3-js": "^4.3.0",
     "pg": "^8.16.3",
     "redis": "^5.8.3",
-    "zod": "^4.1.11"
+    "zod": "^4.1.11",
+    "@fastify/cors": "^11.1.0"
   }
 }
