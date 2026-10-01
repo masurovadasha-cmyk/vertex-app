@@ -50,6 +50,16 @@
       type,tenant_id:state.session.tenantId,idempotency_key:crypto.randomUUID(),...fields
     })});
   }
+  async function notificationFeed(limit=50){
+    if(!Number.isSafeInteger(limit)||limit<1||limit>100)throw new Error('invalid_notification_limit');
+    return read('/api/v1/notifications?limit='+limit);
+  }
+  async function notificationCommand(type,fields={}){
+    if(!configured())throw Object.assign(new Error('session_required'),{code:'session_required',status:401});
+    return api('/api/v1/notifications/commands',{method:'POST',body:JSON.stringify({
+      type,tenant_id:state.session.tenantId,idempotency_key:crypto.randomUUID(),...fields
+    })});
+  }
 
   async function refresh(){
     if(!configured()){state.error=null;render();return;}
@@ -199,5 +209,5 @@
     return true;
   }
   function status(){return {configured:configured(),tenantId:state.session?.tenantId||null,organizationId:state.session?.organizationId||null,roles:[...(state.session?.roles||[])],permissions:[...(state.session?.permissions||[])],tab:state.tab,counts:{bookings:state.data.bookings.length,units:state.data.units.length,cleaning:state.data.cleaning.length}};}
-  root.VertexVisionViews=Object.freeze({open,refresh,workFeed,workAssignees,workCommand,configure,clearSession,status});
+  root.VertexVisionViews=Object.freeze({open,refresh,workFeed,workAssignees,workCommand,notificationFeed,notificationCommand,configure,clearSession,status});
 })(window);
