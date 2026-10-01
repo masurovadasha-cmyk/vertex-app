@@ -36,6 +36,7 @@ test('VISION shell declares Interface 2.0 and preserves Views-only activation',(
   assert.match(shell,/visionUi='2\.0'/);
   assert.match(shell,/Interface 2\.0/);
   assert.match(shell,/String\(event\.key\)\.toLowerCase\(\)==='k'/);
-  assert.match(registry,/REVISION='interface-system-2-20261001'/);
+  assert.match(registry,/REVISION='vision-views-active-rc1'/);
+  assert.match(read('vision/platform/build.cjs'),/UI_CACHE_SUFFIX='interface-2'/);
   assert.match(registry,/const status=id==='views'\?'active':'coming-soon'/);
 });

@@ -37,7 +37,7 @@
     "hub": "vision/platform/shell.css",
     "views": "vision/platform/views-ops.css",
     "navigation": "vision/platform/shell.js",
-    "serviceWorkerCacheRevision": "interface-system-2-20261001"
+    "serviceWorkerCacheSuffix": "interface-2"
   },
   "releaseSafety": {
     "productionMasterChanged": false,
