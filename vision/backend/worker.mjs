@@ -4,6 +4,8 @@ import {validateViewsCommand} from '../modules/views/command-contract.mjs';
 import {projectViewsCommandResponse} from '../modules/views/response-contract.mjs';
 import {projectRuntimeReadiness} from './readiness.mjs';
 import {projectWorkFeed} from '../contracts/work-feed.mjs';
+import {validateWorkCommand,projectWorkCommandResponse} from '../contracts/work-command.mjs';
+import {projectWorkAssignees} from '../contracts/work-assignees.mjs';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const json=(body,status=200,extra={})=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...extra}});
@@ -84,13 +86,15 @@ export async function handle(request,env,fetcher=fetch){
       const mediaType=request.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
       if(mediaType!=='application/json')return reply({error:'json_required'},415);
       const rawCommand=await boundedJSON(request,plan.bodyLimit);
-      const command=plan.module==='views'?validateViewsCommand(rawCommand):rawCommand;
-      commandType=plan.module==='views'?command.type:null;
+      const command=plan.module==='views'?validateViewsCommand(rawCommand):plan.module==='work'?validateWorkCommand(rawCommand):rawCommand;
+      commandType=(plan.module==='views'||plan.module==='work')?command.type:null;
       result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({command})});
     }else if(plan.kind==='context'){
       result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({p_tenant:plan.tenant,p_organization:plan.organization})});
     }else if(plan.kind==='work-feed'){
       result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({p_tenant:plan.tenant,p_organization:plan.organization,p_limit:plan.limit})});
+    }else if(plan.kind==='work-assignees'){
+      result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({p_tenant:plan.tenant,p_organization:plan.organization})});
     }else if(plan.kind==='views-read'){
       result=await upstream('/rest/v1/'+plan.table+'?'+plan.read.params);
     }else{
@@ -107,15 +111,20 @@ export async function handle(request,env,fetcher=fetch){
       const projected=projectViewsCommandResponse(commandType,body);
       return reply(projected,200,{'x-correlation-id':projected.correlation_id});
     }
+    if(plan.kind==='command'&&plan.module==='work'){
+      const projected=projectWorkCommandResponse(commandType,body);
+      return reply(projected,200,{'x-correlation-id':projected.correlationId});
+    }
     if(plan.kind==='views-read'){
       const page=readPage(body,plan.read);
       return reply(page.items,200,{'x-page-limit':String(plan.read.limit),...(page.nextCursor?{'x-next-cursor':page.nextCursor}:{})});
     }
     if(plan.kind==='context')return reply(projectSessionContext(body));
     if(plan.kind==='work-feed')return reply(projectWorkFeed(body));
+    if(plan.kind==='work-assignees')return reply(projectWorkAssignees(body));
     return reply(body);
   }catch(error){
-    if(['invalid_page_query','tenant_id_required','organization_id_required','invalid_context_query','invalid_work_feed_query','invalid_command'].includes(error.message))return reply({error:error.message},400);
+    if(['invalid_page_query','tenant_id_required','organization_id_required','invalid_context_query','invalid_work_feed_query','invalid_work_assignees_query','invalid_command'].includes(error.message))return reply({error:error.message},400);
     if(error.message==='body_too_large')return reply({error:'body_too_large'},413);
     if(error.message==='invalid_json')return reply({error:'invalid_json'},400);
     return reply({error:'backend_unavailable'},503);
