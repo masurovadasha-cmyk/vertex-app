@@ -44,6 +44,19 @@ export function routePlan(url,method){
     return Object.freeze({kind:'work-assignees',rpc:'vision_work_assignees',module:'core',tenant,organization});
   }
   if(key==='POST /api/v1/work/commands')return Object.freeze({kind:'command',rpc:'vision_work_command',bodyLimit:8192,module:'work'});
+  if(key==='GET /api/v1/notifications'){
+    const tenant=url.searchParams.get('tenant_id'),organization=url.searchParams.get('organization_id');
+    const limitRaw=url.searchParams.get('limit'),limit=limitRaw==null?50:Number(limitRaw);
+    const allowed=new Set(['tenant_id','organization_id','limit']);
+    if([...url.searchParams.keys()].some(k=>!allowed.has(k))
+      ||url.searchParams.getAll('tenant_id').length!==1
+      ||url.searchParams.getAll('organization_id').length!==1
+      ||url.searchParams.getAll('limit').length>1
+      ||!uuid.test(tenant||'')||!uuid.test(organization||'')
+      ||!Number.isSafeInteger(limit)||limit<1||limit>100)throw new Error('invalid_notification_query');
+    return Object.freeze({kind:'notification-feed',rpc:'vision_notification_feed',module:'core',tenant,organization,limit});
+  }
+  if(key==='POST /api/v1/notifications/commands')return Object.freeze({kind:'command',rpc:'vision_notification_command',bodyLimit:4096,module:'notifications'});
   if(method==='GET'&&Object.hasOwn(legacyReads,url.pathname)){
     const tenant=url.searchParams.get('tenant_id');
     if(!uuid.test(tenant||''))throw new Error('tenant_id_required');
