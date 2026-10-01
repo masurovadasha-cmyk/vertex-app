@@ -13,7 +13,7 @@ test('non-GET asset methods do not reach assets',async()=>{const r=await handle(
 test('HEAD health is bodyless',async()=>{const r=await handle(req('/health',{method:'HEAD'}));assert.equal(r.status,200);assert.equal(await r.text(),'');});
 
 test('public deployment fails closed for Views operations APIs',async()=>{
-  for(const path of ['/api/v1/context','/api/v1/work-feed','/api/v1/work-assignees','/api/v1/work/commands','/api/v1/views/bookings','/api/v1/views/units','/api/v1/views/cleaning','/api/v1/views/commands']){
+  for(const path of ['/api/v1/context','/api/v1/work-feed','/api/v1/work-assignees','/api/v1/work/commands','/api/v1/notifications','/api/v1/notifications/commands','/api/v1/views/bookings','/api/v1/views/units','/api/v1/views/cleaning','/api/v1/views/commands']){
     const r=await handle(req(path,{method:path.endsWith('/commands')?'POST':'GET'}));
     assert.equal(r.status,503);
     const body=await r.json();
