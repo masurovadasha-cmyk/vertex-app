@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "mutationPolicy": {"idempotencyHeader":"Idempotency-Key","concurrencyHeader":"If-Match"},
+  "passenger": [
+    "POST /api/passenger/v1/quotes",
+    "POST /api/passenger/v1/rides",
+    "GET /api/passenger/v1/rides/{ride_id}",
+    "POST /api/passenger/v1/rides/{ride_id}/cancel"
+  ],
+  "driver": [
+    "GET /api/driver/v1/offers",
+    "POST /api/driver/v1/offers/{offer_id}/accept",
+    "POST /api/driver/v1/offers/{offer_id}/decline",
+    "POST /api/driver/v1/rides/{ride_id}/arrive",
+    "POST /api/driver/v1/rides/{ride_id}/pin/verify",
+    "POST /api/driver/v1/rides/{ride_id}/start",
+    "POST /api/driver/v1/rides/{ride_id}/complete"
+  ],
+  "control": [
+    "POST /api/control/v1/dispatch/rides/{ride_id}",
+    "POST /api/control/v1/rides/{ride_id}/cancel",
+    "POST /api/control/v1/rides/{ride_id}/reassign"
+  ],
+  "integration": [
+    "GET /integration/v1/capabilities",
+    "GET /integration/v1/rides/{ride_id}",
+    "POST /integration/v1/rides",
+    "POST /integration/v1/rides/{ride_id}/commands"
+  ]
+}
