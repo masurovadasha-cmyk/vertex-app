@@ -17,8 +17,8 @@ test('system status base exposes only non-sensitive config flags',()=>{
     service:'VERTEX VISION',
     environment:'staging',
     sourceCommit:'a'.repeat(40),
-    architectureVersion:'2.1',
-    requiredMigration:'0016_staging_session_activation.sql',
+    architectureVersion:'2.2',
+    requiredMigration:'0018_engineers_readiness.sql',
     backendConfigured:true,
     backgroundConsumerConnected:true,
     escalationSchedulerConnected:false
@@ -33,11 +33,11 @@ test('system status projector distinguishes unchecked readiness from not-ready',
     ...base,readinessChecked:false,databaseReady:null,latestMigration:null,migrationCount:null,viewsReleaseActive:null
   });
   const ready=projectSystemStatus(base,{
-    ready:false,latestMigration:'0016_staging_session_activation.sql',migrationCount:16,viewsReleaseActive:true
+    ready:false,latestMigration:'0018_engineers_readiness.sql',migrationCount:18,viewsReleaseActive:true
   },true);
   assert.equal(ready.readinessChecked,true);
   assert.equal(ready.databaseReady,false);
-  assert.equal(ready.latestMigration,'0016_staging_session_activation.sql');
+  assert.equal(ready.latestMigration,'0018_engineers_readiness.sql');
 });
 
 test('system-status endpoint returns honest disconnected state without backend call',async()=>{
@@ -53,13 +53,13 @@ test('system-status endpoint returns honest disconnected state without backend c
 test('system-status endpoint projects live readiness when configured',async()=>{
   const raw={
     ready:true,
-    latest_migration:'0016_staging_session_activation.sql',
-    migration_count:16,
+    latest_migration:'0018_engineers_readiness.sql',
+    migration_count:18,
     tables_ok:true,
     functions_ok:true,
     rls_ok:true,
     views_release_active:true,
-    architecture_version:'2.1'
+    architecture_version:'2.2'
   };
   const response=await handle(new Request('https://vision.example/system-status'),env,async(url,options)=>{
     assert.equal(url,env.SUPABASE_URL+'/rest/v1/rpc/vision_runtime_readiness');
@@ -71,7 +71,7 @@ test('system-status endpoint projects live readiness when configured',async()=>{
   assert.equal(body.backendConfigured,true);
   assert.equal(body.readinessChecked,true);
   assert.equal(body.databaseReady,true);
-  assert.equal(body.latestMigration,'0016_staging_session_activation.sql');
+  assert.equal(body.latestMigration,'0018_engineers_readiness.sql');
   assert.equal(body.sourceCommit,'a'.repeat(40));
 });
 
