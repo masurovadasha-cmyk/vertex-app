@@ -6,8 +6,10 @@ import core from '../platform/registry.cjs';
 test('every registered VERTEX VISION direction has a landing interface model',async()=>{
   const shell=await readFile(new URL('../platform/shell.js',import.meta.url),'utf8');
   assert.equal(core.modules.length,19);
+  const experienceBlock=shell.slice(shell.indexOf('const moduleExperience='),shell.indexOf('const request=id=>'));
   for(const module of core.modules){
-    assert.ok(shell.includes(module.id+':{')||module.id==='aura-design',module.id+' must have a module experience');
+    const plain=module.id+':{',quoted="'"+module.id+"':{";
+    assert.ok(experienceBlock.includes(plain)||experienceBlock.includes(quoted),module.id+' must have a module experience');
   }
   assert.match(shell,/vv-direction-landing/);
   assert.match(shell,/INTERFACE · PREVIEW/);
