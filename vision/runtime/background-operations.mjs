@@ -43,7 +43,8 @@ export async function drainNotificationOutbox(adapter,options={}){
       const result=await consume(event);
       if(result?.duplicate===true) duplicates++;
       else processed++;
-      const acknowledged=await ack(event.id,event.lease_token);\n      if(acknowledged!==true) throw new Error('outbox_ack_rejected');
+      const acknowledged=await ack(event.id,event.lease_token);
+      if(acknowledged!==true) throw new Error('outbox_ack_rejected');
     }catch(error){
       failed++;
       const id=event?.id||raw?.id;
