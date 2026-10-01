@@ -1,13 +1,13 @@
 {
   "product": "VERTEX Vision",
   "assembly": "0.1",
-  "architectureVersion": "2.0",
+  "architectureVersion": "2.1",
   "releaseManifest": "vision/release/0.1-RC1.json",
-  "platformVersion": "1.17-rc1",
+  "platformVersion": "1.18-rc1",
   "apiVersion": "v1",
   "database": {
-    "latestMigration": "0015_background_runtime.sql",
-    "migrationsExpected": 15,
+    "latestMigration": "0016_staging_session_activation.sql",
+    "migrationsExpected": 16,
     "sourceOfTruth": "PostgreSQL/Supabase",
     "productionApplied": false
   },
@@ -47,8 +47,8 @@
     },
     "android": {
       "packageId": "com.vertex.vision.demo",
-      "versionName": "1.17-rc1",
-      "versionCode": 21
+      "versionName": "1.18-rc1",
+      "versionCode": 22
     },
     "stagingWorker": {
       "name": "vertex-vision-staging",
@@ -103,7 +103,8 @@
     "trusted-release-controller",
     "effective-read-only-backup-principal",
     "unified-work-feed",
-    "approval-read-foundation"
+    "approval-read-foundation",
+    "staging-auth-session-activation"
   ],
   "kernel": {
     "routePolicy": "vision/backend/kernel.mjs",
@@ -133,7 +134,9 @@
     "notificationFeedContract": "vision/contracts/notification-feed.mjs",
     "notificationCommandEndpoint": "/api/v1/notifications/commands",
     "notificationCommandContract": "vision/contracts/notification-command.mjs",
-    "systemStatusEndpoint": "/system-status"
+    "systemStatusEndpoint": "/system-status",
+    "authConfigEndpoint": "/auth-config",
+    "sessionScopesEndpoint": "/api/v1/session-scopes"
   },
   "readiness": {
     "endpoint": "/readyz",
@@ -227,7 +230,7 @@
     "activeRuntimeModule": "views",
     "inactiveModules": "coming-soon",
     "integratedAt": "2026-10-01",
-    "experienceIteration": "10.0",
+    "experienceIteration": "11.0",
     "experienceStyle": "Dark Premium Tech Sand",
     "visualReference": "VERTEX VISION dark control-center boards",
     "runtimeEnhancements": [
@@ -257,7 +260,8 @@
       "notification-inbox",
       "notification-actions",
       "escalation-ack",
-      "system-status-center"
+      "system-status-center",
+      "staging-session-center"
     ],
     "navigationIntelligence": {
       "commandPalette": true,
@@ -304,6 +308,14 @@
       "fabricatedFallback": false,
       "secretsExposed": false,
       "backgroundFlags": "runtime-config-only"
+    },
+    "sessionActivation": {
+      "enabled": true,
+      "authProvider": "supabase-staging",
+      "tokenPersistence": "memory-only",
+      "passwordPersistence": false,
+      "scopeDiscovery": "server-authoritative",
+      "fabricatedFallback": false
     }
   }
 }
