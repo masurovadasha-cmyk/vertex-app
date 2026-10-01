@@ -57,6 +57,7 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
     } catch(e) { await client.query('rollback');throw e; }
   }
   const command=(u,c,client=db)=>as(u,async d=>(await d.query('select public.vision_command($1::jsonb) result',[JSON.stringify(c)])).rows[0].result,client);
+  const workCommand=(u,c,client=db)=>as(u,async d=>(await d.query('select public.vision_work_command($1::jsonb) result',[JSON.stringify(c)])).rows[0].result,client);
   const create=(key=id())=>({type:'create',tenant_id:tenant,idempotency_key:key,customer_id:customer,requester_organization_id:views,service_id:service});
   const denied=(f,pattern=/forbidden|permission denied/)=>assert.rejects(f,pattern);
   const counts=async()=> (await db.query(`select
@@ -122,6 +123,73 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
        values($1,$2,'manual','forbidden',$3)`,[tenant,views,viewsManager]
     )),/permission denied|row-level security/);
   });
+  await t.test('Work Actions enforce assignment, SLA, idempotency, approval SoD and audit',async()=>{
+    const created=await command(guest,create());
+    const task=(await db.query('select * from public.vision_tasks where order_id=$1',[created.order_id])).rows[0];
+    await db.query("update public.vision_tasks set due_at=now()-interval '15 minutes' where id=$1",[task.id]);
+
+    const dispatcherFeed=(await as(dispatcher,d=>d.query('select public.vision_work_feed($1,$2,50) feed',[tenant,cleaning]))).rows[0].feed;
+    const candidate=dispatcherFeed.tasks.find(x=>x.id===task.id);
+    assert.equal(candidate.sla_state,'BREACHED');
+    assert.deepEqual(candidate.actions,['task_assign']);
+    const assignees=(await as(dispatcher,d=>d.query('select public.vision_work_assignees($1,$2) list',[tenant,cleaning]))).rows[0].list;
+    assert.ok(assignees.some(x=>x.id===staff));
+    assert.deepEqual((await as(staff,d=>d.query('select public.vision_work_assignees($1,$2) list',[tenant,cleaning]))).rows[0].list,[]);
+
+    let current=await workCommand(dispatcher,{type:'task_assign',tenant_id:tenant,idempotency_key:id(),task_id:task.id,expected_version:1,expected_order_version:1,assignee_user_id:staff});
+    assert.equal(current.task_status,'ASSIGNED');assert.equal(current.task_version,2);assert.equal(current.order_version,2);
+    await denied(()=>workCommand(staff2,{type:'task_accept',tenant_id:tenant,idempotency_key:id(),task_id:task.id,expected_version:2,expected_order_version:2}));
+
+    const accept={type:'task_accept',tenant_id:tenant,idempotency_key:id(),task_id:task.id,expected_version:2,expected_order_version:2};
+    current=await workCommand(staff,accept);assert.equal(current.task_status,'IN_PROGRESS');
+    const waiting=await workCommand(staff,{type:'task_wait',tenant_id:tenant,idempotency_key:id(),task_id:task.id,expected_version:3,expected_order_version:3,reason:'Waiting for access'});
+    assert.equal(waiting.task_status,'WAITING');assert.equal(waiting.order_version,3);
+    current=await workCommand(staff,{type:'task_resume',tenant_id:tenant,idempotency_key:id(),task_id:task.id,expected_version:4,expected_order_version:3});
+    assert.equal(current.task_status,'IN_PROGRESS');
+    current=await workCommand(staff,{type:'task_submit',tenant_id:tenant,idempotency_key:id(),task_id:task.id,expected_version:5,expected_order_version:3});
+    assert.equal(current.task_status,'QUALITY');assert.equal(current.order_status,'QUALITY');
+
+    current=await workCommand(quality,{type:'quality_reject',tenant_id:tenant,idempotency_key:id(),task_id:task.id,expected_version:6,expected_order_version:4,reason:'Rework required'});
+    assert.equal(current.task_status,'IN_PROGRESS');assert.equal(current.order_status,'IN_PROGRESS');
+    current=await workCommand(staff,{type:'task_submit',tenant_id:tenant,idempotency_key:id(),task_id:task.id,expected_version:7,expected_order_version:5});
+    assert.equal(current.task_status,'QUALITY');
+    current=await workCommand(quality,{type:'quality_pass',tenant_id:tenant,idempotency_key:id(),task_id:task.id,expected_version:8,expected_order_version:6});
+    assert.equal(current.task_status,'COMPLETED');assert.equal(current.order_status,'COMPLETED');
+    await denied(()=>workCommand(quality,{type:'quality_pass',tenant_id:tenant,idempotency_key:id(),task_id:task.id,expected_version:8,expected_order_version:6}),/invalid_transition|version_conflict/);
+
+    await db.query(`insert into public.vision_role_permissions(role_id,permission_id)
+      select mr.role_id,p.id
+      from public.vision_memberships m
+      join public.vision_membership_roles mr on (mr.tenant_id,mr.membership_id)=(m.tenant_id,m.id)
+      cross join public.vision_permissions p
+      where m.tenant_id=$1 and m.organization_id=$2 and m.user_id=$3 and p.code='vision.approval.decide'
+      on conflict do nothing`,[tenant,cleaning,quality]);
+
+    const approval=id();
+    await db.query(`insert into public.vision_approval_requests(
+      id,tenant_id,organization_id,kind,title,status,priority,assigned_user_id,requested_by,due_at,entity_type,entity_id
+    ) values($1,$2,$3,'maintenance.spend','Approve repair','PENDING','HIGH',$4,$5,now()-interval '1 hour','order',$6)`,
+      [approval,tenant,cleaning,quality,staff,created.order_id]);
+    const approvalFeed=(await as(quality,d=>d.query('select public.vision_work_feed($1,$2,50) feed',[tenant,cleaning]))).rows[0].feed;
+    const decision=approvalFeed.approvals.find(x=>x.id===approval);
+    assert.deepEqual(decision.actions,['approval_approve','approval_reject']);assert.equal(decision.sla_state,'BREACHED');
+
+    const reject={type:'approval_reject',tenant_id:tenant,idempotency_key:id(),approval_id:approval,expected_version:1,reason:'Insufficient evidence'};
+    const rejected=await workCommand(quality,reject);
+    assert.equal(rejected.approval_status,'REJECTED');assert.equal(rejected.approval_version,2);
+    assert.deepEqual(await workCommand(quality,reject),rejected);
+
+    const selfApproval=id();
+    await db.query(`insert into public.vision_approval_requests(
+      id,tenant_id,organization_id,kind,title,assigned_user_id,requested_by
+    ) values($1,$2,$3,'maintenance.spend','Self approval blocked',$4,$4)`,[selfApproval,tenant,cleaning,quality]);
+    await denied(()=>workCommand(quality,{type:'approval_approve',tenant_id:tenant,idempotency_key:id(),approval_id:selfApproval,expected_version:1}));
+    await denied(()=>as(quality,d=>d.query("update public.vision_approval_requests set status='APPROVED' where id=$1",[selfApproval])));
+
+    const actions=(await db.query("select action from public.vision_audit_events where entity_type in ('task','approval') order by created_at")).rows.map(x=>x.action);
+    for(const required of ['order.assigned','task.started','task.waiting','task.resumed','task.completed','quality.rejected','quality.passed','approval.rejected'])assert.ok(actions.includes(required),required);
+  });
+
   await t.test('RLS permits own guest and scoped staff, denies other tenants and guests',async()=>{
     for(const [user,n] of [[guest,1],[guest2,0],[foreignUser,0],[viewsManager,1],[dispatcher,1],[staff,0],[null,0]]) {
       const rows=await as(user,d=>d.query('select id from public.vision_orders'));
