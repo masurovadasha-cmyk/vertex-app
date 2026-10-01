@@ -21,7 +21,7 @@ The Event Gateway is a server principal. The browser-facing VISION Worker and au
 - source aggregate id / version
 - correlation id
 - occurred timestamp
-- bounded JSON payload
+- bounded JSON payload limited to the explicit public fields for each v1 event type
 - receive / processing / lease metadata
 
 Delivery is at-least-once. Re-sending the exact same `event_id` is a no-op. Reusing an `event_id` with different content fails closed as `event_id_conflict`.
@@ -36,7 +36,7 @@ Delivery is at-least-once. Re-sending the exact same `event_id` is a no-op. Reus
 - source event / aggregate references
 - correlation and event timestamps
 
-It does **not** store private driver GPS history, dispatch internals, payment credentials, ledger rows, routing traces, or Taxi private schemas.
+It does **not** store private driver GPS history, dispatch internals, payment credentials, ledger rows, routing traces, or Taxi private schemas. Event payloads containing fields outside the explicit public allowlist are rejected before persistence.
 
 Ride/trip event aggregate versions are not assumed to share one sequence. Projection ordering therefore uses a bounded lifecycle rank plus event time, while source aggregate id/version are retained for traceability. Late lower-rank events cannot regress a completed/cancelled ride, but may fill a previously missing public driver/vehicle reference.
 
