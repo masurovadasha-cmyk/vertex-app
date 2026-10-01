@@ -19,7 +19,7 @@ export async function handle(request,env={}){
       if(request.method!=='GET')return json({error:'method_not_allowed'},405);
       return json({platform:core.id,version:core.version,modules:core.modules});
     }
-    if(['/api/vision/v1/commands','/api/vision/v1/orders','/api/vision/v1/tasks','/api/vision/v1/audit','/api/v1/context'].includes(path)||path.startsWith('/api/v1/views/')){
+    if(['/api/vision/v1/commands','/api/vision/v1/orders','/api/vision/v1/tasks','/api/vision/v1/audit','/api/v1/context','/api/v1/work-feed'].includes(path)||path.startsWith('/api/v1/views/')){
       // No fallback to demo identities, privileged credentials or browser-owned roles.
       return json({error:'cloud_backend_not_connected',mode:'release-candidate',activeModule:'views',authenticated:false},503);
     }
