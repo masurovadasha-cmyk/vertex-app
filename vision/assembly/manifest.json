@@ -58,6 +58,16 @@
       "name": "vertex-app",
       "config": "wrangler.jsonc",
       "approved": false
+    },
+    "background": {
+      "orchestration": "vision/runtime/background-operations.mjs",
+      "postgresAdapter": "vision/runtime/postgres-background-adapter.mjs",
+      "stagingRunner": "vision/runtime/run-staging-background.mjs",
+      "grantContract": "vision/staging/background-principal-grants.sql",
+      "principal": "vision_background_staging",
+      "directTableAccess": false,
+      "rpcOnly": true,
+      "connected": false
     }
   },
   "boundaries": {
@@ -151,6 +161,13 @@
   "externalGates": {
     "realStagingAuthE2E": {
       "workflow": ".github/workflows/vision-cloud-e2e.yml",
+      "mode": "manual-staging-environment",
+      "required": true,
+      "verified": false,
+      "productionChanged": false
+    },
+    "backgroundStagingSmoke": {
+      "workflow": ".github/workflows/vision-background-staging-smoke.yml",
       "mode": "manual-staging-environment",
       "required": true,
       "verified": false,
