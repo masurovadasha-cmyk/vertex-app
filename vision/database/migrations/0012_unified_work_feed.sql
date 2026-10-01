@@ -33,6 +33,21 @@ create index vision_approval_queue_idx
 create index vision_approval_assignee_idx
  on public.vision_approval_requests(tenant_id,assigned_user_id,status,created_at desc);
 
+create function vision_private.active_member(t uuid,org uuid,who uuid default vision_private.actor()) returns boolean
+language sql stable security definer set search_path='' as $
+ select vision_private.active_actor(t)
+   and exists(
+     select 1
+     from public.vision_memberships m
+     join public.vision_organizations o
+       on (o.tenant_id,o.id)=(m.tenant_id,m.organization_id)
+     where m.tenant_id=t and m.organization_id=org and m.user_id=who
+       and m.status='ACTIVE' and o.status='ACTIVE'
+   );
+$;
+revoke all on function vision_private.active_member(uuid,uuid,uuid) from public,anon;
+grant execute on function vision_private.active_member(uuid,uuid,uuid) to authenticated;
+
 alter table public.vision_approval_requests enable row level security;
 revoke all on public.vision_approval_requests from public,anon,authenticated;
 grant select on public.vision_approval_requests to authenticated;
@@ -44,13 +59,7 @@ create policy vision_approval_read on public.vision_approval_requests
      vision_private.permitted(tenant_id,organization_id,'vision.approval.read')
      or (
        assigned_user_id=vision_private.actor()
-       and exists(
-         select 1 from public.vision_memberships m
-         where m.tenant_id=vision_approval_requests.tenant_id
-           and m.organization_id=vision_approval_requests.organization_id
-           and m.user_id=vision_private.actor()
-           and m.status='ACTIVE'
-       )
+       and vision_private.active_member(tenant_id,organization_id)
      )
    )
  );
