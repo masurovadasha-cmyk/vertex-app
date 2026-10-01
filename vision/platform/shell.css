@@ -209,3 +209,12 @@ header .brand .vv-wordmark{font:820 13px/1.2 system-ui,sans-serif;letter-spacing
 #visionHome .vv-today-button{width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer}
 #visionHome .vv-today-button:hover{border-color:rgba(224,197,138,.24);background:rgba(205,178,118,.055)}
 #visionHome .vv-today-button:focus-visible{outline:3px solid #dfc17d;outline-offset:2px}
+
+
+/* Interface System 8.0 — Notification / Escalation Center entry points. */
+#visionHome [data-vv-notifications="hero"]{display:inline-flex;align-items:center;gap:9px}
+#visionHome .vv-notification-count{display:grid;place-items:center;min-width:24px;height:24px;padding:0 7px;border:1px solid rgba(224,197,138,.22);border-radius:999px;background:rgba(214,185,113,.08);color:#efd699;font:850 10px/1 system-ui,sans-serif}
+#visionHome .vv-notification-count[data-connected="true"]{border-color:rgba(114,195,151,.22);background:rgba(114,195,151,.08);color:#9edabb}
+#visionHome [data-vv-notifications="attention"]{width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer}
+#visionHome [data-vv-notifications="attention"]:hover{border-color:rgba(224,197,138,.24);background:rgba(205,178,118,.055)}
+#visionHome [data-vv-notifications="attention"]:focus-visible{outline:3px solid #dfc17d;outline-offset:2px}
