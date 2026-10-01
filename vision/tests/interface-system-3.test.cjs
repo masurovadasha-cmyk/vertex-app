@@ -15,7 +15,7 @@ test('Interface System 3 contract preserves safe product boundaries',()=>{
   assert.equal(design.boundaries.comingSoonCount,18);
   assert.equal(design.boundaries.jarvis,'separate-project-api-only');
   assert.equal(design.boundaries.productionMasterChanged,false);
-  assert.equal(assembly.designSystem.experienceIteration,'8.0');
+  assert.equal(assembly.designSystem.experienceIteration,'9.0');
   assert.equal(assembly.designSystem.experienceStyle,'Dark Premium Tech Sand');
 });
 
