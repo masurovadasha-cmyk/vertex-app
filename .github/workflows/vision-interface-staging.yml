@@ -1,0 +1,88 @@
+name: VERTEX VISION Interface 2 Staging Preview
+
+on:
+  push:
+    branches:
+      - vision-foundation-interface-2-20261001
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vertex-vision-interface-2-staging
+  cancel-in-progress: true
+
+jobs:
+  verify-and-deploy-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    environment: staging
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+      - name: Install and verify source
+        run: |
+          set -euo pipefail
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          npm test
+      - name: Enforce staging-only target
+        run: |
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const cfg=JSON.parse(fs.readFileSync('vision/wrangler.jsonc','utf8'));
+          if(cfg.name!=='vertex-vision-staging') throw Error('Unsafe Worker target: '+cfg.name);
+          if(cfg.vars?.VISION_ENV!=='staging') throw Error('VISION_ENV must be staging');
+          if(cfg.workers_dev!==true) throw Error('staging must use workers.dev');
+          const assembly=JSON.parse(fs.readFileSync('vision/assembly/manifest.json','utf8'));
+          if(assembly.runtimes.productionWorker.approved!==false) throw Error('Production approval unexpectedly enabled');
+          if(assembly.modules.active.length!==1||assembly.modules.active[0]!=='views') throw Error('Views must remain the only active module');
+          JS
+          npx wrangler deploy --config vision/wrangler.jsonc --dry-run
+      - name: Deploy dedicated VISION staging Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "::error::Cloudflare staging credentials are not configured in the GitHub staging environment."
+            exit 2
+          fi
+          npx wrangler deploy --config vision/wrangler.jsonc --keep-vars --var "VISION_SOURCE_COMMIT:${GITHUB_SHA}" | tee /tmp/vision-interface-staging-deploy.txt
+      - name: Verify deployed source and UI
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/interface-staging
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "https://vertex-vision-staging.masurovadasha.workers.dev/health" -o artifacts/interface-staging/health.json
+          curl --fail --silent --show-error --retry 5 --retry-delay 2 "https://vertex-vision-staging.masurovadasha.workers.dev/" -o artifacts/interface-staging/index.html
+          cp /tmp/vision-interface-staging-deploy.txt artifacts/interface-staging/deploy.txt
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const h=JSON.parse(fs.readFileSync('artifacts/interface-staging/health.json','utf8'));
+          if(h.service!=='VERTEX VISION'||h.environment!=='staging') throw Error('Wrong staging service');
+          if(h.sourceCommit!==process.env.GITHUB_SHA) throw Error('Staging source commit mismatch');
+          const html=fs.readFileSync('artifacts/interface-staging/index.html','utf8');
+          if(!html.includes('vision-shell.css')||!html.includes('vision-views.css')) throw Error('VISION UI assets missing from deployed HTML');
+          const result={
+            sourceCommit:process.env.GITHUB_SHA,
+            url:'https://vertex-vision-staging.masurovadasha.workers.dev/',
+            service:h.service,
+            environment:h.environment,
+            configured:h.configured===true,
+            productionChanged:false
+          };
+          fs.writeFileSync('artifacts/interface-staging/result.json',JSON.stringify(result,null,2));
+          console.log(JSON.stringify(result,null,2));
+          JS
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: vision-interface-2-staging-${{ github.sha }}
+          path: artifacts/interface-staging/
+          if-no-files-found: warn
+          retention-days: 14
