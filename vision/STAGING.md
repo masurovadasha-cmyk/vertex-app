@@ -275,3 +275,26 @@ Migration `0014_notifications_escalations.sql` adds the Notification Center foun
 - `vision_reconcile_escalations(tenant, organization)` opens/resolves SLA escalation records and is reserved for a dedicated scheduler/worker principal.
 - Public Preview does not claim that the consumer or scheduler is connected. Notification Center refresh is 30-second polling only.
 - No demo notifications or fabricated escalation counts are substituted when the backend is unavailable.
+
+
+## Background Operations Runtime 0.1
+
+Interface System 9 adds a separate staging-only background runtime for notification
+projection and SLA reconciliation. It is not exposed through the browser-facing Worker.
+
+Security boundary:
+
+- login role: `vision_background_staging` (provisioned out-of-band with a generated password);
+- grant contract: `vision/staging/background-principal-grants.sql`;
+- direct table and sequence access is revoked;
+- only six reviewed RPCs are executable: outbox claim/ack/fail, notification consume,
+  active background scopes and escalation reconcile;
+- the connection string is held only in the GitHub `staging` environment secret
+  `VISION_BACKGROUND_DATABASE_URL` and must use TLS;
+- no production credential is accepted and no production scheduler is connected.
+
+The manual workflow `VERTEX VISION Background Staging Smoke` validates an immutable
+candidate SHA, verifies the background principal name, runs the isolated background tests,
+then executes one bounded notification/escalation cycle. A successful local or ordinary CI
+run does not mark cloud staging verified; only a successful staging smoke run may provide
+that evidence.
