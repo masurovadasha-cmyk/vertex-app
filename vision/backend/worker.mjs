@@ -1,37 +1,60 @@
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const json = (body,status=200) => Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
 
-async function taxiFetch(env, path, request, body) {
-  const correlationId = request.headers.get('x-vertex-correlation-id') || crypto.randomUUID();
+const integrationUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function taxiIntegrationHeaders(request, correlationId) {
   const headers = new Headers({
     'x-vertex-correlation-id': correlationId,
+    'x-vertex-caller': 'vertex-vision',
+    'x-vertex-integration-version': '1',
     'cache-control': 'no-store',
   });
   for (const name of ['authorization','x-vertex-tenant-id','x-vertex-organization-id','idempotency-key']) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
   }
-  if (env.VERTEX_TAXI_CORE && typeof env.VERTEX_TAXI_CORE.fetch === 'function') {
-    if (body !== undefined) headers.set('content-type','application/json');
-    const target = new Request('https://vertex-taxi-core.internal' + path, {
-      method: request.method,
-      headers,
-      body: body === undefined ? undefined : body,
-    });
-    return await env.VERTEX_TAXI_CORE.fetch(target);
+  return headers;
+}
+
+async function taxiFetch(env, path, request, body) {
+  const correlationId = request.headers.get('x-vertex-correlation-id') || crypto.randomUUID();
+  const headers = taxiIntegrationHeaders(request, correlationId);
+  const retryable = request.method === 'GET' || Boolean(request.headers.get('idempotency-key'));
+  const maxAttempts = retryable ? 3 : 1;
+  let lastError;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      if (env.VERTEX_TAXI_CORE && typeof env.VERTEX_TAXI_CORE.fetch === 'function') {
+        if (body !== undefined) headers.set('content-type','application/json');
+        const target = new Request('https://vertex-taxi-core.internal' + path, {
+          method: request.method,
+          headers,
+          body: body === undefined ? undefined : body,
+        });
+        const response = await env.VERTEX_TAXI_CORE.fetch(target);
+        if (!retryable || ![502,503,504].includes(response.status) || attempt === maxAttempts - 1) return response;
+      } else if (env.TAXI_INTEGRATION_URL && env.TAXI_INTEGRATION_SHARED_SECRET) {
+        headers.set('x-vertex-integration-secret', env.TAXI_INTEGRATION_SHARED_SECRET);
+        if (body !== undefined) headers.set('content-type','application/json');
+        const response = await fetch(env.TAXI_INTEGRATION_URL.replace(/\/$/,'') + path, {
+          method: request.method,
+          headers,
+          body: body === undefined ? undefined : body,
+          redirect: 'error',
+          signal: AbortSignal.timeout(2500),
+        });
+        if (!retryable || ![502,503,504].includes(response.status) || attempt === maxAttempts - 1) return response;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      lastError = error;
+      if (!retryable || attempt === maxAttempts - 1) throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 75 * (attempt + 1)));
   }
-  if (env.TAXI_INTEGRATION_URL && env.TAXI_INTEGRATION_SHARED_SECRET) {
-    headers.set('x-vertex-integration-secret', env.TAXI_INTEGRATION_SHARED_SECRET);
-    if (body !== undefined) headers.set('content-type','application/json');
-    return await fetch(env.TAXI_INTEGRATION_URL.replace(/\/$/,'') + path, {
-      method: request.method,
-      headers,
-      body: body === undefined ? undefined : body,
-      redirect: 'error',
-      signal: AbortSignal.timeout(2500),
-    });
-  }
-  return null;
+  throw lastError ?? new Error('taxi_integration_unavailable');
 }
 
 function taxiPath(pathname) {
@@ -84,8 +107,15 @@ export async function handle(request,env,fetcher=fetch) {
     const taxiTarget = taxiPath(url.pathname);
     if (taxiTarget) {
       if (!['GET','POST'].includes(request.method)) return json({error:'method_not_allowed'},405);
+      const tenantId = request.headers.get('x-vertex-tenant-id') || '';
+      const organizationId = request.headers.get('x-vertex-organization-id') || '';
+      const correlation = request.headers.get('x-vertex-correlation-id') || '';
+      if (!integrationUuid.test(tenantId) || !integrationUuid.test(organizationId)) return json({error:'tenant_context_required'},400);
+      if (correlation.length > 128) return json({error:'correlation_id_too_long'},400);
+      const mutation = request.method === 'POST';
+      if (mutation && !request.headers.get('idempotency-key')) return json({error:'idempotency_required'},400);
       let body;
-      if (request.method === 'POST') {
+      if (mutation) {
         const mediaType=request.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
         if (mediaType!=='application/json') return json({error:'json_required'},415);
         body=JSON.stringify(await boundedJSON(request,8192));
