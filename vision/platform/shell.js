@@ -219,7 +219,7 @@
     palette.replaceChildren();
     const shell=element('div','vv-palette-shell');
     const head=element('div','vv-palette-head');head.append(element('span','vv-palette-mark','V'),element('div','', ''));
-    const title=element('strong','',tx('Команды и направления','Commands & modules'));const hint=element('small','',tx('Поиск по VERTEX VISION · Esc закрывает','Search VERTEX VISION · Esc closes'));head.lastChild.append(title,hint);shell.append(head);
+    const title=element('strong','',tx('Команды и направления','Commands & modules'));const hint=element('small','',tx('Поиск по VERTEX VISION · Ctrl/Cmd+K · Esc закрывает','Search VERTEX VISION · Ctrl/Cmd+K · Esc closes'));head.lastChild.append(title,hint);shell.append(head);
     const input=element('input','vv-palette-input');input.type='search';input.maxLength=120;input.placeholder=tx('Найти Views, Engineers, Travel…','Find Views, Engineers, Travel…');input.setAttribute('aria-label',tx('Поиск команд и направлений','Search commands and modules'));shell.append(input);
     const results=element('div','vv-palette-results');shell.append(results);palette.append(shell);
     const draw=()=>{
