@@ -1,13 +1,13 @@
 {
   "product": "VERTEX Vision",
   "assembly": "0.1",
-  "architectureVersion": "1.6",
+  "architectureVersion": "1.7",
   "releaseManifest": "vision/release/0.1-RC1.json",
   "platformVersion": "1.16-rc1",
   "apiVersion": "v1",
   "database": {
-    "latestMigration": "0011_event_inbox.sql",
-    "migrationsExpected": 11,
+    "latestMigration": "0012_unified_work_feed.sql",
+    "migrationsExpected": 12,
     "sourceOfTruth": "PostgreSQL/Supabase",
     "productionApplied": false
   },
@@ -91,7 +91,9 @@
     "production-promotion-evidence",
     "production-backup-restore-evidence",
     "trusted-release-controller",
-    "effective-read-only-backup-principal"
+    "effective-read-only-backup-principal",
+    "unified-work-feed",
+    "approval-read-foundation"
   ],
   "kernel": {
     "routePolicy": "vision/backend/kernel.mjs",
@@ -110,7 +112,9 @@
     "traceHeaders": [
       "X-Request-ID",
       "X-Correlation-ID"
-    ]
+    ],
+    "workFeedEndpoint": "/api/v1/work-feed",
+    "workFeedContract": "vision/contracts/work-feed.mjs"
   },
   "readiness": {
     "endpoint": "/readyz",
@@ -121,7 +125,9 @@
       "required-rpcs",
       "rls",
       "views-release-active",
-      "event-inbox"
+      "event-inbox",
+      "unified-work-feed",
+      "approval-rls"
     ],
     "serviceRoleRequired": false
   },
@@ -184,7 +190,7 @@
     "activeRuntimeModule": "views",
     "inactiveModules": "coming-soon",
     "integratedAt": "2026-10-01",
-    "experienceIteration": "5.0",
+    "experienceIteration": "6.0",
     "experienceStyle": "Dark Premium Tech Sand",
     "visualReference": "VERTEX VISION dark control-center boards",
     "runtimeEnhancements": [
@@ -198,7 +204,11 @@
       "recent-modules",
       "my-day-work-center",
       "role-aware-quick-actions",
-      "honest-work-feed-states"
+      "honest-work-feed-states",
+      "unified-work-feed",
+      "tasks-read-model",
+      "approvals-read-foundation",
+      "attention-center"
     ],
     "navigationIntelligence": {
       "commandPalette": true,
@@ -220,11 +230,12 @@
         "requests",
         "operations"
       ],
-      "workFeedConnected": false,
-      "approvalFeedConnected": false,
-      "requestFeedConnected": false,
-      "viewsReadSource": "VertexVisionViews.status()",
-      "fabricatedMetrics": false
+      "workFeedEndpoint": "/api/v1/work-feed",
+      "workFeedReadOnly": true,
+      "approvalDecisionsEnabled": false,
+      "requestMutationsEnabled": false,
+      "fabricatedMetrics": false,
+      "serverAuthoritative": true
     }
   }
 }
