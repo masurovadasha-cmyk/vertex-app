@@ -29,8 +29,8 @@ language sql stable security definer set search_path='' as $vision_background_sc
      join public.vision_module_definitions md on md.id=mi.module_id
      where mi.tenant_id=o.tenant_id
        and mi.organization_id=o.id
-       and md.module_key='views'
-       and mi.status='ENABLED'
+       and md.id='views'
+       and mi.state='ENABLED'
    )
  order by o.tenant_id,o.id
  limit greatest(1,least(coalesce(p_limit,100),500));
