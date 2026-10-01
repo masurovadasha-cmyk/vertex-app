@@ -21,7 +21,7 @@ for(const feature of ['VERTEX VISION primary platform','19 registered child modu
 for(const boundary of ['Shared cloud database and real authentication are not connected','Views is the only active Hub module in RC1; every other division is Coming Soon','Registration does not enable a tenant module or imply completed workflows','JARVIS is a separate project','The existing hosted APK link remains the previous published Vertex build until this RC is separately released'])if(!release.boundaries.includes(boundary))release.boundaries.push(boundary);
 put('release.json',JSON.stringify(release,null,2)+'\n');
 const manifest=JSON.parse(read('manifest.webmanifest'));Object.assign(manifest,{name:'VERTEX VISION — Vertex Group',short_name:'VISION',description:'Views и направления Vertex Group в одной платформе. Демонстрационная версия.'});put('manifest.webmanifest',JSON.stringify(manifest,null,2)+'\n');
-const UI_CACHE_SUFFIX='interface-3';
+const UI_CACHE_SUFFIX='interface-4';
 let sw=read('sw.js').replace(/const CACHE='[^']+'/ ,`const CACHE='vertex-vision-${core.version.replace(/[^a-z0-9]+/gi,'-').toLowerCase()}-${core.revision}-${UI_CACHE_SUFFIX}'`);
 for(const file of ['vision-core.js','vision-views.js','vision-views.css','vision-shell.js','vision-shell.css','vision-compact.css'])if(!sw.includes("'./"+file+"'"))sw=sw.replace('const ASSETS=[',"const ASSETS=['./"+file+"',");put('sw.js',sw);
 put('design-shell.js',read('design-shell.js').replaceAll('1.14-demo',core.version));
