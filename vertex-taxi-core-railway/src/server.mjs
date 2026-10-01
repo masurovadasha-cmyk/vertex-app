@@ -47,8 +47,31 @@ const app = Fastify({
   bodyLimit: 32 * 1024,
   requestTimeout: 5000,
 });
-await app.register(cors, { origin: true });
+const ALLOWED_ORIGINS = new Set(
+  (process.env.CORS_ALLOWED_ORIGINS ||
+   "https://vertex-taxi-core-api-production.up.railway.app,http://localhost:3000,http://127.0.0.1:3000")
+  .split(",").map(v=>v.trim()).filter(Boolean)
+);
+
+await app.register(cors, {
+  origin(origin, callback) {
+    if (!origin || ALLOWED_ORIGINS.has(origin)) return callback(null, true);
+    return callback(new Error("cors_origin_denied"), false);
+  },
+  methods:["GET","HEAD","POST","OPTIONS"],
+  allowedHeaders:["content-type","authorization","x-request-id"],
+  maxAge:600
+});
 await app.register(websocket);
+
+app.addHook("onSend", async (_req, reply, payload) => {
+  reply.header("x-content-type-options","nosniff");
+  reply.header("referrer-policy","strict-origin-when-cross-origin");
+  reply.header("x-frame-options","DENY");
+  reply.header("permissions-policy","camera=(), microphone=()");
+  reply.header("cross-origin-resource-policy","same-site");
+  return payload;
+});
 
 const demoHits = new Map();
 
@@ -174,6 +197,31 @@ app.get("/presentation/styles.css", async (_req, reply) => reply.type("text/css;
 app.get("/presentation/app.js", async (_req, reply) => reply.type("text/javascript; charset=utf-8").send(presentationAssets.js));
 app.get("/presentation/manifest.webmanifest", async (_req, reply) => reply.type("application/manifest+json").send(presentationAssets.manifest));
 app.get("/presentation/icon.svg", async (_req, reply) => reply.type("image/svg+xml").send(presentationAssets.icon));
+
+app.get("/livez", async () => ({
+  service:"vertex-taxi-core",
+  status:"alive",
+  version:"0.9-rc"
+}));
+
+app.get("/readyz", async (_req, reply) => {
+  const timeout=(promise,label)=>Promise.race([
+    promise,
+    new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+"_timeout")),1500))
+  ]);
+  try {
+    const [dbOk,redisOk]=await Promise.all([
+      timeout(db.query("select 1 as ok"),"postgres"),
+      timeout(redis.ping(),"redis")
+    ]);
+    const ready=dbOk.rows[0]?.ok===1&&redisOk==="PONG";
+    if(!ready) reply.code(503);
+    return {service:"vertex-taxi-core",status:ready?"ready":"not_ready",postgres:dbOk.rows[0]?.ok===1,redis:redisOk==="PONG"};
+  } catch(error) {
+    reply.code(503);
+    return {service:"vertex-taxi-core",status:"not_ready",error:String(error.message||error)};
+  }
+});
 
 app.get("/health", async () => {
   const dbOk = await db.query("select 1 as ok");
