@@ -203,3 +203,9 @@ header .brand .vv-wordmark{font:820 13px/1.2 system-ui,sans-serif;letter-spacing
   .vv-palette-shell{max-height:calc(100dvh - 16px)}
   .vv-palette-row{min-height:64px}
 }
+
+
+/* Interface System 5.0 — My Day / Work Center entry points. */
+#visionHome .vv-today-button{width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer}
+#visionHome .vv-today-button:hover{border-color:rgba(224,197,138,.24);background:rgba(205,178,118,.055)}
+#visionHome .vv-today-button:focus-visible{outline:3px solid #dfc17d;outline-offset:2px}
