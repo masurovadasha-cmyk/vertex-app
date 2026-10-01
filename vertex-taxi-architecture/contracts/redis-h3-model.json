@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "keys": {
+    "driverPresence": "taxi:driver:{driver_id}:presence",
+    "driverLocation": "taxi:driver:{driver_id}:location",
+    "h3Drivers": "taxi:h3:{resolution}:{cell}:drivers",
+    "h3Demand": "taxi:h3:{resolution}:{cell}:demand",
+    "offer": "taxi:offer:{offer_id}",
+    "reservation": "taxi:reservation:{offer_id}",
+    "rideRealtime": "taxi:ride:{ride_id}:realtime",
+    "streamDomain": "taxi:stream:domain",
+    "streamDispatch": "taxi:stream:dispatch",
+    "streamNotifications": "taxi:stream:notifications"
+  },
+  "rules": ["TTL all hot location/presence records","never use Redis as financial source of truth","rebuild hot state after Redis loss"]
+}
