@@ -17,7 +17,7 @@ test('Interface System 4 navigation contract is non-sensitive and Views-safe',()
   assert.equal(design.safety.activeModule,'views');
   assert.equal(design.safety.futureModulesOperational,false);
   assert.equal(design.safety.productionChanged,false);
-  assert.equal(assembly.designSystem.experienceIteration,'7.0');
+  assert.equal(assembly.designSystem.experienceIteration,'8.0');
   assert.equal(assembly.designSystem.navigationIntelligence.localFavorites,true);
   assert.equal(assembly.designSystem.navigationIntelligence.localRecents,true);
   assert.equal(assembly.designSystem.navigationIntelligence.sensitiveDataStored,false);
