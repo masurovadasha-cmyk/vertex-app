@@ -35,8 +35,10 @@ const presentationAssets = {
 
 const migration = await fs.readFile(new URL("../migrations/001_init.sql", import.meta.url), "utf8");
 const presentationMigration = await fs.readFile(new URL("../migrations/002_presentation.sql", import.meta.url), "utf8");
+const notificationMigration = await fs.readFile(new URL("../migrations/003_notifications_realtime.sql", import.meta.url), "utf8");
 await db.query(migration);
 await db.query(presentationMigration);
+await db.query(notificationMigration);
 
 const app = Fastify({
   logger: true,
@@ -107,7 +109,26 @@ function driverLeaseKey(driverId) { return `taxi:lease:driver:${driverId}`; }
 function rideLeaseKey(rideId) { return `taxi:lease:ride:${rideId}`; }
 
 async function publishRideEvent(rideId, event) {
-  await redis.publish(`taxi:realtime:ride:${rideId}`, JSON.stringify(event));
+  const streamKey=`taxi:realtime:ride:${rideId}:stream`;
+  const sequence=await redis.incr(`taxi:realtime:ride:${rideId}:sequence`);
+  const envelope={...event,sequence,occurredAt:new Date().toISOString()};
+  const encoded=JSON.stringify(envelope);
+  await redis.xAdd(streamKey,"*",{payload:encoded});
+  await redis.xTrim(streamKey,"MAXLEN",100,{strategyModifier:"~"});
+  await redis.expire(streamKey,86400);
+  await redis.expire(`taxi:realtime:ride:${rideId}:sequence`,86400);
+  await redis.publish(`taxi:realtime:ride:${rideId}`, encoded);
+  return envelope;
+}
+
+async function queueNotification({eventId,userId,type,title,body,data={}}) {
+  await db.query(
+    `insert into taxi_notification_outbox
+      (event_id,user_id,channel,notification_type,title,body,data)
+     values($1,$2,'push',$3,$4,$5,$6)
+     on conflict(event_id,user_id,channel) do nothing`,
+    [eventId,userId,type,title,body,JSON.stringify(data)]
+  );
 }
 
 app.get("/", async (_req, reply) => reply.redirect("/presentation"));
@@ -326,7 +347,13 @@ app.post("/v1/offers", { preHandler: auth }, async (req, reply) => {
     "update taxi_rides set state='DRIVER_OFFERED',version=version+1,updated_at=now() where id=$1 and state in ('REQUESTED','SEARCHING')",
     [input.rideId]
   );
-  await publishRideEvent(input.rideId,{type:"ride.driver_offered",rideId:input.rideId,driverId:input.driverId,offerId,expiresAt});
+  const offerEventId=crypto.randomUUID();
+  await publishRideEvent(input.rideId,{type:"ride.driver_offered",eventId:offerEventId,rideId:input.rideId,driverId:input.driverId,offerId,expiresAt});
+  await queueNotification({
+    eventId:offerEventId,userId:input.driverId,type:"DRIVER_OFFER",
+    title:"New Vertex Taxi order",body:"A new ride is available",
+    data:{rideId:input.rideId,offerId,expiresAt}
+  });
   reply.code(201);
   return {data:{offerId,expiresAt}};
 });
@@ -841,9 +868,78 @@ app.get("/demo/v1/admin/summary", { preHandler: demoOnly }, async () => {
   };
 });
 
+
+const deviceInput=z.object({
+  userId:z.string().min(1).max(128),
+  role:z.enum(["client","driver","staff","moderator","admin","owner"]),
+  platform:z.enum(["android","ios","web"]),
+  provider:z.enum(["fcm","apns","webpush","demo"]),
+  token:z.string().min(8).max(4096),
+  deviceId:z.string().min(1).max(200),
+  appVersion:z.string().max(50).optional(),
+});
+
+app.post("/v1/devices/register", { preHandler: auth }, async (req, reply) => {
+  const input=deviceInput.parse(req.body);
+  const tokenHash=crypto.createHash("sha256").update(input.token).digest("hex");
+  const result=await db.query(
+    `insert into taxi_devices
+      (user_id,role,platform,provider,token_hash,token_ciphertext,device_id,app_version,enabled,last_seen_at,updated_at)
+     values($1,$2,$3,$4,$5,$6,$7,$8,true,now(),now())
+     on conflict(provider,token_hash) do update set
+       user_id=excluded.user_id,role=excluded.role,platform=excluded.platform,
+       device_id=excluded.device_id,app_version=excluded.app_version,
+       enabled=true,last_seen_at=now(),updated_at=now()
+     returning id,user_id,role,platform,provider,device_id,app_version,enabled,last_seen_at`,
+    [input.userId,input.role,input.platform,input.provider,tokenHash,
+     input.provider==="demo"?input.token:null,input.deviceId,input.appVersion??null]
+  );
+  reply.code(201);
+  return {data:result.rows[0]};
+});
+
+app.post("/v1/devices/unregister", { preHandler: auth }, async (req) => {
+  const input=z.object({provider:z.string(),token:z.string().min(8)}).parse(req.body);
+  const tokenHash=crypto.createHash("sha256").update(input.token).digest("hex");
+  await db.query(
+    "update taxi_devices set enabled=false,updated_at=now() where provider=$1 and token_hash=$2",
+    [input.provider,tokenHash]
+  );
+  return {data:{disabled:true}};
+});
+
+app.get("/v1/notifications/pending", { preHandler: auth }, async () => {
+  const result=await db.query(
+    `select id,event_id,user_id,notification_type,title,body,data,attempt_count,next_attempt_at
+     from taxi_notification_outbox
+     where state in ('PENDING','RETRY') and next_attempt_at<=now()
+     order by created_at asc limit 100`
+  );
+  return {data:result.rows};
+});
+
+app.get("/v1/realtime/rides/:rideId/replay", { preHandler: auth }, async (req) => {
+  const rideId=z.string().uuid().parse(req.params.rideId);
+  const after=Number(req.query?.after||0);
+  const entries=await redis.xRange(`taxi:realtime:ride:${rideId}:stream`,"-","+");
+  const events=[];
+  for(const entry of entries){
+    try{
+      const parsed=JSON.parse(entry.message.payload);
+      if(Number(parsed.sequence||0)>after) events.push(parsed);
+    }catch{}
+  }
+  return {data:events.slice(-100)};
+});
+
 app.get("/v1/realtime/rides/:rideId", { websocket:true }, (socket, req) => {
   const rideId=req.params.rideId;
   const sub=redis.duplicate();
+  redis.get(`taxi:realtime:ride:${rideId}:sequence`).then(value=>{
+    if(socket.readyState===1) socket.send(JSON.stringify({
+      type:"realtime.hello",rideId,sequence:Number(value||0),occurredAt:new Date().toISOString()
+    }));
+  }).catch(()=>{});
   let closed=false;
   (async()=>{
     await sub.connect();
