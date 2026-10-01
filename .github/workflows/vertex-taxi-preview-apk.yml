@@ -74,8 +74,8 @@ jobs:
                   applicationId = "com.vertex.taxi.preview"
                   minSdk = 26
                   targetSdk = 35
-                  versionCode = 5
-                  versionName = "0.5-rc"
+                  versionCode = 6
+                  versionName = "0.6-rc"
               }
 
               buildTypes {
@@ -464,6 +464,7 @@ jobs:
               private long generation = 0;
               private int reconnectAttempt = 0;
               private String lastFingerprint = "";
+              private long lastSequence = 0;
 
               public RideRealtimeClient(WebView webView) {
                   this.webView = webView;
@@ -485,6 +486,12 @@ jobs:
                           if (current != generation) return;
                           String fingerprint = Integer.toHexString(text.hashCode());
                           if (fingerprint.equals(lastFingerprint)) return;
+                          try {
+                              JSONObject event = new JSONObject(text);
+                              long sequence = event.optLong("sequence", 0);
+                              if (sequence > 0 && sequence <= lastSequence) return;
+                              if (sequence > 0) lastSequence = sequence;
+                          } catch (Exception ignored) {}
                           lastFingerprint = fingerprint;
                           handler.post(() -> webView.evaluateJavascript(
                               "window.dispatchEvent(new CustomEvent('vertex:realtime',{detail:" +
@@ -530,6 +537,7 @@ jobs:
                   rideId = null;
                   reconnectAttempt = 0;
                   lastFingerprint = "";
+                  lastSequence = 0;
               }
           }
           EOF
