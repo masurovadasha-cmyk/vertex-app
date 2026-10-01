@@ -38,6 +38,12 @@ export function routePlan(url,method){
       ||!Number.isSafeInteger(limit)||limit<1||limit>100)throw new Error('invalid_work_feed_query');
     return Object.freeze({kind:'work-feed',rpc:'vision_work_feed',module:'core',tenant,organization,limit});
   }
+  if(key==='GET /api/v1/work-assignees'){
+    const tenant=url.searchParams.get('tenant_id'),organization=url.searchParams.get('organization_id');
+    if(url.searchParams.size!==2||url.searchParams.getAll('tenant_id').length!==1||url.searchParams.getAll('organization_id').length!==1||!uuid.test(tenant||'')||!uuid.test(organization||''))throw new Error('invalid_work_assignees_query');
+    return Object.freeze({kind:'work-assignees',rpc:'vision_work_assignees',module:'core',tenant,organization});
+  }
+  if(key==='POST /api/v1/work/commands')return Object.freeze({kind:'command',rpc:'vision_work_command',bodyLimit:8192,module:'work'});
   if(method==='GET'&&Object.hasOwn(legacyReads,url.pathname)){
     const tenant=url.searchParams.get('tenant_id');
     if(!uuid.test(tenant||''))throw new Error('tenant_id_required');
