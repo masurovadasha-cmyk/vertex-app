@@ -27,7 +27,7 @@ No Taxi credentials or private signing keys are committed to Git. The HTTP fallb
 **Cross-account / temporary host**
 
 Deploy VISION with `vision/wrangler.jsonc`, then configure:
-- `TAXI_INTEGRATION_URL` as a non-secret staging variable;
+- `TAXI_INTEGRATION_URL` as a non-secret staging variable containing only the HTTPS origin (no path, query, credentials or fragment);
 - `TAXI_INTEGRATION_KEY_ID` as a non-secret key identifier;
 - `TAXI_INTEGRATION_PRIVATE_JWK` as a Worker secret.
 
