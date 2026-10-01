@@ -3,6 +3,7 @@ import {routePlan,projectSessionContext} from './kernel.mjs';
 import {validateViewsCommand} from '../modules/views/command-contract.mjs';
 import {projectViewsCommandResponse} from '../modules/views/response-contract.mjs';
 import {projectRuntimeReadiness} from './readiness.mjs';
+import {systemStatusBase,projectSystemStatus} from './system-status.mjs';
 import {projectWorkFeed} from '../contracts/work-feed.mjs';
 import {validateWorkCommand,projectWorkCommandResponse} from '../contracts/work-command.mjs';
 import {projectWorkAssignees} from '../contracts/work-assignees.mjs';
@@ -42,6 +43,32 @@ export async function handle(request,env,fetcher=fetch){
     architectureVersion:'2.0',requiredMigration:'0015_background_runtime.sql',
     sourceCommit:/^[a-f0-9]{40}$/.test(env.VISION_SOURCE_COMMIT||'')?env.VISION_SOURCE_COMMIT:null
   });
+  if(url.pathname==='/system-status'){
+    if(!['GET','HEAD'].includes(request.method))return reply({error:'method_not_allowed'},405);
+    const base=systemStatusBase(env);
+    if(!base.backendConfigured){
+      const projected=projectSystemStatus(base,null,false);
+      if(request.method==='HEAD')return new Response(null,{status:200,headers:{'cache-control':'no-store','x-content-type-options':'nosniff','x-request-id':requestId}});
+      return reply(projected);
+    }
+    try{
+      const response=await fetcher(env.SUPABASE_URL+'/rest/v1/rpc/vision_runtime_readiness',{
+        method:'POST',
+        headers:{apikey:env.SUPABASE_PUBLISHABLE_KEY,'content-type':'application/json'},
+        body:'{}',redirect:'error',signal:AbortSignal.timeout(10000)
+      });
+      const body=await upstreamJSON(response,65536);
+      if(!response.ok)throw new Error('readiness_unavailable');
+      const readiness=projectRuntimeReadiness(body);
+      const projected=projectSystemStatus(base,readiness,true);
+      if(request.method==='HEAD')return new Response(null,{status:200,headers:{'cache-control':'no-store','x-content-type-options':'nosniff','x-request-id':requestId}});
+      return reply(projected);
+    }catch{
+      const projected=projectSystemStatus(base,null,false);
+      if(request.method==='HEAD')return new Response(null,{status:200,headers:{'cache-control':'no-store','x-content-type-options':'nosniff','x-request-id':requestId}});
+      return reply(projected);
+    }
+  }
   if(url.pathname==='/readyz'){
     if(!['GET','HEAD'].includes(request.method))return reply({error:'method_not_allowed'},405);
     if(!configured(env))return reply({ready:false,error:'backend_not_configured'},503);
