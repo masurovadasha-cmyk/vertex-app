@@ -1,0 +1,9 @@
+name = "vertex-taxi-edge"
+main = "src/worker.mjs"
+compatibility_date = "2026-10-01"
+
+[vars]
+ORIGIN_BASE = "https://vertex-taxi-core-api-production.up.railway.app"
+
+# Production deploy requires Cloudflare credentials outside the repository.
+# Durable Objects/Queues are intentionally not enabled until traffic justifies them.
