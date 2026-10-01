@@ -18,16 +18,66 @@ function taxiIntegrationHeaders(request, correlationId, userId) {
   return headers;
 }
 
+function b64url(bytes) {
+  let binary='';
+  for (const byte of bytes) binary+=String.fromCharCode(byte);
+  return btoa(binary).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
+}
+
+function exactBuffer(bytes) {
+  const copy=new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+}
+
+async function taxiDigest(value) {
+  const bytes=typeof value==='string' ? new TextEncoder().encode(value) : value;
+  return b64url(new Uint8Array(await crypto.subtle.digest('SHA-256',exactBuffer(bytes))));
+}
+
+async function signTaxiHeaders(env,path,method,headers,body) {
+  if (!env.TAXI_INTEGRATION_PRIVATE_JWK || !env.TAXI_INTEGRATION_KEY_ID) return null;
+  let jwk;
+  try { jwk=JSON.parse(env.TAXI_INTEGRATION_PRIVATE_JWK); }
+  catch { return null; }
+  if (jwk?.kty!=='EC' || jwk?.crv!=='P-256' || !jwk?.d || !jwk?.x || !jwk?.y) return null;
+  const key=await crypto.subtle.importKey(
+    'jwk',jwk,{name:'ECDSA',namedCurve:'P-256'},false,['sign']
+  );
+  const timestamp=String(Math.floor(Date.now()/1000));
+  const authorization=headers.get('authorization')||'';
+  const canonical=[
+    method.toUpperCase(),
+    path,
+    timestamp,
+    headers.get('x-vertex-tenant-id')||'',
+    headers.get('x-vertex-organization-id')||'',
+    headers.get('x-vertex-user-id')||'',
+    headers.get('x-vertex-correlation-id')||'',
+    headers.get('x-vertex-caller')||'',
+    await taxiDigest(authorization),
+    await taxiDigest(new TextEncoder().encode(body??'')),
+  ].join('\n');
+  const signature=new Uint8Array(await crypto.subtle.sign(
+    {name:'ECDSA',hash:'SHA-256'},key,new TextEncoder().encode(canonical)
+  ));
+  headers.set('x-vertex-key-id',env.TAXI_INTEGRATION_KEY_ID);
+  headers.set('x-vertex-timestamp',timestamp);
+  headers.set('x-vertex-signature',b64url(signature));
+  return headers;
+}
+
 async function taxiFetch(env, path, request, body, userId) {
   const correlationId = request.headers.get('x-vertex-correlation-id') || crypto.randomUUID();
   const headers = taxiIntegrationHeaders(request, correlationId, userId);
+  if (body !== undefined) headers.set('content-type','application/json');
+  if (!(await signTaxiHeaders(env,path,request.method,headers,body))) return null;
   const retryable = request.method === 'GET' || Boolean(request.headers.get('idempotency-key'));
   const maxAttempts = retryable ? 3 : 1;
   let lastError;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
       if (env.VERTEX_TAXI_CORE && typeof env.VERTEX_TAXI_CORE.fetch === 'function') {
-        if (body !== undefined) headers.set('content-type','application/json');
         const target = new Request('https://vertex-taxi-core.internal' + path, {
           method: request.method,
           headers,
@@ -35,9 +85,7 @@ async function taxiFetch(env, path, request, body, userId) {
         });
         const response = await env.VERTEX_TAXI_CORE.fetch(target);
         if (!retryable || ![502,503,504].includes(response.status) || attempt === maxAttempts - 1) return response;
-      } else if (env.TAXI_INTEGRATION_URL && env.TAXI_INTEGRATION_SHARED_SECRET) {
-        headers.set('x-vertex-integration-secret', env.TAXI_INTEGRATION_SHARED_SECRET);
-        if (body !== undefined) headers.set('content-type','application/json');
+      } else if (env.TAXI_INTEGRATION_URL) {
         const response = await fetch(env.TAXI_INTEGRATION_URL.replace(/\/$/,'') + path, {
           method: request.method,
           headers,
