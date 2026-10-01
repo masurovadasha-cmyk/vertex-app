@@ -18,7 +18,7 @@ test('Interface System 5 Work Center contract stays honest and Views-safe',()=>{
   assert.equal(design.safety.activeModule,'views');
   assert.equal(design.safety.futureModulesOperational,false);
   assert.equal(design.safety.productionChanged,false);
-  assert.equal(assembly.designSystem.experienceIteration,'8.0');
+  assert.equal(assembly.designSystem.experienceIteration,'9.0');
   assert.equal(assembly.designSystem.workCenter.fabricatedMetrics,false);
   assert.equal(assembly.designSystem.workCenter.workFeedEndpoint,'/api/v1/work-feed');
   assert.equal(assembly.designSystem.workCenter.workFeedReadOnly,true);
