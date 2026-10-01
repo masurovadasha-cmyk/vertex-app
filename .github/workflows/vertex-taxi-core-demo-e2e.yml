@@ -102,14 +102,27 @@ jobs:
               throw new Error('expected both demo drivers, got '+JSON.stringify(result.candidateIds));
             }
 
-            const offer=await call('offer','/demo/v1/offers',{
-              method:'POST',
-              body:JSON.stringify({
-                rideId:result.ids.rideId,
-                driverId:result.candidateIds[0]
-              })
-            });
+            let offer=null;
+            let selectedDriverId=null;
+            for(const driverId of result.candidateIds){
+              const attempt=await fetch(base+'/demo/v1/offers',{
+                method:'POST',
+                headers:{'content-type':'application/json'},
+                body:JSON.stringify({rideId:result.ids.rideId,driverId})
+              });
+              const attemptText=await attempt.text();
+              let attemptBody;try{attemptBody=JSON.parse(attemptText)}catch{attemptBody={raw:attemptText}}
+              result.steps.push({name:'offer-attempt',path:'/demo/v1/offers',status:attempt.status,driverId});
+              if(attempt.status===201){
+                offer=attemptBody;
+                selectedDriverId=driverId;
+                break;
+              }
+              if(attempt.status!==409) throw new Error('offer unexpected '+attempt.status+' '+attemptText.slice(0,500));
+            }
+            if(!offer) throw new Error('no candidate could acquire offer lease');
             result.ids.offerId=offer.data.offerId;
+            result.ids.selectedDriverId=selectedDriverId;
 
             const accepted=await call(
               'accept',
@@ -121,7 +134,6 @@ jobs:
               throw new Error('assigned state '+result.finalState+' != DRIVER_ASSIGNED');
             }
 
-            const selectedDriverId=result.candidateIds[0];
             async function command(command,actorId){
               const response=await call(
                 'command-'+command.toLowerCase(),
