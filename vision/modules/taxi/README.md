@@ -16,7 +16,7 @@ The browser module opens the standalone Vertex Taxi application. It never receiv
 
 ## Staging state
 
-The integration is contract-ready. A real Taxi Core Worker binding is not declared in VISION until the Taxi staging Worker has a stable deployed name and verified authentication contract.
+The integration branch is contract-ready and declares the staging Service Binding target `vertex-taxi-core-staging`. Deployment remains gated until that standalone Taxi Core Worker exists and the delegated identity contract is verified.
 
 When both Workers are deployed in the same Cloudflare account, prefer a Service Binding over a public HTTP hop for server-to-server calls.
 
@@ -39,7 +39,7 @@ NO direct SQL
 ## Future integration sequence
 
 1. Deploy Taxi Core staging.
-2. Verify JWT/service identity and tenant mapping.
+2. Verify JWT/service identity, active VISION tenant/organization membership, and Taxi-side authorization.
 3. Add VERTEX_TAXI_CORE Service Binding to VISION staging.
 4. Run integration contract tests.
 5. Enable Taxi navigation in VISION.
