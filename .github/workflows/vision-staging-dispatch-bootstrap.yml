@@ -1,8 +1,8 @@
 name: VERTEX VISION Staging Dispatch Bootstrap
 
 on:
-  push:
-    branches: [master]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   dispatch:
-    if: ${{ contains(github.event.head_commit.message, '[vision-staging-dispatch]') }}
+    if: ${{ github.actor == 'masurovadasha-cmyk' && github.event.comment.body == '/vision-staging-e2e' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
