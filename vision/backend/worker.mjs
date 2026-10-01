@@ -3,6 +3,7 @@ import {routePlan,projectSessionContext} from './kernel.mjs';
 import {validateViewsCommand} from '../modules/views/command-contract.mjs';
 import {projectViewsCommandResponse} from '../modules/views/response-contract.mjs';
 import {projectRuntimeReadiness} from './readiness.mjs';
+import {projectWorkFeed} from '../contracts/work-feed.mjs';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const json=(body,status=200,extra={})=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...extra}});
@@ -88,6 +89,8 @@ export async function handle(request,env,fetcher=fetch){
       result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({command})});
     }else if(plan.kind==='context'){
       result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({p_tenant:plan.tenant,p_organization:plan.organization})});
+    }else if(plan.kind==='work-feed'){
+      result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({p_tenant:plan.tenant,p_organization:plan.organization,p_limit:plan.limit})});
     }else if(plan.kind==='views-read'){
       result=await upstream('/rest/v1/'+plan.table+'?'+plan.read.params);
     }else{
@@ -109,9 +112,10 @@ export async function handle(request,env,fetcher=fetch){
       return reply(page.items,200,{'x-page-limit':String(plan.read.limit),...(page.nextCursor?{'x-next-cursor':page.nextCursor}:{})});
     }
     if(plan.kind==='context')return reply(projectSessionContext(body));
+    if(plan.kind==='work-feed')return reply(projectWorkFeed(body));
     return reply(body);
   }catch(error){
-    if(['invalid_page_query','tenant_id_required','organization_id_required','invalid_context_query','invalid_command'].includes(error.message))return reply({error:error.message},400);
+    if(['invalid_page_query','tenant_id_required','organization_id_required','invalid_context_query','invalid_work_feed_query','invalid_command'].includes(error.message))return reply({error:error.message},400);
     if(error.message==='body_too_large')return reply({error:'body_too_large'},413);
     if(error.message==='invalid_json')return reply({error:'invalid_json'},400);
     return reply({error:'backend_unavailable'},503);
