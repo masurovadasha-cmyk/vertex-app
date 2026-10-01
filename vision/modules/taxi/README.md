@@ -44,3 +44,30 @@ NO direct SQL
 4. Run integration contract tests.
 5. Enable Taxi navigation in VISION.
 6. Only after staging approval consider production binding.
+
+
+## Reconciled master gateway
+
+The master integration layer now contains a staging-capable server gateway without
+moving Taxi private state into VISION. Authenticated VISION users may be delegated
+only when the existing server-authoritative session-scope RPC confirms an active
+member scope for the requested tenant and organization.
+
+Gateway routes:
+- `GET /api/taxi/capabilities`
+- `GET /api/taxi/health`
+- `GET /api/taxi/rides/{ride_id}`
+- `POST /api/taxi/rides`
+- `POST /api/taxi/rides/{ride_id}/commands`
+
+Mutations require an idempotency key. The forwarded `x-vertex-user-id` is always
+derived from the verified Supabase identity; a browser-supplied user id is ignored.
+
+Transport is fail-closed. A future staging environment may provide either an
+optional Cloudflare Service Binding named `VERTEX_TAXI_CORE` or an explicitly
+configured authenticated HTTP fallback. Neither is required by the default VISION
+deployment, so Views staging remains independently deployable.
+
+The existing generic VISION event inbox remains the canonical durability boundary
+for future Taxi event consumption. The older parallel Taxi-specific inbox schema
+from experimental PRs is intentionally not duplicated in master.
