@@ -16,8 +16,8 @@ test('Interface System 8 defines notification and escalation foundation without 
   assert.equal(design.refresh.pushSubscription,false);
   assert.equal(design.controls.serverDerivedEscalationAck,true);
   assert.equal(design.safety.fabricatedEvents,false);
-  assert.equal(assembly.architectureVersion,'2.2');
-  assert.equal(assembly.database.latestMigration,'0018_engineers_readiness.sql');
+  assert.equal(assembly.architectureVersion,'2.3');
+  assert.equal(assembly.database.latestMigration,'0019_external_module_delegation.sql');
   assert.equal(assembly.designSystem.experienceIteration,'11.0');
   assert.equal(assembly.designSystem.notifications.refreshMode,'polling-30s-not-push');
 });
