@@ -1,5 +1,5 @@
 // VERTEX VISION Work assignee DTO projector.
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function projectWorkAssignees(body){
   if(!Array.isArray(body)||body.length>100)throw new Error('upstream_invalid_response');
   const seen=new Set();
