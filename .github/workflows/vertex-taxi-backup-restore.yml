@@ -1,0 +1,58 @@
+name: Vertex Taxi Backup Restore Drill
+
+on:
+  push:
+    branches: [vertex-taxi-core-railway-staging]
+    paths:
+      - 'vertex-taxi-core-railway/migrations/**'
+      - '.github/workflows/vertex-taxi-backup-restore.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup-restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: vertex
+          POSTGRES_PASSWORD: vertex
+          POSTGRES_DB: vertex_taxi
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vertex -d vertex_taxi"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGPASSWORD: vertex
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migrations and seed
+        run: |
+          set -euo pipefail
+          for f in vertex-taxi-core-railway/migrations/*.sql; do
+            psql -h 127.0.0.1 -U vertex -d vertex_taxi -v ON_ERROR_STOP=1 -f "$f"
+          done
+          psql -h 127.0.0.1 -U vertex -d vertex_taxi -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO taxi_quotes(user_id,pickup_lat,pickup_lng,pickup_label,destination_lat,destination_lng,destination_label,service_class,distance_km,fare_minor,currency,expires_at)
+          VALUES('restore-test',41.3111,69.2797,'NRG U-Tower',41.2995,69.2401,'Tashkent City Mall','comfort',12,1300,'USD',now()+interval '1 hour');
+          SQL
+      - name: Logical backup
+        run: pg_dump -h 127.0.0.1 -U vertex -d vertex_taxi -Fc -f vertex-taxi.dump
+      - name: Restore into clean database
+        run: |
+          createdb -h 127.0.0.1 -U vertex vertex_taxi_restore
+          pg_restore -h 127.0.0.1 -U vertex -d vertex_taxi_restore --no-owner --no-privileges vertex-taxi.dump
+      - name: Verify restored schema and data
+        run: |
+          test "$(psql -h 127.0.0.1 -U vertex -d vertex_taxi_restore -Atc "select count(*) from taxi_quotes where user_id='restore-test'")" = "1"
+          test "$(psql -h 127.0.0.1 -U vertex -d vertex_taxi_restore -Atc "select count(*) from information_schema.columns where table_name='taxi_offers' and column_name='fencing_token'")" = "1"
+          test "$(psql -h 127.0.0.1 -U vertex -d vertex_taxi_restore -Atc "select count(*) from information_schema.tables where table_name='taxi_notification_outbox'")" = "1"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vertex-taxi-logical-backup-drill
+          path: vertex-taxi.dump
+          retention-days: 3
