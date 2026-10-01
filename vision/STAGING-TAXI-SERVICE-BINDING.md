@@ -19,10 +19,10 @@ The gateway first authenticates the VISION user against the existing staging ide
 ## Transport order
 
 1. `env.VERTEX_TAXI_CORE.fetch(...)` via Service Binding.
-2. Optional authenticated HTTP fallback when `TAXI_INTEGRATION_URL` and the secret `TAXI_INTEGRATION_SHARED_SECRET` are configured.
+2. Optional HTTPS fallback when `TAXI_INTEGRATION_URL`, `TAXI_INTEGRATION_KEY_ID`, and the Worker secret `TAXI_INTEGRATION_PRIVATE_JWK` are configured. VISION signs the delegated request with ECDSA P-256; Taxi Core verifies the public key.
 3. Otherwise fail closed with `taxi_integration_not_configured`.
 
-No Taxi credentials are committed to Git.
+No Taxi credentials or private signing keys are committed to Git. The HTTP fallback uses asymmetric P-256 service proof; there is no shared-secret fallback.
 
 ## Required Taxi staging deployment
 
@@ -40,3 +40,7 @@ Production remains unchanged until the staging golden flow passes:
 ## Event return path
 
 The request gateway does not by itself complete the reverse event path. The agreed async boundary remains `Taxi Outbox → Event Gateway → VISION Inbox`, with at-least-once delivery and deduplication by event id. `Taxi event → VISION projection` remains a required staging gate before the Golden E2E can be declared complete.
+
+## Cross-account staging transport
+
+When Taxi Core is temporarily hosted outside the VISION Cloudflare account, use the HTTPS fallback with the same `/integration/v1` contract. The request signature covers method, path/query, timestamp, tenant, organization, verified user id, caller, the authorization-token hash and body hash. The timestamp window is five minutes. Moving Taxi Core into the same Cloudflare account later changes only the transport to Service Binding; the API and delegated identity contract stay unchanged.
