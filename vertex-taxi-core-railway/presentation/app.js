@@ -28,7 +28,14 @@ async function api(path,options={}){
 }
 function money(minor){return "$"+(Number(minor||0)/100).toFixed(2)}
 function icon(name){const m={home:"⌂",history:"◷",wallet:"▣",profile:"♙",earn:"▥",orders:"▤",admin:"⚙"};return m[name]||"•"}
-function setScreen(screen){state.screen=screen;state.error=null;destroyMap();render();window.scrollTo(0,0)}
+function setScreen(screen){
+ state.screen=screen;state.error=null;destroyMap();
+ try{
+   if(state.rideId&&["trip","driverNav"].includes(screen)) window.VertexNative?.connectRideRealtime?.(state.rideId);
+   else window.VertexNative?.disconnectRideRealtime?.();
+ }catch{}
+ render();window.scrollTo(0,0)
+}
 function destroyMap(){if(state.map){state.map.remove();state.map=null}}
 function tabs(active,role=state.role){
   const items=role==="driver"?[["driverHome","home","Home"],["earnings","earn","Earnings"],["driverOrders","orders","Orders"],["profile","profile","Profile"]]:[["home","home","Home"],["history","history","History"],["wallet","wallet","Wallet"],["profile","profile","Profile"]];
@@ -243,3 +250,18 @@ function bind(){
 }
 window.addEventListener("popstate",()=>{if(state.screen!=="splash")setScreen("home")});
 render();
+
+window.addEventListener("vertex:realtime", async (event)=>{
+  try{
+    const payload=typeof event.detail==="string"?JSON.parse(event.detail):event.detail;
+    if(!payload||payload.rideId!==state.rideId)return;
+    if(payload.state){
+      state.ride={...(state.ride||{}),state:payload.state,version:payload.version??state.ride?.version};
+      if(["trip","driverNav"].includes(state.screen))render();
+      if(payload.state==="COMPLETED"&&state.role==="client")setScreen("payment");
+    }
+  }catch{}
+});
+window.addEventListener("vertex:realtime-status",(event)=>{
+  document.documentElement.dataset.realtime=String(event.detail||"unknown");
+});
