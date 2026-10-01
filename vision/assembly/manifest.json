@@ -1,13 +1,13 @@
 {
   "product": "VERTEX Vision",
   "assembly": "0.1",
-  "architectureVersion": "1.7",
+  "architectureVersion": "1.8",
   "releaseManifest": "vision/release/0.1-RC1.json",
   "platformVersion": "1.16-rc1",
   "apiVersion": "v1",
   "database": {
-    "latestMigration": "0012_unified_work_feed.sql",
-    "migrationsExpected": 12,
+    "latestMigration": "0013_work_actions.sql",
+    "migrationsExpected": 13,
     "sourceOfTruth": "PostgreSQL/Supabase",
     "productionApplied": false
   },
@@ -114,7 +114,11 @@
       "X-Correlation-ID"
     ],
     "workFeedEndpoint": "/api/v1/work-feed",
-    "workFeedContract": "vision/contracts/work-feed.mjs"
+    "workFeedContract": "vision/contracts/work-feed.mjs",
+    "workCommandsEndpoint": "/api/v1/work/commands",
+    "workCommandContract": "vision/contracts/work-command.mjs",
+    "workAssigneesEndpoint": "/api/v1/work-assignees",
+    "workAssigneesContract": "vision/contracts/work-assignees.mjs"
   },
   "readiness": {
     "endpoint": "/readyz",
@@ -127,7 +131,9 @@
       "views-release-active",
       "event-inbox",
       "unified-work-feed",
-      "approval-rls"
+      "approval-rls",
+      "work-command-rpc",
+      "work-assignee-rpc"
     ],
     "serviceRoleRequired": false
   },
@@ -190,7 +196,7 @@
     "activeRuntimeModule": "views",
     "inactiveModules": "coming-soon",
     "integratedAt": "2026-10-01",
-    "experienceIteration": "6.0",
+    "experienceIteration": "7.0",
     "experienceStyle": "Dark Premium Tech Sand",
     "visualReference": "VERTEX VISION dark control-center boards",
     "runtimeEnhancements": [
@@ -208,7 +214,12 @@
       "unified-work-feed",
       "tasks-read-model",
       "approvals-read-foundation",
-      "attention-center"
+      "attention-center",
+      "task-lifecycle-actions",
+      "approval-decisions",
+      "sla-state",
+      "work-assignee-directory",
+      "live-refresh-polling"
     ],
     "navigationIntelligence": {
       "commandPalette": true,
@@ -231,11 +242,13 @@
         "operations"
       ],
       "workFeedEndpoint": "/api/v1/work-feed",
-      "workFeedReadOnly": true,
-      "approvalDecisionsEnabled": false,
+      "workCommandsEndpoint": "/api/v1/work/commands",
+      "assigneesEndpoint": "/api/v1/work-assignees",
+      "approvalDecisionsEnabled": true,
       "requestMutationsEnabled": false,
       "fabricatedMetrics": false,
-      "serverAuthoritative": true
+      "serverAuthoritative": true,
+      "refreshMode": "polling-30s-not-push"
     }
   }
 }
