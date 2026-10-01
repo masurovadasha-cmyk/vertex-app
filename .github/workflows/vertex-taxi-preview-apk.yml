@@ -303,8 +303,7 @@ jobs:
                               else startService(intent);
                           } else {
                               intent.setAction(DriverForegroundService.ACTION_STOP);
-                              if (Build.VERSION.SDK_INT >= 26) startForegroundService(intent);
-                              else startService(intent);
+                              startService(intent);
                           }
                       });
                   }
@@ -680,7 +679,7 @@ jobs:
                   Notification notification = builder
                       .setContentTitle("Новый заказ · " + price)
                       .setContentText(pickup + " → " + destination)
-                      .setSmallIcon(android.R.drawable.ic_dialog_map)
+                      .setSmallIcon(android.R.drawable.ic_menu_mylocation)
                       .setAutoCancel(true)
                       .setPriority(Notification.PRIORITY_HIGH)
                       .setContentIntent(pending)
@@ -705,7 +704,6 @@ jobs:
                   return null;
               }
           }
-          EOF
           EOF
 
       - name: Build preview APK
