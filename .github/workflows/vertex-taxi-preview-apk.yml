@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+env:
+  RC_BUILD: 0.9
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
