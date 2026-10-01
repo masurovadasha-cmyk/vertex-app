@@ -1,3 +1,4 @@
+import {pathToFileURL} from 'node:url';
 const REF_RE=/^[a-z0-9]{20}$/;
 const PUBLISHABLE_RE=/^sb_publishable_[A-Za-z0-9_-]+$/;
 
@@ -47,7 +48,7 @@ export function safeSummary(config){
   };
 }
 
-if(import.meta.url===new URL(process.argv[1],'file:').href){
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   const config=stagingConfig(process.env,{database:process.argv.includes('--database'),worker:process.argv.includes('--worker')});
   console.log(JSON.stringify({ok:true,...safeSummary(config)},null,2));
 }
