@@ -18,7 +18,7 @@ const authFetch = async (url) => {
 
 test('Taxi gateway fails closed when neither service binding nor HTTP fallback is configured', async () => {
   const request = new Request('https://vision-staging.example/api/taxi/capabilities', {
-    headers: { authorization: 'Bearer demo' },
+    headers: { authorization: 'Bearer demo', 'x-vertex-tenant-id': '00000000-0000-0000-0000-000000000001', 'x-vertex-organization-id': '00000000-0000-0000-0000-000000000001' },
   });
   const response = await handle(request, env, authFetch);
   assert.equal(response.status, 503);
@@ -71,4 +71,20 @@ test('Taxi mutation forwards idempotency and tenant context through the binding'
   const response = await handle(request, { ...env, VERTEX_TAXI_CORE: taxi }, authFetch);
   assert.equal(response.status, 201);
   assert.equal((await response.json()).data.rideId, 'r-1');
+});
+
+test('Taxi mutation is rejected without idempotency', async () => {
+  const request = new Request('https://vision-staging.example/api/taxi/rides', {
+    method: 'POST',
+    headers: {
+      authorization: 'Bearer demo',
+      'content-type': 'application/json',
+      'x-vertex-tenant-id': '00000000-0000-0000-0000-000000000001',
+      'x-vertex-organization-id': '00000000-0000-0000-0000-000000000001',
+    },
+    body: JSON.stringify({ quoteId: 'q-1' }),
+  });
+  const response = await handle(request, { ...env, VERTEX_TAXI_CORE: { fetch: async () => { throw new Error('must not call'); } } }, authFetch);
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'idempotency_required' });
 });
