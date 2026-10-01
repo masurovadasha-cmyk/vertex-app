@@ -19,6 +19,7 @@ try{
   const escalations=await reconcileEscalationScopes(adapter,{maxScopes:100});
   process.stdout.write(JSON.stringify({
     runtime:'VERTEX VISION Background Operations',
+    sourceCommit:/^[a-f0-9]{40}$/.test(process.env.VISION_CANDIDATE_SHA||process.env.GITHUB_SHA||'')?(process.env.VISION_CANDIDATE_SHA||process.env.GITHUB_SHA):null,
     notifications,
     escalations,
     productionChanged:false
