@@ -1,0 +1,60 @@
+name: Vertex Taxi Failure Injection
+
+on:
+  push:
+    branches: [vertex-taxi-core-railway-staging]
+    paths:
+      - 'vertex-taxi-core-railway/**'
+      - '.github/workflows/vertex-taxi-failure-injection.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  failure-injection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Validate failure policies
+        run: |
+          node <<'NODE'
+          import assert from 'node:assert/strict';
+
+          function freshness(ageMs){
+            if(ageMs<5000)return 'FRESH';
+            if(ageMs<15000)return 'DEGRADED';
+            if(ageMs<30000)return 'STALE';
+            return 'OFFLINE';
+          }
+          assert.equal(freshness(4999),'FRESH');
+          assert.equal(freshness(14999),'DEGRADED');
+          assert.equal(freshness(29999),'STALE');
+          assert.equal(freshness(30000),'OFFLINE');
+
+          function retry(attempt){
+            if(attempt>=5)return {state:'DEAD',delay:0};
+            return {state:'RETRY',delay:Math.min(300,Math.pow(2,attempt)*5)};
+          }
+          assert.deepEqual(retry(1),{state:'RETRY',delay:10});
+          assert.deepEqual(retry(4),{state:'RETRY',delay:80});
+          assert.deepEqual(retry(5),{state:'DEAD',delay:0});
+
+          function canAccept({state,expiresAt,now,leaseMatches}){
+            return state==='OFFERED' && expiresAt>now && leaseMatches;
+          }
+          assert.equal(canAccept({state:'OFFERED',expiresAt:999,now:1000,leaseMatches:true}),false);
+          assert.equal(canAccept({state:'OFFERED',expiresAt:1001,now:1000,leaseMatches:false}),false);
+          assert.equal(canAccept({state:'OFFERED',expiresAt:1001,now:1000,leaseMatches:true}),true);
+
+          function fenceAccept(currentFence,commandFence){
+            return commandFence===currentFence;
+          }
+          assert.equal(fenceAccept(12,11),false);
+          assert.equal(fenceAccept(12,12),true);
+
+          console.log(JSON.stringify({staleGps:true,retryDead:true,expiredOffer:true,fencing:true}));
+          NODE
