@@ -36,8 +36,8 @@ create table public.vision_taxi_ride_projections(
   source_aggregate_version bigint not null check(source_aggregate_version>0),
   status text not null check(status in ('REQUESTED','DRIVER_ASSIGNED','STARTED','COMPLETED','CANCELLED')),
   status_rank integer not null check(status_rank between 1 and 4),
-  driver_id text,
-  vehicle_id text,
+  driver_id text check(driver_id is null or length(driver_id) between 1 and 128),
+  vehicle_id text check(vehicle_id is null or length(vehicle_id) between 1 and 128),
   last_event_id uuid not null,
   last_event_type text not null,
   correlation_id uuid not null,
@@ -68,6 +68,7 @@ declare
   existing public.vision_inbox_events%rowtype;
 begin
   if jsonb_typeof(event)<>'object' then raise exception 'invalid_event'; end if;
+  if octet_length(event::text)>65536 then raise exception 'event_too_large'; end if;
   begin
     eid:=(event->>'event_id')::uuid;
     tenant:=(event->>'tenant_id')::uuid;
@@ -117,6 +118,16 @@ begin
         nullif(body->>'incident_id','') is null or nullif(body->>'severity','') is null
       )) then
     raise exception 'invalid_event_payload';
+  end if;
+
+  if (kind='taxi.ride.v1.requested' and body - 'ride_id' - 'service_class_id' - 'quote_id' <> '{}'::jsonb)
+     or (kind='taxi.ride.v1.driver_assigned' and body - 'ride_id' - 'driver_id' - 'vehicle_id' <> '{}'::jsonb)
+     or (kind='taxi.trip.v1.started' and body - 'ride_id' - 'driver_id' - 'started_at' <> '{}'::jsonb)
+     or (kind='taxi.trip.v1.completed' and body - 'ride_id' - 'completed_at' <> '{}'::jsonb)
+     or (kind='taxi.ride.v1.cancelled' and body - 'ride_id' - 'reason' <> '{}'::jsonb)
+     or (kind='taxi.payment.v1.completed' and body - 'ride_id' - 'payment_id' - 'currency' - 'amount_minor' <> '{}'::jsonb)
+     or (kind='taxi.safety.v1.incident_created' and body - 'ride_id' - 'incident_id' - 'severity' <> '{}'::jsonb) then
+    raise exception 'private_event_fields_not_allowed';
   end if;
 
   insert into public.vision_inbox_events(
