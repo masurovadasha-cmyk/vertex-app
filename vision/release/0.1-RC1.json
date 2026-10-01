@@ -3,7 +3,7 @@
   "release": "0.1-RC1",
   "platformVersion": "1.18-rc1",
   "api": "v1",
-  "databaseMigration": "0016_staging_session_activation.sql",
+  "databaseMigration": "0018_engineers_readiness.sql",
   "activeModules": [
     "views"
   ],
@@ -65,7 +65,7 @@
     "sessionPolicy": "server-authoritative-context-from-verified-jwt",
     "cloudStagingVerified": false
   },
-  "architectureVersion": "2.1",
+  "architectureVersion": "2.2",
   "technicalStage": "staging-session-activation-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
