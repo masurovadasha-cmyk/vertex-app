@@ -869,10 +869,10 @@ jobs:
       - name: Prepare deliverable
         run: |
           mkdir -p artifacts
-          cp .taxi-apk/app/build/outputs/apk/debug/app-debug.apk artifacts/Vertex-Taxi-Presentation-v0.4.apk
-          sha256sum artifacts/Vertex-Taxi-Presentation-v0.4.apk | tee artifacts/Vertex-Taxi-Preview.sha256.txt
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs artifacts/Vertex-Taxi-Presentation-v0.4.apk | tee artifacts/apk-signature.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Vertex-Taxi-Presentation-v0.4.apk | tee artifacts/apk-badging.txt
+          cp .taxi-apk/app/build/outputs/apk/debug/app-debug.apk artifacts/Vertex-Taxi-RC-v0.6.apk
+          sha256sum artifacts/Vertex-Taxi-RC-v0.6.apk | tee artifacts/Vertex-Taxi-Preview.sha256.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs artifacts/Vertex-Taxi-RC-v0.6.apk | tee artifacts/apk-signature.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging artifacts/Vertex-Taxi-RC-v0.6.apk | tee artifacts/apk-badging.txt
 
       - uses: actions/upload-artifact@v4
         with:
