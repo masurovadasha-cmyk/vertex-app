@@ -17,7 +17,7 @@ test('Interface System 9 advances background runtime without connecting producti
   assert.equal(assembly.architectureVersion,'2.0');
   assert.equal(assembly.database.latestMigration,'0015_background_runtime.sql');
   assert.equal(assembly.database.migrationsExpected,15);
-  assert.equal(assembly.designSystem.experienceIteration,'9.0');
+  assert.equal(assembly.designSystem.experienceIteration,'10.0');
   assert.equal(release.databaseMigration,'0015_background_runtime.sql');
   assert.equal(release.architectureVersion,'2.0');
   assert.equal(release.productionApproved,false);
