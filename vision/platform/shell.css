@@ -83,3 +83,84 @@ header .brand .vv-wordmark{font:820 13px/1.2 system-ui,sans-serif;letter-spacing
 @media(max-width:620px){#visionHome{padding:16px;border-radius:20px}#visionHome .vv-hero{grid-template-columns:1fr;padding-top:6px;gap:18px}#visionHome .vv-title{font-size:42px}#visionHome .vv-lead{font-size:15px}#visionHome .vv-grid{grid-template-columns:1fr}#visionHome .vv-card{min-height:184px}#visionHome .vv-card-top{margin-bottom:14px}#visionHome .vv-tools{display:block}#visionHome .vv-filters{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;width:100%}#visionHome .vv-filters input{width:100%}#visionHome .vv-actions .vv-button{flex:1 1 calc(50% - 10px);padding:11px 9px}.vv-dialog{padding:20px}.vv-meta{grid-template-columns:1fr;gap:5px}.vv-meta dd{margin:0 0 12px}header .brand .vv-wordmark{font-size:11px}}
 @media(max-width:420px){#visionHome .vv-filters{grid-template-columns:1fr}#visionHome .vv-title{font-size:36px}}
 @media(prefers-reduced-motion:reduce){.vv-button,#visionHome .vv-card{transition:none;transform:none!important}}
+
+
+/* Interface System 3.0 — premium grouped launcher inspired by the approved dark VERTEX VISION boards. */
+#visionHome .vv-workspace{display:grid;grid-template-columns:minmax(0,1fr) minmax(248px,292px);gap:16px;align-items:start}
+#visionHome .vv-content{min-width:0}
+#visionHome .vv-grid{display:block}
+#visionHome .vv-category{margin:0 0 18px;padding:14px;border:1px solid rgba(224,197,138,.13);border-radius:18px;background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.012))}
+#visionHome .vv-category-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+#visionHome .vv-category-head h3{margin:0;color:#f7f2e8;font:780 15px/1.35 system-ui,sans-serif;letter-spacing:-.015em}
+#visionHome .vv-category-head span{color:#8e9991;font:720 10px/1.4 system-ui,sans-serif;letter-spacing:.055em;text-transform:uppercase}
+#visionHome .vv-category-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+#visionHome .vv-card{min-height:198px;padding:17px;background:
+  linear-gradient(180deg,rgba(27,34,31,.98),rgba(18,23,21,.98)),
+  radial-gradient(circle at 100% 0%,rgba(205,178,118,.08),transparent 44%);
+  border-color:rgba(224,197,138,.13)}
+#visionHome .vv-card::after{content:"";height:1px;width:44px;margin-top:14px;background:linear-gradient(90deg,var(--vv-gold),transparent);opacity:.72}
+#visionHome .vv-card-active{background:
+  linear-gradient(145deg,rgba(87,72,43,.58),rgba(25,31,28,.98) 48%),
+  radial-gradient(circle at 12% 8%,rgba(224,197,138,.24),transparent 42%);
+  color:#fff;border-color:rgba(224,197,138,.7);box-shadow:0 0 0 1px rgba(224,197,138,.08),0 16px 48px rgba(0,0,0,.26)}
+#visionHome .vv-card-active p{color:#d9d2c4}
+#visionHome .vv-card-active .vv-card-link{color:#f3d99f}
+#visionHome .vv-card-icon{width:44px;height:44px;background:rgba(205,178,118,.055);color:#e6c985;border-color:rgba(224,197,138,.22)}
+#visionHome .vv-card-icon svg,#visionHome .vv-module-preview-icon svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.65;stroke-linecap:round;stroke-linejoin:round}
+#visionHome .vv-card-domain{font-size:9px;color:#88948c}
+#visionHome .vv-card h3{font-size:16px}
+#visionHome .vv-card p{font-size:12px;line-height:1.55;color:#9aa49d}
+#visionHome .vv-tag{white-space:nowrap}
+#visionHome .vv-tag-planned{background:rgba(111,137,160,.09);border-color:rgba(128,151,173,.18);color:#a8b6c3}
+#visionHome .vv-today{position:sticky;top:12px;padding:15px;border:1px solid rgba(224,197,138,.15);border-radius:18px;background:
+  linear-gradient(180deg,rgba(20,26,23,.98),rgba(14,18,16,.98));
+  box-shadow:0 22px 54px rgba(0,0,0,.24)}
+#visionHome .vv-today-head{padding:2px 2px 13px;border-bottom:1px solid rgba(255,255,255,.07)}
+#visionHome .vv-today-head>div:empty{display:none}
+#visionHome .vv-today-head h2{margin:0 0 5px;color:#fff;font:780 22px/1.15 system-ui,sans-serif;letter-spacing:-.035em}
+#visionHome .vv-today-head p{margin:0;color:#8f9992;font:12px/1.5 system-ui,sans-serif}
+#visionHome .vv-today-item{display:grid;gap:5px;padding:13px 12px;margin-top:10px;border:1px solid rgba(255,255,255,.075);border-radius:12px;background:rgba(255,255,255,.025)}
+#visionHome .vv-today-item strong{color:#ece8df;font:720 12px/1.35 system-ui,sans-serif}
+#visionHome .vv-today-item span{color:#858f88;font:11px/1.45 system-ui,sans-serif}
+#visionHome .vv-today-note{margin-top:14px;padding:14px 12px;border-left:2px solid var(--vv-gold);background:rgba(205,178,118,.045)}
+#visionHome .vv-today-note strong{display:block;margin-bottom:6px;color:var(--vv-gold-strong);font:800 10px/1.2 system-ui,sans-serif;letter-spacing:.12em}
+#visionHome .vv-today-note p{margin:0;color:#acb3ad;font:11px/1.55 system-ui,sans-serif}
+.vv-dialog{width:min(860px,calc(100% - 28px))}
+.vv-module-preview{margin:18px 0 20px;padding:16px;border:1px solid rgba(224,197,138,.15);border-radius:16px;background:
+  radial-gradient(circle at 100% 0%,rgba(205,178,118,.08),transparent 45%),
+  rgba(255,255,255,.025)}
+.vv-module-preview-head{display:flex;align-items:center;gap:13px}
+.vv-module-preview-icon{display:grid;place-items:center;width:52px;height:52px;flex:0 0 auto;border:1px solid rgba(224,197,138,.25);border-radius:14px;color:#e1c17d;background:rgba(205,178,118,.06)}
+.vv-module-preview-head>div{display:grid;gap:4px}
+.vv-module-preview-head small{color:#9eaa9f;font:800 9px/1.35 system-ui,sans-serif;letter-spacing:.08em}
+.vv-module-preview-head strong{color:#f4f0e8;font:750 15px/1.45 system-ui,sans-serif}
+.vv-capabilities{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:14px}
+.vv-capability{display:grid;gap:5px;padding:12px;border:1px solid rgba(255,255,255,.075);border-radius:11px;background:rgba(0,0,0,.12)}
+.vv-capability span{color:#ece9e2;font:720 11px/1.4 system-ui,sans-serif}
+.vv-capability small{color:#7f8982;font:10px/1.4 system-ui,sans-serif}
+@media(max-width:1180px){
+  #visionHome .vv-workspace{grid-template-columns:1fr}
+  #visionHome .vv-today{position:static;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+  #visionHome .vv-today-head,#visionHome .vv-today-note{grid-column:1/-1}
+  #visionHome .vv-today-item{margin-top:0}
+}
+@media(max-width:960px){
+  #visionHome .vv-category-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .vv-capabilities{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:620px){
+  #visionHome .vv-category{padding:10px}
+  #visionHome .vv-category-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #visionHome .vv-card{min-height:180px;padding:14px}
+  #visionHome .vv-card-top{align-items:flex-start}
+  #visionHome .vv-card-icon{width:40px;height:40px}
+  #visionHome .vv-card h3{font-size:14px}
+  #visionHome .vv-card p{font-size:11px}
+  #visionHome .vv-tag{font-size:8px;padding:4px 7px}
+  #visionHome .vv-today{grid-template-columns:1fr 1fr}
+}
+@media(max-width:430px){
+  #visionHome .vv-category-grid{grid-template-columns:1fr}
+  #visionHome .vv-today{grid-template-columns:1fr}
+  .vv-capabilities{grid-template-columns:1fr}
+}
