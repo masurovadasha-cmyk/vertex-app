@@ -161,18 +161,16 @@ test('Taxi inbound events are deduplicated, server-only and projected without Ta
   await t.test('authenticated browser users cannot read inbox/projections or invoke server ingress',async()=>{
     const ride=randomUUID();
     const e=event({ride,payload:{service_class_id:'standard',quote_id:'q-denied'}});
-    await db.exec('begin;set local role authenticated;');
-    try{
-      await assert.rejects(()=>db.query('select * from public.vision_inbox_events'),/permission denied/);
-      await assert.rejects(()=>db.query('select * from public.vision_taxi_ride_projections'),/permission denied/);
-      await assert.rejects(
-        ()=>db.query('select public.vision_taxi_inbox_receive($1::jsonb)',[JSON.stringify(e)]),
-        /permission denied/
-      );
-      await db.exec('rollback');
-    }catch(error){
-      await db.exec('rollback');
-      throw error;
-    }
+    const denied=async work=>{
+      await db.exec('begin;set local role authenticated;');
+      try{
+        await assert.rejects(work,/permission denied/);
+      }finally{
+        await db.exec('rollback');
+      }
+    };
+    await denied(()=>db.query('select * from public.vision_inbox_events'));
+    await denied(()=>db.query('select * from public.vision_taxi_ride_projections'));
+    await denied(()=>db.query('select public.vision_taxi_inbox_receive($1::jsonb)',[JSON.stringify(e)]));
   });
 });
