@@ -1,0 +1,50 @@
+{
+  "id": "vertex-vision-interface-system-7.0",
+  "version": "7.0",
+  "base": "Interface System 6.0",
+  "focus": "Task Lifecycle / Assignment / SLA / Approval Decisions",
+  "endpoints": {
+    "feed": "/api/v1/work-feed",
+    "commands": "/api/v1/work/commands",
+    "assignees": "/api/v1/work-assignees"
+  },
+  "taskActions": [
+    "task_assign",
+    "task_accept",
+    "task_wait",
+    "task_resume",
+    "task_submit",
+    "quality_pass",
+    "quality_reject"
+  ],
+  "approvalActions": [
+    "approval_approve",
+    "approval_reject"
+  ],
+  "slaStates": [
+    "NONE",
+    "ACTIVE",
+    "BREACHED"
+  ],
+  "refresh": {
+    "mode": "polling",
+    "intervalSeconds": 30,
+    "pushSubscription": false
+  },
+  "controls": {
+    "idempotency": true,
+    "expectedVersion": true,
+    "serverPermissionCheck": true,
+    "audit": true,
+    "outbox": true,
+    "independentQuality": true,
+    "selfApprovalForbidden": true
+  },
+  "safety": {
+    "activeModule": "views",
+    "futureModulesOperational": false,
+    "publicBackendConnected": false,
+    "productionChanged": false,
+    "additiveMigrationOnly": true
+  }
+}
