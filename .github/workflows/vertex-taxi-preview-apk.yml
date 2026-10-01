@@ -28,13 +28,15 @@ jobs:
 
       - name: Install Android SDK
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          SDKMANAGER=/usr/local/lib/android/sdk/cmdline-tools/16.0/bin/sdkmanager
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Generate isolated Android preview project
         run: |
           rm -rf .taxi-apk
           mkdir -p .taxi-apk/app/src/main/java/com/vertex/taxi/preview
+          printf 'sdk.dir=/usr/local/lib/android/sdk\n' > .taxi-apk/local.properties
           mkdir -p .taxi-apk/app/src/main/res/values
           mkdir -p .taxi-apk/app/src/main/res/drawable
           mkdir -p .taxi-apk/app/src/main/res/mipmap-anydpi-v26
