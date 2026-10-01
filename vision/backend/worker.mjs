@@ -4,6 +4,8 @@ import {validateViewsCommand} from '../modules/views/command-contract.mjs';
 import {projectViewsCommandResponse} from '../modules/views/response-contract.mjs';
 import {projectRuntimeReadiness} from './readiness.mjs';
 import {systemStatusBase,projectSystemStatus} from './system-status.mjs';
+import {publicAuthConfig} from './auth-config.mjs';
+import {projectSessionScopes} from '../contracts/session-scopes.mjs';
 import {projectWorkFeed} from '../contracts/work-feed.mjs';
 import {validateWorkCommand,projectWorkCommandResponse} from '../contracts/work-command.mjs';
 import {projectWorkAssignees} from '../contracts/work-assignees.mjs';
@@ -40,9 +42,16 @@ export async function handle(request,env,fetcher=fetch){
   if(env.VISION_ENV!=='staging')return reply({error:'staging_only'},503);
   if(url.pathname==='/health')return reply({
     service:'VERTEX VISION',environment:'staging',configured:configured(env),probe:'liveness-config-only',
-    architectureVersion:'2.0',requiredMigration:'0015_background_runtime.sql',
+    architectureVersion:'2.1',requiredMigration:'0016_staging_session_activation.sql',
     sourceCommit:/^[a-f0-9]{40}$/.test(env.VISION_SOURCE_COMMIT||'')?env.VISION_SOURCE_COMMIT:null
   });
+  if(url.pathname==='/auth-config'){
+    if(!['GET','HEAD'].includes(request.method))return reply({error:'method_not_allowed'},405);
+    const config=publicAuthConfig(env);
+    if(!config)return reply({error:'backend_not_configured'},503);
+    if(request.method==='HEAD')return new Response(null,{status:200,headers:{'cache-control':'no-store','x-content-type-options':'nosniff','x-request-id':requestId}});
+    return reply(config);
+  }
   if(url.pathname==='/system-status'){
     if(!['GET','HEAD'].includes(request.method))return reply({error:'method_not_allowed'},405);
     const base=systemStatusBase(env);
@@ -118,6 +127,8 @@ export async function handle(request,env,fetcher=fetch){
       const command=plan.module==='views'?validateViewsCommand(rawCommand):plan.module==='work'?validateWorkCommand(rawCommand):plan.module==='notifications'?validateNotificationCommand(rawCommand):rawCommand;
       commandType=(plan.module==='views'||plan.module==='work'||plan.module==='notifications')?command.type:null;
       result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({command})});
+    }else if(plan.kind==='session-scopes'){
+      result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:'{}'});
     }else if(plan.kind==='context'){
       result=await upstream('/rest/v1/rpc/'+plan.rpc,{method:'POST',body:JSON.stringify({p_tenant:plan.tenant,p_organization:plan.organization})});
     }else if(plan.kind==='work-feed'){
@@ -154,13 +165,14 @@ export async function handle(request,env,fetcher=fetch){
       const page=readPage(body,plan.read);
       return reply(page.items,200,{'x-page-limit':String(plan.read.limit),...(page.nextCursor?{'x-next-cursor':page.nextCursor}:{})});
     }
+    if(plan.kind==='session-scopes')return reply(projectSessionScopes(body));
     if(plan.kind==='context')return reply(projectSessionContext(body));
     if(plan.kind==='work-feed')return reply(projectWorkFeed(body));
     if(plan.kind==='work-assignees')return reply(projectWorkAssignees(body));
     if(plan.kind==='notification-feed')return reply(projectNotificationFeed(body));
     return reply(body);
   }catch(error){
-    if(['invalid_page_query','tenant_id_required','organization_id_required','invalid_context_query','invalid_work_feed_query','invalid_work_assignees_query','invalid_notification_query','invalid_command'].includes(error.message))return reply({error:error.message},400);
+    if(['invalid_page_query','tenant_id_required','organization_id_required','invalid_session_scopes_query','invalid_context_query','invalid_work_feed_query','invalid_work_assignees_query','invalid_notification_query','invalid_command'].includes(error.message))return reply({error:error.message},400);
     if(error.message==='body_too_large')return reply({error:'body_too_large'},413);
     if(error.message==='invalid_json')return reply({error:'invalid_json'},400);
     return reply({error:'backend_unavailable'},503);
