@@ -16,9 +16,9 @@ test('Interface System 6 connects My Day to an RLS-scoped read-only Work Feed',(
   assert.equal(design.behavior.fabricatedMetrics,false);
   assert.equal(design.safety.activeModule,'views');
   assert.equal(design.safety.additiveMigrationOnly,true);
-  assert.equal(assembly.architectureVersion,'1.8');
-  assert.equal(assembly.database.latestMigration,'0013_work_actions.sql');
-  assert.equal(assembly.designSystem.experienceIteration,'7.0');
+  assert.equal(assembly.architectureVersion,'1.9');
+  assert.equal(assembly.database.latestMigration,'0014_notifications_escalations.sql');
+  assert.equal(assembly.designSystem.experienceIteration,'8.0');
   assert.equal(assembly.designSystem.workCenter.workFeedReadOnly,true);
 });
 
