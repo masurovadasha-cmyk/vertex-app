@@ -128,3 +128,13 @@ Interface System 7 does not let the browser invent task or approval actions. The
 - `approval_approve` and `approval_reject` require `vision.approval.decide`; assigned approvals may only be decided by that assignee and a requester cannot decide their own approval.
 - All work mutations use `vision_work_command(jsonb)`, exact idempotency receipts, row locks, Expected-Version checks, audit events and outbox events.
 - Direct browser writes to tasks, approvals, audit, outbox and receipts remain unavailable.
+
+
+## Notification and escalation permissions
+
+- Notification rows are readable only by the recipient with an active membership in the notification's organization.
+- Browser roles receive SELECT only; direct updates to notification/escalation tables remain revoked.
+- Read/unread/dismiss is executed through `vision_notification_command(jsonb)` with Expected-Version, idempotency receipts and audit.
+- Escalations are visible only to the assigned user or memberships with `vision.escalation.read` / `vision.escalation.ack`.
+- `escalation_ack` is shown only when the server feed returns `canAck=true` and is re-authorized in PostgreSQL.
+- `vision_notification_consume` and `vision_reconcile_escalations` are not executable by `anon` or `authenticated`; operators must grant them only to dedicated worker principals.
