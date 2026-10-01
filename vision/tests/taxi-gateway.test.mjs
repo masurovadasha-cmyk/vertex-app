@@ -99,3 +99,12 @@ test('Taxi gateway sanitizes downstream failures',async()=>{
   assert.deepEqual(await response.json(),{error:'taxi_unavailable'});
   assert.equal(response.headers.get('x-correlation-id'),'00000000-0000-4000-8000-000000000004');
 });
+
+
+test('Taxi gateway method allowlist rejects undeclared route-method pairs',async()=>{
+  const noFetch=async()=>{throw new Error('must not call upstream');};
+  const postCapabilities=await handle(req('/api/taxi/capabilities',{method:'POST',headers:{'content-type':'application/json','idempotency-key':'x'},body:'{}'}),env,noFetch);
+  assert.equal(postCapabilities.status,404);
+  const getCreate=await handle(req('/api/taxi/rides'),env,noFetch);
+  assert.equal(getCreate.status,404);
+});
