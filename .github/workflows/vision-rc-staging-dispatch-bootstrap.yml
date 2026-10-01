@@ -1,0 +1,26 @@
+name: VERTEX VISION RC Staging Dispatch Bootstrap
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch:
+    if: ${{ github.actor == 'masurovadasha-cmyk' && github.event.comment.body == '/vision-rc-staging' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch authenticated RC staging gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run vision-rc01-staging-gate.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref vision-foundation-health-hardening-20261001 \
+            -f authenticated=true \
+            -f apply_migrations=true
