@@ -151,7 +151,7 @@ jobs:
           const config={
             name:'vertex-vision-staging',
             main:'candidate/vision/backend/worker.mjs',
-            compatibility_date:'2026-09-30',
+            compatibility_date:'2026-10-01',
             compatibility_flags:['nodejs_compat'],
             workers_dev:true,
             preview_urls:false,
