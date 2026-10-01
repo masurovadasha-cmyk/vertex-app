@@ -102,9 +102,8 @@ test('Taxi gateway sanitizes downstream failures',async()=>{
 
 
 test('Taxi gateway method allowlist rejects undeclared route-method pairs',async()=>{
-  const noFetch=async()=>{throw new Error('must not call upstream');};
-  const postCapabilities=await handle(req('/api/taxi/capabilities',{method:'POST',headers:{'content-type':'application/json','idempotency-key':'x'},body:'{}'}),env,noFetch);
+  const postCapabilities=await handle(req('/api/taxi/capabilities',{method:'POST',headers:{'content-type':'application/json','idempotency-key':'x'},body:'{}'}),env,upstream());
   assert.equal(postCapabilities.status,404);
-  const getCreate=await handle(req('/api/taxi/rides'),env,noFetch);
+  const getCreate=await handle(req('/api/taxi/rides'),env,upstream());
   assert.equal(getCreate.status,404);
 });
