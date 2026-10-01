@@ -104,3 +104,15 @@ roles, permissions, guest-link state and capability booleans. This context may c
 navigation and button visibility, but every query still relies on RLS and every command
 still re-authorizes inside PostgreSQL. UI capability checks are therefore convenience,
 not the security boundary.
+
+
+## Unified Work Feed permissions
+
+The Work Center does not introduce a browser-owned authorization model. It uses the
+same verified bearer token and PostgreSQL RLS as the source tables.
+
+- `vision_tasks`, `vision_orders`, and Views cleaning jobs remain governed by their existing policies.
+- `vision_approval_requests` is SELECT-only for authenticated clients and is visible only to an assigned user with an active membership in that organization or a membership with `vision.approval.read`.
+- `vision.approval.decide` is reserved for a later command path. No approval mutation is exposed in this release.
+- `vision_work_feed(uuid,uuid,integer)` is SECURITY INVOKER, so it does not bypass RLS.
+- Work Feed output is projected by `vision/contracts/work-feed.mjs`; unknown fields fail closed.
