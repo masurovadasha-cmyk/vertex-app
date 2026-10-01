@@ -23,7 +23,7 @@ async function taxiFetch(env, path, request, body) {
   if (env.TAXI_INTEGRATION_URL && env.TAXI_INTEGRATION_SHARED_SECRET) {
     headers.set('x-vertex-integration-secret', env.TAXI_INTEGRATION_SHARED_SECRET);
     if (body !== undefined) headers.set('content-type','application/json');
-    return await fetch(env.TAXI_INTEGRATION_URL.replace(/\\/$/,'') + path, {
+    return await fetch(env.TAXI_INTEGRATION_URL.replace(/\/$/,'') + path, {
       method: request.method,
       headers,
       body: body === undefined ? undefined : body,
