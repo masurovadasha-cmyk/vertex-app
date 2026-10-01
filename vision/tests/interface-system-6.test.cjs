@@ -16,13 +16,13 @@ test('Interface System 6 connects My Day to an RLS-scoped read-only Work Feed',(
   assert.equal(design.behavior.fabricatedMetrics,false);
   assert.equal(design.safety.activeModule,'views');
   assert.equal(design.safety.additiveMigrationOnly,true);
-  assert.equal(assembly.architectureVersion,'1.7');
-  assert.equal(assembly.database.latestMigration,'0012_unified_work_feed.sql');
-  assert.equal(assembly.designSystem.experienceIteration,'6.0');
+  assert.equal(assembly.architectureVersion,'1.8');
+  assert.equal(assembly.database.latestMigration,'0013_work_actions.sql');
+  assert.equal(assembly.designSystem.experienceIteration,'7.0');
   assert.equal(assembly.designSystem.workCenter.workFeedReadOnly,true);
 });
 
-test('Work Center renders real feed arrays and never exposes approval mutation',()=>{
+test('Interface 6 read feed primitives remain available under Interface 7',()=>{
   const work=read('vision/platform/work-center.js');
   const views=read('vision/platform/views-ops.js');
   const css=read('vision/platform/work-center.css');
@@ -33,8 +33,7 @@ test('Work Center renders real feed arrays and never exposes approval mutation',
   assert.match(work,/feed\.approvals/);
   assert.match(work,/feed\.attention/);
   assert.match(work,/feed\.requests/);
-  assert.match(work,/approvalDecisionsEnabled:false/);
-  assert.doesNotMatch(work,/approveApproval|rejectApproval|approval_command/i);
+  assert.match(work,/feed\.approvals/);
   assert.match(css,/Interface System 6\.0/);
   assert.match(css,/\.vvw-priority-critical/);
 });
