@@ -39,8 +39,20 @@ grant select on public.vision_approval_requests to authenticated;
 
 create policy vision_approval_read on public.vision_approval_requests
  for select to authenticated using(
-   assigned_user_id=vision_private.actor()
-   or vision_private.permitted(tenant_id,organization_id,'vision.approval.read')
+   vision_private.active_actor(tenant_id)
+   and (
+     vision_private.permitted(tenant_id,organization_id,'vision.approval.read')
+     or (
+       assigned_user_id=vision_private.actor()
+       and exists(
+         select 1 from public.vision_memberships m
+         where m.tenant_id=vision_approval_requests.tenant_id
+           and m.organization_id=vision_approval_requests.organization_id
+           and m.user_id=vision_private.actor()
+           and m.status='ACTIVE'
+       )
+     )
+   )
  );
 
 create function public.vision_work_feed(
