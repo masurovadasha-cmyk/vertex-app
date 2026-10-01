@@ -15,7 +15,7 @@
     ['travel','Vertex Travel','travel','Турпакеты, экскурсии и единый план поездки.','Travel packages, excursions and journey planning.','demo','planned',['journey','packages']],
     ['aviation','Vertex Aviation / Авиакасса','travel','Запрос билетов: авиа, железная дорога и автобусы.','Ticket requests for flights, trains and buses.','demo','planned',['ticket-request']],
     ['rent-car','Vertex Rent Car','mobility','Аренда автомобилей и расчёт трансфера.','Car rental and transfer estimates.','demo','planned',['transfer']],
-    ['taxi','Vertex Taxi','mobility','Заявки на собственный автопарк и диспетчерская демо.','Own-fleet requests and demonstration dispatch.','demo','planned',['taxi']],
+    ['taxi','Vertex Taxi','mobility','Самостоятельный агрегатор такси и диспетчерская платформа Vertex.','Standalone Vertex taxi aggregator and dispatch platform.','demo','external-contract',['taxi']],
     ['concierge','Concierge Service','services','Помощь гостю, заявки и гид перед заселением.','Guest assistance, requests and check-in guide.','demo','planned',['concierge','requests','guest-guide']],
     ['cleaning','Vertex Cleaning','services','Уборка, назначение сотрудника и контроль качества.','Cleaning, assignment and quality review.','demo','local-tested',['cleaning-request','requests']],
     ['laundry','Vertex Laundry','services','Прачечная и запросы гостей на обработку вещей.','Laundry and guest garment-care requests.','demo','planned',['laundry-request']],
@@ -35,12 +35,17 @@
   });
   const modules=entries.map(([id,name,domain,ru,en,mode,backend,registeredActions])=>{
     const status=id==='views'?'active':'coming-soon';
-    return {
+    const item={
       id,name,domain,icon:icons[id]||'◻',description:{ru,en},parent:'vertex-vision',core:'1.x',version:'0.2.0',
       dependencies:['vision-core'],status,mode,backend,cloudEnabled:false,
       actions:status==='active'?registeredActions:[],
       dataBoundary:{identity:'vision-core',organization:'vision-core',orders:'vision-core',tasks:'vision-core',audit:'vision-core',privateSchema:id.replaceAll('-','_')}
     };
+    if(id==='taxi'){
+      item.integration={type:'external-api',contract:'/integration/v1',databaseAccess:'none',privateStateOwner:'vertex-taxi-core',serviceBindingPreferred:true};
+      item.dataBoundary={identity:'vision-core',organization:'vision-core',orders:'external-taxi',tasks:'external-taxi',audit:'vision-core',privateSchema:null};
+    }
+    return item;
   });
   function freeze(value){if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;}
   function validate(items){
@@ -54,10 +59,11 @@
       if(!['active','coming-soon','disabled'].includes(item.status))throw new Error('invalid_module_status');
       if(item.id==='views'&&item.status!=='active')throw new Error('views_must_be_active');
       if(item.id!=='views'&&item.status==='active')throw new Error('future_module_cannot_be_active');
-      if(!['demo','planned'].includes(item.mode)||!['planned','local-tested'].includes(item.backend)||item.cloudEnabled!==false)throw new Error('unverified_cloud_capability');
+      if(!['demo','planned'].includes(item.mode)||!['planned','local-tested','external-contract'].includes(item.backend)||item.cloudEnabled!==false)throw new Error('unverified_cloud_capability');
       if(!Array.isArray(item.actions)||item.actions.some(a=>!/^([a-z]+)(-[a-z]+)*$/.test(a))||new Set(item.actions).size!==item.actions.length)throw new Error('invalid_module_actions');
       if(item.status!=='active'&&item.actions.length)throw new Error('inactive_module_cannot_launch');
       if(typeof item.name!=='string'||!item.description?.ru||!item.description?.en)throw new Error('module_copy_required');
+      if(item.id==='taxi'&&(!item.integration||item.integration.databaseAccess!=='none'||item.dataBoundary.privateSchema!==null))throw new Error('taxi_private_boundary_violation');
     }
     return true;
   }
@@ -77,6 +83,6 @@
     module:id=>typeof id==='string'?byId.get(id)||null:null,
     list:domain=>modules.filter(m=>!domain||m.domain===domain),
     canLaunch:(id,action)=>byId.get(id)?.status==='active'&&!!byId.get(id)?.actions.includes(action),
-    readiness:()=>({mode:'release-candidate',activeModule:'views',sharedDatabase:'not-connected',authenticated:false,payments:false,notifications:false,productionReady:false,jarvis:'separate-project'})
+    readiness:()=>({mode:'release-candidate',activeModule:'views',sharedDatabase:'not-connected',authenticated:false,payments:false,notifications:false,productionReady:false,jarvis:'separate-project',taxi:'external-contract'})
   });
 });
