@@ -11,11 +11,18 @@
     "type": "delegated-identity",
     "requiredHeaders": [
       "authorization",
+      "x-vertex-user-id",
       "x-vertex-tenant-id",
       "x-vertex-organization-id",
       "x-vertex-correlation-id"
     ],
-    "databaseCredentialsFromVision": false
+    "databaseCredentialsFromVision": false,
+    "delegation": {
+      "userIdSource": "verified-vision-identity",
+      "tenantOrganizationContext": "server-authoritative-session-scope",
+      "memberAuthorizationRequired": true,
+      "clientSuppliedUserIdAccepted": false
+    }
   },
   "endpoints": {
     "capabilities": {
@@ -38,6 +45,10 @@
       "allowedCommands": [
         "cancel"
       ]
+    },
+    "health": {
+      "method": "GET",
+      "path": "/integration/v1/health"
     }
   },
   "responseRules": {
@@ -50,5 +61,19 @@
     "retries": 2,
     "retryOnlyIdempotentRequests": true,
     "failClosed": true
+  },
+  "visionGateway": {
+    "status": "implemented-staging-capable",
+    "routes": [
+      "GET /api/taxi/capabilities",
+      "GET /api/taxi/health",
+      "GET /api/taxi/rides/{ride_id}",
+      "POST /api/taxi/rides",
+      "POST /api/taxi/rides/{ride_id}/commands"
+    ],
+    "serviceBinding": "optional VERTEX_TAXI_CORE",
+    "httpFallback": "optional TAXI_INTEGRATION_URL + secret",
+    "databaseAccess": "none",
+    "mutationIdempotencyRequired": true
   }
 }
