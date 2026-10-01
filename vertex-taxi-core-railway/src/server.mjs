@@ -861,7 +861,7 @@ app.get("/v1/realtime/rides/:rideId", { websocket:true }, (socket, req) => {
 const publicAssets = new Map([
   ["/", { file:"../public/index.html", type:"text/html; charset=utf-8" }],
   ["/index.html", { file:"../public/index.html", type:"text/html; charset=utf-8" }],
-  ["/app.js", { file:"../public/app.js", type:"text/javascript; charset=utf-8" }],
+  ["/app.js", { file:"../presentation/app.js", type:"text/javascript; charset=utf-8" }],
   ["/styles.css", { file:"../public/styles.css", type:"text/css; charset=utf-8" }],
   ["/manifest.webmanifest", { file:"../public/manifest.webmanifest", type:"application/manifest+json" }],
   ["/icon.svg", { file:"../public/icon.svg", type:"image/svg+xml" }],
