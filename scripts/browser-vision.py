@@ -172,6 +172,7 @@ def run(live=False):
                     page.keyboard.press('Escape')
                     check(str(width)+': System Status opens from Hub',page.evaluate("VertexVisionSystemStatus.open()"))
                     check(str(width)+': System Status Center is visible',page.locator('#visionSystemStatus').is_visible())
+                    page.wait_for_selector('#visionSystemStatus .vvs-card')
                     check(str(width)+': System Status renders six factual signals',page.locator('#visionSystemStatus .vvs-card').count()==6)
                     check(str(width)+': System Status exposes architecture and required migration','2.1' in page.locator('#visionSystemStatus').inner_text() and '0016_staging_session_activation.sql' in page.locator('#visionSystemStatus').inner_text())
                     check(str(width)+': disconnected System Status contains no secret-shaped values','sb_publishable_' not in page.locator('#visionSystemStatus').inner_text() and 'postgres://' not in page.locator('#visionSystemStatus').inner_text())
