@@ -32,8 +32,10 @@ create table public.vision_taxi_ride_projections(
   tenant_id uuid not null,
   organization_id uuid not null,
   ride_id text not null check(length(ride_id) between 1 and 128),
-  aggregate_version bigint not null check(aggregate_version>0),
+  source_aggregate_id text not null check(length(source_aggregate_id) between 1 and 128),
+  source_aggregate_version bigint not null check(source_aggregate_version>0),
   status text not null check(status in ('REQUESTED','DRIVER_ASSIGNED','STARTED','COMPLETED','CANCELLED')),
+  status_rank integer not null check(status_rank between 1 and 4),
   driver_id text,
   vehicle_id text,
   last_event_id uuid not null,
@@ -95,7 +97,6 @@ begin
      ) then
     raise exception 'invalid_event';
   end if;
-  if coalesce(body->>'ride_id','')<>aggregate then raise exception 'aggregate_mismatch'; end if;
   if (kind='taxi.ride.v1.requested' and (
         nullif(body->>'service_class_id','') is null or nullif(body->>'quote_id','') is null
       ))
@@ -171,8 +172,10 @@ language plpgsql security definer set search_path='' as $$
 declare
   e public.vision_inbox_events%rowtype;
   projected_status text;
+  projected_rank integer;
   projected_driver text;
   projected_vehicle text;
+  ride text;
 begin
   select * into e
   from public.vision_inbox_events
@@ -184,42 +187,75 @@ begin
   for update;
   if not found then return false; end if;
 
+  ride:=nullif(e.payload->>'ride_id','');
+  if ride is null then raise exception 'invalid_event_payload'; end if;
+
   if e.event_type='taxi.ride.v1.requested' then
-    projected_status:='REQUESTED';
+    projected_status:='REQUESTED'; projected_rank:=1;
   elsif e.event_type='taxi.ride.v1.driver_assigned' then
-    projected_status:='DRIVER_ASSIGNED';
+    projected_status:='DRIVER_ASSIGNED'; projected_rank:=2;
     projected_driver:=nullif(e.payload->>'driver_id','');
     projected_vehicle:=nullif(e.payload->>'vehicle_id','');
     if projected_driver is null or projected_vehicle is null then raise exception 'invalid_event_payload'; end if;
   elsif e.event_type='taxi.trip.v1.started' then
-    projected_status:='STARTED';
+    projected_status:='STARTED'; projected_rank:=3;
     projected_driver:=nullif(e.payload->>'driver_id','');
     if projected_driver is null then raise exception 'invalid_event_payload'; end if;
   elsif e.event_type='taxi.trip.v1.completed' then
-    projected_status:='COMPLETED';
+    projected_status:='COMPLETED'; projected_rank:=4;
   elsif e.event_type='taxi.ride.v1.cancelled' then
-    projected_status:='CANCELLED';
+    projected_status:='CANCELLED'; projected_rank:=4;
   end if;
 
   if projected_status is not null then
     insert into public.vision_taxi_ride_projections(
-      tenant_id,organization_id,ride_id,aggregate_version,status,driver_id,vehicle_id,
-      last_event_id,last_event_type,correlation_id,occurred_at
+      tenant_id,organization_id,ride_id,source_aggregate_id,source_aggregate_version,
+      status,status_rank,driver_id,vehicle_id,last_event_id,last_event_type,correlation_id,occurred_at
     ) values(
-      e.tenant_id,e.organization_id,e.aggregate_id,e.aggregate_version,projected_status,
-      projected_driver,projected_vehicle,e.event_id,e.event_type,e.correlation_id,e.occurred_at
+      e.tenant_id,e.organization_id,ride,e.aggregate_id,e.aggregate_version,
+      projected_status,projected_rank,projected_driver,projected_vehicle,
+      e.event_id,e.event_type,e.correlation_id,e.occurred_at
     )
     on conflict(tenant_id,organization_id,ride_id) do update
-    set aggregate_version=excluded.aggregate_version,
-        status=excluded.status,
-        driver_id=coalesce(excluded.driver_id,public.vision_taxi_ride_projections.driver_id),
+    set driver_id=coalesce(excluded.driver_id,public.vision_taxi_ride_projections.driver_id),
         vehicle_id=coalesce(excluded.vehicle_id,public.vision_taxi_ride_projections.vehicle_id),
-        last_event_id=excluded.last_event_id,
-        last_event_type=excluded.last_event_type,
-        correlation_id=excluded.correlation_id,
-        occurred_at=excluded.occurred_at,
-        updated_at=now()
-    where excluded.aggregate_version>public.vision_taxi_ride_projections.aggregate_version;
+        status=case
+          when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
+            or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
+          then excluded.status else public.vision_taxi_ride_projections.status end,
+        status_rank=greatest(excluded.status_rank,public.vision_taxi_ride_projections.status_rank),
+        source_aggregate_id=case
+          when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
+            or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
+          then excluded.source_aggregate_id else public.vision_taxi_ride_projections.source_aggregate_id end,
+        source_aggregate_version=case
+          when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
+            or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
+          then excluded.source_aggregate_version else public.vision_taxi_ride_projections.source_aggregate_version end,
+        last_event_id=case
+          when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
+            or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
+          then excluded.last_event_id else public.vision_taxi_ride_projections.last_event_id end,
+        last_event_type=case
+          when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
+            or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
+          then excluded.last_event_type else public.vision_taxi_ride_projections.last_event_type end,
+        correlation_id=case
+          when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
+            or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
+          then excluded.correlation_id else public.vision_taxi_ride_projections.correlation_id end,
+        occurred_at=case
+          when excluded.status_rank>public.vision_taxi_ride_projections.status_rank
+            or (excluded.status_rank=public.vision_taxi_ride_projections.status_rank
+                and excluded.occurred_at>=public.vision_taxi_ride_projections.occurred_at)
+          then excluded.occurred_at else public.vision_taxi_ride_projections.occurred_at end,
+        updated_at=now();
   end if;
 
   update public.vision_inbox_events
