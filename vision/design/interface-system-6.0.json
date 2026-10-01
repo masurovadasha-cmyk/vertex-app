@@ -1,0 +1,41 @@
+{
+  "id": "vertex-vision-interface-system-6.0",
+  "version": "6.0",
+  "base": "Interface System 5.0",
+  "focus": "Unified Work Feed / Tasks / Approvals / Attention",
+  "endpoint": "/api/v1/work-feed",
+  "dataSources": [
+    "vision_tasks",
+    "vision_orders",
+    "vision_views_cleaning_jobs",
+    "vision_approval_requests"
+  ],
+  "tabs": [
+    "today",
+    "tasks",
+    "approvals",
+    "requests",
+    "operations"
+  ],
+  "behavior": {
+    "readOnly": true,
+    "approvalDecisionsEnabled": false,
+    "requestMutationsEnabled": false,
+    "fabricatedMetrics": false,
+    "serverAuthoritative": true,
+    "rlsScoped": true
+  },
+  "attentionRules": [
+    "OVERDUE_TASK",
+    "OVERDUE_APPROVAL",
+    "HIGH_PRIORITY_REQUEST",
+    "CLEANING_INSPECTION"
+  ],
+  "safety": {
+    "activeModule": "views",
+    "futureModulesOperational": false,
+    "bearerTokenNeverExposedByWorkCenter": true,
+    "productionChanged": false,
+    "additiveMigrationOnly": true
+  }
+}
