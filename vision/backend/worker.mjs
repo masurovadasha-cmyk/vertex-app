@@ -42,7 +42,7 @@ export async function handle(request,env,fetcher=fetch){
   if(env.VISION_ENV!=='staging')return reply({error:'staging_only'},503);
   if(url.pathname==='/health')return reply({
     service:'VERTEX VISION',environment:'staging',configured:configured(env),probe:'liveness-config-only',
-    architectureVersion:'2.1',requiredMigration:'0016_staging_session_activation.sql',
+    architectureVersion:'2.2',requiredMigration:'0018_engineers_readiness.sql',
     sourceCommit:/^[a-f0-9]{40}$/.test(env.VISION_SOURCE_COMMIT||'')?env.VISION_SOURCE_COMMIT:null
   });
   if(url.pathname==='/auth-config'){
