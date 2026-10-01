@@ -25,6 +25,14 @@ const redis = createClient({ url: REDIS_URL });
 redis.on("error", (err) => console.error("redis", err));
 await redis.connect();
 
+const presentationAssets = {
+  index: await fs.readFile(new URL("../presentation/index.html", import.meta.url)),
+  css: await fs.readFile(new URL("../presentation/styles.css", import.meta.url)),
+  js: await fs.readFile(new URL("../presentation/app.js", import.meta.url)),
+  manifest: await fs.readFile(new URL("../presentation/manifest.webmanifest", import.meta.url)),
+  icon: await fs.readFile(new URL("../presentation/icon.svg", import.meta.url)),
+};
+
 const migration = await fs.readFile(new URL("../migrations/001_init.sql", import.meta.url), "utf8");
 const presentationMigration = await fs.readFile(new URL("../migrations/002_presentation.sql", import.meta.url), "utf8");
 await db.query(migration);
@@ -101,6 +109,14 @@ function rideLeaseKey(rideId) { return `taxi:lease:ride:${rideId}`; }
 async function publishRideEvent(rideId, event) {
   await redis.publish(`taxi:realtime:ride:${rideId}`, JSON.stringify(event));
 }
+
+app.get("/", async (_req, reply) => reply.redirect("/presentation"));
+app.get("/presentation", async (_req, reply) => reply.type("text/html; charset=utf-8").send(presentationAssets.index));
+app.get("/presentation/", async (_req, reply) => reply.type("text/html; charset=utf-8").send(presentationAssets.index));
+app.get("/presentation/styles.css", async (_req, reply) => reply.type("text/css; charset=utf-8").send(presentationAssets.css));
+app.get("/presentation/app.js", async (_req, reply) => reply.type("text/javascript; charset=utf-8").send(presentationAssets.js));
+app.get("/presentation/manifest.webmanifest", async (_req, reply) => reply.type("application/manifest+json").send(presentationAssets.manifest));
+app.get("/presentation/icon.svg", async (_req, reply) => reply.type("image/svg+xml").send(presentationAssets.icon));
 
 app.get("/health", async () => {
   const dbOk = await db.query("select 1 as ok");
