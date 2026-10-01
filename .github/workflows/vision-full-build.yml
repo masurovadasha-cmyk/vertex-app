@@ -1,7 +1,7 @@
 name: VERTEX VISION Full Development Build
 on:
   push:
-    branches: ['vision-foundation-*']
+    branches: ['vision-foundation-*', 'vision-rc-*']
     paths:
       - 'vision/portable/**'
       - '.github/workflows/vision-full-build.yml'
@@ -88,6 +88,7 @@ jobs:
       - name: Compile server bundles without any deployment
         run: |
           npm run check:deploy 2>&1 | tee .vision-build/evidence/vertex-dry-run.txt
+          node vision/tools/staging-preflight.mjs 2>&1 | tee .vision-build/evidence/staging-preflight.txt
           npx wrangler deploy --config vision/wrangler.jsonc --dry-run --outdir .vision-build/staging-worker 2>&1 | tee .vision-build/evidence/vision-dry-run.txt
       - name: Bundle checksum-verified Windows x64 Node runtime
         run: |
