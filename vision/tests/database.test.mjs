@@ -81,6 +81,39 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
     await denied(()=>command(guest,{...initial,service_id:id()}),/idempotency_conflict/);
     assert.deepEqual(await counts(),{orders:1,tasks:1,audit:1,outbox:1,receipts:1});
   });
+  await t.test('Unified Work Feed obeys RLS and derives only real tasks, requests, approvals and attention',async()=>{
+    const approval=id();
+    await db.query(`insert into public.vision_approval_requests(
+      id,tenant_id,organization_id,kind,title,status,priority,assigned_user_id,due_at,entity_type,entity_id
+    ) values($1,$2,$3,'maintenance.spend','Approve synthetic repair','PENDING','HIGH',$4,now()-interval '1 hour','order',$5)`,
+      [approval,tenant,views,viewsManager,order.order_id]);
+
+    const managerFeed=(await as(viewsManager,d=>d.query(
+      'select public.vision_work_feed($1,$2,50) feed',[tenant,views]
+    ))).rows[0].feed;
+    assert.equal(managerFeed.approvals.length,1);
+    assert.equal(managerFeed.approvals[0].id,approval);
+    assert.ok(managerFeed.requests.some(x=>x.source_id===order.order_id));
+    assert.ok(managerFeed.attention.some(x=>x.reason==='OVERDUE_APPROVAL'&&x.id===approval));
+    assert.equal(managerFeed.counts.approvals,managerFeed.approvals.length);
+
+    const dispatcherFeed=(await as(dispatcher,d=>d.query(
+      'select public.vision_work_feed($1,$2,50) feed',[tenant,cleaning]
+    ))).rows[0].feed;
+    assert.ok(dispatcherFeed.tasks.some(x=>x.source==='core.task'));
+    assert.ok(dispatcherFeed.requests.some(x=>x.source_id===order.order_id));
+
+    const guestFeed=(await as(guest,d=>d.query(
+      'select public.vision_work_feed($1,$2,50) feed',[tenant,views]
+    ))).rows[0].feed;
+    assert.equal(guestFeed.approvals.length,0);
+    assert.ok(guestFeed.requests.some(x=>x.source_id===order.order_id));
+
+    await denied(()=>as(viewsManager,d=>d.query(
+      `insert into public.vision_approval_requests(tenant_id,organization_id,kind,title,assigned_user_id)
+       values($1,$2,'manual','forbidden',$3)`,[tenant,views,viewsManager]
+    )),/permission denied|row-level security/);
+  });
   await t.test('RLS permits own guest and scoped staff, denies other tenants and guests',async()=>{
     for(const [user,n] of [[guest,1],[guest2,0],[foreignUser,0],[viewsManager,1],[dispatcher,1],[staff,0],[null,0]]) {
       const rows=await as(user,d=>d.query('select id from public.vision_orders'));
