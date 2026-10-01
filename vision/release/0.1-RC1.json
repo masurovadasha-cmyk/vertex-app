@@ -1,9 +1,9 @@
 {
   "product": "VERTEX Vision",
   "release": "0.1-RC1",
-  "platformVersion": "1.17-rc1",
+  "platformVersion": "1.18-rc1",
   "api": "v1",
-  "databaseMigration": "0015_background_runtime.sql",
+  "databaseMigration": "0016_staging_session_activation.sql",
   "activeModules": [
     "views"
   ],
@@ -65,8 +65,8 @@
     "sessionPolicy": "server-authoritative-context-from-verified-jwt",
     "cloudStagingVerified": false
   },
-  "architectureVersion": "2.0",
-  "technicalStage": "system-status-control-center-0.1",
+  "architectureVersion": "2.1",
+  "technicalStage": "staging-session-activation-0.1",
   "viewsIntegrity": {
     "status": "implemented-in-branch",
     "inventory": "unique-tenant-unit-night",
@@ -137,7 +137,8 @@
       "notification-command-rpc",
       "notification-consumer-rpc",
       "outbox-fail-rpc",
-      "background-scopes-rpc"
+      "background-scopes-rpc",
+      "session-scopes-rpc"
     ],
     "serviceRoleRequired": false,
     "cloudVerified": false
@@ -267,6 +268,19 @@
     "readinessSource": "public.vision_runtime_readiness()",
     "fabricatedFallback": false,
     "backgroundFlagsFromRuntimeConfig": true,
+    "cloudStagingVerified": false
+  },
+  "sessionActivation": {
+    "status": "implemented-in-branch",
+    "authConfigEndpoint": "/auth-config",
+    "sessionScopesEndpoint": "/api/v1/session-scopes",
+    "uiRuntime": "vision/platform/session-center.js",
+    "authProvider": "supabase-staging",
+    "tokenPersistence": "memory-only",
+    "passwordPersistence": false,
+    "refreshTokenPersistence": false,
+    "scopeAuthority": "postgresql-rbac-and-guest-links",
+    "browserPermissionClaimsTrusted": false,
     "cloudStagingVerified": false
   }
 }
