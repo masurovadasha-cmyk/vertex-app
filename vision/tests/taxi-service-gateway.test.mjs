@@ -248,7 +248,6 @@ test('Taxi HTTP fallback is P-256 signed and does not use a shared secret', asyn
       ...signedEnv,
       TAXI_INTEGRATION_URL:'https://taxi-staging.example/',
       TAXI_INTEGRATION_PATH_PREFIX:'/_api',
-      TAXI_INTEGRATION_PATH_PREFIX:'/_api',
     },authFetch);
     assert.equal(response.status,200);
     assert.equal((await response.json()).data.module,'taxi');
@@ -446,4 +445,69 @@ test('Taxi Floot adapter maps cancel command to static endpoint and signs adapte
   } finally {
     globalThis.fetch=priorFetch;
   }
+});
+
+
+test('Taxi gateway method allowlist rejects undeclared route-method pairs after identity verification', async () => {
+  const authOnly=async (url) => {
+    if(url.endsWith('/auth/v1/user'))return Response.json({id:'00000000-0000-0000-0000-000000000001'});
+    throw new Error('unexpected upstream '+url);
+  };
+  const postCapabilities=await handle(new Request('https://vision-staging.example/api/taxi/capabilities',{
+    method:'POST',
+    headers:{
+      authorization:'Bearer demo',
+      'content-type':'application/json',
+      'idempotency-key':'unused',
+      'x-vertex-tenant-id':'00000000-0000-0000-0000-000000000001',
+      'x-vertex-organization-id':'00000000-0000-0000-0000-000000000001'
+    },
+    body:'{}'
+  }),env,authOnly);
+  assert.equal(postCapabilities.status,404);
+
+  const getCreate=await handle(new Request('https://vision-staging.example/api/taxi/rides',{
+    headers:{
+      authorization:'Bearer demo',
+      'x-vertex-tenant-id':'00000000-0000-0000-0000-000000000001',
+      'x-vertex-organization-id':'00000000-0000-0000-0000-000000000001'
+    }
+  }),env,authOnly);
+  assert.equal(getCreate.status,404);
+});
+
+test('Taxi downstream errors are sanitized before crossing the VISION boundary', async () => {
+  const taxi={fetch:async()=>Response.json({message:'private Taxi Core detail',stack:'never expose'},{status:503})};
+  const request=new Request('https://vision-staging.example/api/taxi/health',{
+    headers:{
+      authorization:'Bearer demo',
+      'x-vertex-tenant-id':'00000000-0000-0000-0000-000000000001',
+      'x-vertex-organization-id':'00000000-0000-0000-0000-000000000001',
+      'x-vertex-correlation-id':'00000000-0000-4000-8000-000000000004'
+    }
+  });
+  const response=await handle(request,{...signedEnv,VERTEX_TAXI_CORE:taxi},authFetch);
+  assert.equal(response.status,503);
+  assert.deepEqual(await response.json(),{error:'taxi_unavailable'});
+  assert.equal(response.headers.get('x-correlation-id'),'00000000-0000-4000-8000-000000000004');
+});
+
+test('Taxi gateway rejects malformed correlation identifiers before delegation', async () => {
+  let delegated=false;
+  const fetcher=async url=>{
+    if(url.endsWith('/auth/v1/user'))return Response.json({id:'00000000-0000-0000-0000-000000000001'});
+    delegated=true;throw new Error('must not delegate');
+  };
+  const request=new Request('https://vision-staging.example/api/taxi/capabilities',{
+    headers:{
+      authorization:'Bearer demo',
+      'x-vertex-tenant-id':'00000000-0000-0000-0000-000000000001',
+      'x-vertex-organization-id':'00000000-0000-0000-0000-000000000001',
+      'x-vertex-correlation-id':'not-a-uuid'
+    }
+  });
+  const response=await handle(request,{...signedEnv,VERTEX_TAXI_CORE:{fetch:async()=>{throw new Error('must not call');}}},fetcher);
+  assert.equal(response.status,400);
+  assert.deepEqual(await response.json(),{error:'invalid_correlation_id'});
+  assert.equal(delegated,false);
 });
