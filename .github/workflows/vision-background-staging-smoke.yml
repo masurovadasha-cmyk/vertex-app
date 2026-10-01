@@ -69,7 +69,7 @@ jobs:
           const url=process.env.VISION_BACKGROUND_DATABASE_URL||'';
           if(!/^postgres(?:ql)?:\/\//.test(url)) throw Error('background database URL required');
           if(!/sslmode=(require|verify-full)/.test(url)) throw Error('background database SSL required');
-          if(!url.includes('vision_background_staging')) throw Error('wrong background database principal');
+          const parsed=new URL(url);\n          if(decodeURIComponent(parsed.username)!=='vision_background_staging') throw Error('wrong background database principal');
           JS
 
       - name: Verify candidate source before secret use
