@@ -11,11 +11,17 @@
     "type": "delegated-identity",
     "requiredHeaders": [
       "authorization",
+      "x-vertex-user-id",
       "x-vertex-tenant-id",
       "x-vertex-organization-id",
       "x-vertex-correlation-id"
     ],
-    "databaseCredentialsFromVision": false
+    "databaseCredentialsFromVision": false,
+    "delegation": {
+      "userIdSource": "verified-vision-identity",
+      "tenantOrganizationContext": "verified-active-vision-membership",
+      "clientSuppliedUserIdAccepted": false
+    }
   },
   "endpoints": {
     "capabilities": {
@@ -38,6 +44,10 @@
       "allowedCommands": [
         "cancel"
       ]
+    },
+    "health": {
+      "method": "GET",
+      "path": "/integration/v1/health"
     }
   },
   "responseRules": {
