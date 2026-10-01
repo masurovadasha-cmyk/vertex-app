@@ -6,7 +6,7 @@
   const tx=(ru,en)=>document.documentElement.lang==='en'?en:ru;
   const element=(tag,className,text)=>{const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;};
   const button=(text,handler,className='vv-button')=>{const node=element('button',className,text);node.type='button';node.onclick=handler;return node;};
-  const home=element('section','vv-home');home.id='visionHome';home.setAttribute('aria-label','VERTEX VISION');
+  const home=element('section','vv-home');home.id='visionHome';home.setAttribute('aria-label','VERTEX VISION');document.documentElement.dataset.visionUi='2.0';
   document.querySelector('main').prepend(home);
   const dialog=element('dialog','vv-dialog');dialog.id='visionModuleDialog';document.body.append(dialog);
   let lastFocus=null,query='',domain='',activeModule=null;
@@ -60,7 +60,7 @@
     const items=core.list(domain).filter(m=>[m.id,m.name,m.description.ru,m.description.en].join(' ').toLocaleLowerCase().includes(search));
     for(const m of items){
       const card=button('',()=>details(m.id),'vv-card');card.dataset.vvOpen=m.id;
-      const active=m.status==='active';
+      const active=m.status==='active';card.dataset.vvStatus=m.status;if(active)card.classList.add('vv-card-active');
       const head=element('div','vv-card-top');const identity=element('div','vv-card-identity');identity.append(element('span','vv-card-icon',m.icon),element('span','vv-card-domain',tx(...groups[m.domain])));head.append(identity,element('span','vv-tag '+(active?'':'vv-tag-planned'),active?tx('Активно','Active'):tx('Скоро','Coming Soon')));
       card.append(head,element('h3','',m.name),element('p','',tx(m.description.ru,m.description.en)),element('span','vv-card-link',active?tx('Открыть Views →','Open Views →'):tx('Будущая ветка →','Future branch →')));box.append(card);
     }
@@ -76,6 +76,7 @@
     const foundation=element('div','vv-foundation');foundation.append(element('p','vv-kicker','VISION / CORE '+core.coreVersion),element('h2','',tx('Общее ядро','Shared foundation')));
     const shared=element('div','vv-services');for(const s of core.services)shared.append(element('span','',tx(s.ru,s.en)));foundation.append(shared,element('p','vv-foundation-note',tx('Модули взаимодействуют через ядро и события, а не через чужие таблицы.','Modules communicate through the core and events, not another module’s private tables.')));hero.append(copy,foundation);home.append(hero);
     home.append(element('p','vv-disclosure',tx('RC '+core.version+' · Views активен. Остальные подразделения показаны только как будущие ветки. Облачная staging-база и настоящий вход ещё должны пройти отдельную проверку.','RC '+core.version+' · Views is active. All other divisions are shown only as future branches. Cloud staging and real sign-in still require separate verification.')));
+    const statebar=element('div','vv-statebar');statebar.append(element('span','is-active',tx('Views · ACTIVE RC','Views · ACTIVE RC')),element('span','',tx('18 · Coming Soon','18 · Coming Soon')),element('span','',tx('Cloud data · Not connected','Cloud data · Not connected')),element('span','is-ui','Interface 2.0'));home.append(statebar);
     const tools=element('div','vv-tools');const heading=element('div');heading.append(element('h2','',tx('Направления VISION','VISION modules')),element('p','vv-count'));heading.lastChild.id='visionCount';tools.append(heading);
     const filters=element('div','vv-filters');const label=element('label','',tx('Найти направление','Find a module'));const input=element('input');input.id='visionSearch';input.type='search';input.maxLength=120;input.value=query;input.placeholder=tx('Например, клининг','For example, cleaning');input.oninput=()=>{query=input.value;cards();};label.append(input);
     const selectLabel=element('label','',tx('Категория','Category'));const select=element('select');select.id='visionDomain';select.append(new Option(tx('Все направления','All modules'),''));for(const [id,label] of Object.entries(groups))select.append(new Option(tx(...label),id));select.value=domain;select.onchange=()=>{domain=select.value;cards();};selectLabel.append(select);filters.append(label,selectLabel);tools.append(filters);home.append(tools);
@@ -86,6 +87,7 @@
     const brand=document.querySelector('header .brand');if(brand){brand.setAttribute('aria-label','VERTEX VISION');brand.replaceChildren(element('span','mark','v'),element('span','vv-wordmark','VERTEX VISION'));brand.onclick=e=>{e.preventDefault();home.scrollIntoView({block:'start',behavior:'auto'});};}
     const oldTitle=document.getElementById('visionViewsBoundary');if(!oldTitle){const boundary=element('div','vv-views-boundary',tx('VERTEX VISION / VIEWS · Проживание и поездки','VERTEX VISION / VIEWS · Stays & journeys'));boundary.id='visionViewsBoundary';home.after(boundary);}else oldTitle.textContent=tx('VERTEX VISION / VIEWS · Проживание и поездки','VERTEX VISION / VIEWS · Stays & journeys');
   }
+  document.addEventListener('keydown',event=>{if((event.ctrlKey||event.metaKey)&&String(event.key).toLowerCase()==='k'){const search=document.getElementById('visionSearch');if(search&&!document.querySelector('dialog[open]')){event.preventDefault();search.focus({preventScroll:true});search.select();}}});
   root.VertexVision=Object.freeze({core,navigate,details,home:()=>home.scrollIntoView({block:'start',behavior:'auto'}),adapters:Object.freeze(Object.keys(adapters))});
   render();new MutationObserver(()=>{const opened=dialog.open?activeModule:null;render();if(opened)details(opened);}).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
   document.documentElement.dataset.visionReady='true';

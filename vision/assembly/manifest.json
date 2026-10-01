@@ -64,7 +64,8 @@
     "jarvis": "separate-project-external-api-only",
     "productionMerge": false,
     "productionDeploy": false,
-    "cloudDatabaseMigration": false
+    "cloudDatabaseMigration": false,
+    "interfaceDesign": "design-integrated-no-new-business-modules-activated"
   },
   "gates": [
     "assembly-contract",
@@ -165,5 +166,23 @@
       "firstPartyActionsPinnedByCommit": true,
       "productionMutationAllowed": false
     }
+  },
+  "designSystem": {
+    "name": "VERTEX VISION Interface System",
+    "version": "2.0",
+    "style": "Tech Sand",
+    "source": "Canva",
+    "canvaDesignId": "DAHWuG0D0xk",
+    "canvaViewUrl": "https://www.canva.com/d/2REVo-Km73I52F4",
+    "integrationScope": [
+      "vision-hub",
+      "views-operations",
+      "responsive-navigation",
+      "system-states",
+      "accessibility"
+    ],
+    "activeRuntimeModule": "views",
+    "inactiveModules": "coming-soon",
+    "integratedAt": "2026-10-01"
   }
 }

@@ -5,7 +5,7 @@
   if(root&&root.document)root.VertexVisionCore=core;
 })(typeof globalThis==='undefined'?this:globalThis,function(){
   'use strict';
-  const VERSION='1.16-rc1', REVISION='vision-views-active-rc1', CORE_VERSION='1.0.0';
+  const VERSION='1.16-rc1', REVISION='interface-system-2-20261001', CORE_VERSION='1.0.0';
   const entries=[
     ['views','Views Hotel & Apartments','stays','Апартаменты, бронирования и кабинет собственника.','Apartments, reservations and host workspace.','demo','local-tested',['operations','catalog','host','trips']],
     ['managing','Vertex Managing IO','property','Управление объектами и контроль сервиса.','Property operations and service oversight.','demo','planned',['host','service-control']],
