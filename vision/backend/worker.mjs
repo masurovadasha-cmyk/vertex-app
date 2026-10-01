@@ -67,6 +67,18 @@ async function signTaxiHeaders(env,path,method,headers,body) {
   return headers;
 }
 
+function taxiHttpOrigin(value) {
+  if (!value) return null;
+  try {
+    const url=new URL(value);
+    if (url.protocol!=='https:' || url.username || url.password || url.search || url.hash) return null;
+    if (url.pathname!=='/' && url.pathname!=='') return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
 async function taxiFetch(env, path, request, body, userId) {
   const correlationId = request.headers.get('x-vertex-correlation-id') || crypto.randomUUID();
   const headers = taxiIntegrationHeaders(request, correlationId, userId);
@@ -86,7 +98,9 @@ async function taxiFetch(env, path, request, body, userId) {
         const response = await env.VERTEX_TAXI_CORE.fetch(target);
         if (!retryable || ![502,503,504].includes(response.status) || attempt === maxAttempts - 1) return response;
       } else if (env.TAXI_INTEGRATION_URL) {
-        const response = await fetch(env.TAXI_INTEGRATION_URL.replace(/\/$/,'') + path, {
+        const origin=taxiHttpOrigin(env.TAXI_INTEGRATION_URL);
+        if (!origin) return null;
+        const response = await fetch(origin + path, {
           method: request.method,
           headers,
           body: body === undefined ? undefined : body,
