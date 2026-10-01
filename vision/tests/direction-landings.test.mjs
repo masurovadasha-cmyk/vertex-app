@@ -27,6 +27,6 @@ test('Mobile Shell 13 exposes seven safe role-entry previews without browser-own
   const shell=await readFile(new URL('../platform/shell.js',import.meta.url),'utf8');
   for(const id of ['guest','driver','hotel-staff','restaurant-staff','admin','owner','partner'])assert.ok(shell.includes("'"+id+"'"),id+' role entry missing');
   assert.match(shell,/dataset\.visionUi='13\.0'/);
-  assert.match(shell,/Authentication is not enabled yet/);
+  assert.match(shell,/Authentication is not enabled yet\./);
   assert.doesNotMatch(shell,/localStorage\.setItem\([^\n]*role/i);
 });
