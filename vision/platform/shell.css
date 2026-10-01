@@ -237,3 +237,27 @@ header .brand .vv-wordmark{font:820 13px/1.2 system-ui,sans-serif;letter-spacing
 .vv-direction-status{color:#c8a85f;font:760 9px/1.4 system-ui,sans-serif;letter-spacing:.07em}
 @media(max-width:620px){.vv-dialog{width:min(100% - 14px,860px);max-height:calc(100dvh - 14px);padding:16px;border-radius:18px}.vv-direction-landing{padding:14px}.vv-direction-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vv-direction-brand h3{font-size:19px}}
 @media(max-width:390px){.vv-direction-grid{grid-template-columns:1fr 1fr}.vv-direction-tile{min-height:84px;padding:11px}}
+
+
+/* Mobile Shell 13.0 — role entry system derived from the approved VERTEX VISION board. */
+#visionHome .vv-role-launcher{margin-top:22px;padding:18px;border:1px solid rgba(224,197,138,.18);border-radius:20px;background:radial-gradient(circle at 50% 0%,rgba(225,171,48,.10),transparent 36%),linear-gradient(180deg,#0b1218,#080d11)}
+#visionHome .vv-role-launcher-head{text-align:center;max-width:640px;margin:0 auto 16px}
+#visionHome .vv-role-launcher-head small{color:#e0b657;font:800 9px/1.3 system-ui,sans-serif;letter-spacing:.18em}
+#visionHome .vv-role-launcher-head h2{margin:6px 0;color:#fff;font:760 24px/1.2 system-ui,sans-serif}
+#visionHome .vv-role-launcher-head p{margin:0;color:#87959a;font:12px/1.55 system-ui,sans-serif}
+#visionHome .vv-role-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+#visionHome .vv-role-card{min-height:112px;padding:12px 8px;border:1px solid rgba(99,153,187,.20);border-radius:13px;background:linear-gradient(180deg,#101d26,#09131a);color:#fff;cursor:pointer}
+#visionHome .vv-role-card:hover{border-color:rgba(229,185,83,.48);transform:translateY(-1px)}
+#visionHome .vv-role-card-icon{display:grid;place-items:center;width:34px;height:34px;margin:0 auto 9px;border:1px solid rgba(229,185,83,.32);border-radius:50%;color:#e6bd61}
+#visionHome .vv-role-card strong{display:block;font:700 10px/1.35 system-ui,sans-serif}
+#visionHome .vv-role-card small{display:block;margin-top:5px;color:#74878f;font:8px/1.35 system-ui,sans-serif}
+.vv-role-entry{text-align:center;padding:20px;border:1px solid rgba(224,197,138,.18);border-radius:18px;background:radial-gradient(circle at 50% 0%,rgba(222,174,72,.13),transparent 34%),linear-gradient(180deg,#0b141b,#081016)}
+.vv-role-emblem{display:grid;place-items:center;width:66px;height:66px;margin:0 auto 12px;border:1px solid rgba(231,188,87,.45);border-radius:50%;color:#efc65f;font:850 27px/1 serif;box-shadow:0 0 40px rgba(218,163,35,.10)}
+.vv-role-tagline{margin:0 0 16px;color:#b7c0c0;font:12px/1.45 system-ui,sans-serif}
+.vv-role-notice{max-width:520px;margin:0 auto 16px;color:#849399;font:11px/1.6 system-ui,sans-serif}
+.vv-role-methods{display:grid;gap:8px;max-width:390px;margin:0 auto}
+.vv-role-method{min-height:44px;border:1px solid rgba(255,255,255,.16);border-radius:11px;background:#f4f6f6;color:#111820;font:700 11px/1 system-ui,sans-serif;cursor:pointer}
+.vv-role-method:hover{background:#fff}
+.vv-role-security{display:block;margin-top:14px;color:#caa75b;font:750 9px/1.4 system-ui,sans-serif;letter-spacing:.08em}
+@media(max-width:1050px){#visionHome .vv-role-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:620px){#visionHome .vv-role-launcher{padding:13px}#visionHome .vv-role-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#visionHome .vv-role-card{min-height:104px}#visionHome .vv-role-launcher-head h2{font-size:21px}}
