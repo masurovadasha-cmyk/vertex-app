@@ -433,7 +433,6 @@ begin
    select * into n from public.vision_notifications
    where tenant_id=tenant and id=notification_id and user_id=actor for update;
    if not found then raise exception 'forbidden' using errcode='42501'; end if;
-   if expected is distinct from n.version then raise exception 'version_conflict' using errcode='40001'; end if;
 
    select * into receipt from public.vision_command_receipts r
    where r.tenant_id=tenant and r.actor_user_id=actor and r.idempotency_key=idem;
@@ -441,6 +440,8 @@ begin
      if receipt.command<>command then raise exception 'idempotency_conflict' using errcode='23505'; end if;
      return receipt.response;
    end if;
+
+   if expected is distinct from n.version then raise exception 'version_conflict' using errcode='40001'; end if;
 
    if command_type='notification_read' then
      update public.vision_notifications set status='READ',read_at=coalesce(read_at,now()),dismissed_at=null,version=version+1
@@ -462,7 +463,6 @@ begin
       or not (e.assigned_user_id=actor or vision_private.permitted(tenant,e.organization_id,'vision.escalation.ack')) then
      raise exception 'forbidden' using errcode='42501';
    end if;
-   if expected is distinct from e.version then raise exception 'version_conflict' using errcode='40001'; end if;
 
    select * into receipt from public.vision_command_receipts r
    where r.tenant_id=tenant and r.actor_user_id=actor and r.idempotency_key=idem;
@@ -470,6 +470,8 @@ begin
      if receipt.command<>command then raise exception 'idempotency_conflict' using errcode='23505'; end if;
      return receipt.response;
    end if;
+
+   if expected is distinct from e.version then raise exception 'version_conflict' using errcode='40001'; end if;
 
    if e.status<>'OPEN' then raise exception 'invalid_transition' using errcode='22023'; end if;
    update public.vision_escalations set
