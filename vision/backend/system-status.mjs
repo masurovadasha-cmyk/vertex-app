@@ -1,4 +1,4 @@
-// VERTEX VISION System Status DTO — Interface System 10.0
+// VERTEX VISION System Status DTO — current staging architecture.
 const SHA=/^[a-f0-9]{40}$/;
 const MIGRATION=/^\d{4}_[a-z0-9_]+\.sql$/;
 
@@ -11,8 +11,8 @@ export function systemStatusBase(env){
     service:'VERTEX VISION',
     environment:'staging',
     sourceCommit,
-    architectureVersion:'2.2',
-    requiredMigration:'0018_engineers_readiness.sql',
+    architectureVersion:'2.3',
+    requiredMigration:'0019_external_module_delegation.sql',
     backendConfigured,
     backgroundConsumerConnected:env?.VISION_BACKGROUND_CONSUMER_CONNECTED==='1',
     escalationSchedulerConnected:env?.VISION_ESCALATION_SCHEDULER_CONNECTED==='1'
@@ -32,12 +32,5 @@ export function projectSystemStatus(base,readiness=null,readinessChecked=false){
     migrationCount=readiness.migrationCount;
     viewsReleaseActive=readiness.viewsReleaseActive;
   }
-  return Object.freeze({
-    ...base,
-    readinessChecked:Boolean(readinessChecked),
-    databaseReady,
-    latestMigration,
-    migrationCount,
-    viewsReleaseActive
-  });
+  return Object.freeze({...base,readinessChecked:Boolean(readinessChecked),databaseReady,latestMigration,migrationCount,viewsReleaseActive});
 }
