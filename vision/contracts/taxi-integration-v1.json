@@ -14,6 +14,12 @@
         "dynamicRideCommand": "/_api/integration/v1/commands",
         "commandRideIdLocation": "json-body"
       }
+    },
+    "currentStagingHost": "floot",
+    "httpAdapter": {
+      "pathPrefix": "/_api",
+      "stableVisionContract": true,
+      "signatureCoversAdaptedRequest": true
     }
   },
   "authentication": {
