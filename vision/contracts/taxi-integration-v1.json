@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "module": "taxi",
+  "name": "Vertex Taxi Integration API",
+  "transport": {
+    "browser": "external-app",
+    "serverToServer": "cloudflare-service-binding-preferred",
+    "publicHttpFallback": true
+  },
+  "authentication": {
+    "type": "delegated-identity",
+    "requiredHeaders": [
+      "authorization",
+      "x-vertex-tenant-id",
+      "x-vertex-organization-id",
+      "x-vertex-correlation-id"
+    ],
+    "databaseCredentialsFromVision": false
+  },
+  "endpoints": {
+    "capabilities": {
+      "method": "GET",
+      "path": "/integration/v1/capabilities"
+    },
+    "ride": {
+      "method": "GET",
+      "path": "/integration/v1/rides/{ride_id}"
+    },
+    "createRide": {
+      "method": "POST",
+      "path": "/integration/v1/rides",
+      "idempotencyRequired": true
+    },
+    "commandRide": {
+      "method": "POST",
+      "path": "/integration/v1/rides/{ride_id}/commands",
+      "idempotencyRequired": true,
+      "allowedCommands": [
+        "cancel"
+      ]
+    }
+  },
+  "responseRules": {
+    "sourceOfTruth": "vertex-taxi-core",
+    "visionMayPersistReferenceOnly": true,
+    "visionMayNotPersistTaxiPrivateState": true
+  },
+  "failurePolicy": {
+    "timeoutMs": 2500,
+    "retries": 2,
+    "retryOnlyIdempotentRequests": true,
+    "failClosed": true
+  }
+}
