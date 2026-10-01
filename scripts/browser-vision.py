@@ -45,7 +45,32 @@ def run(live=False):
                     if not live:
                         def serve(route):
                             parsed=urlparse(route.request.url)
+                            if parsed.hostname=='supabase.test':
+                                if parsed.path=='/auth/v1/token':
+                                    route.fulfill(status=200,content_type='application/json',body=json.dumps({
+                                        'access_token':'synthetic.browser.access.token.1234567890',
+                                        'refresh_token':'must-not-be-persisted',
+                                        'user':{'id':'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'}
+                                    }));return
+                                if parsed.path=='/auth/v1/logout':
+                                    route.fulfill(status=204,body='');return
+                                route.abort();return
                             if parsed.hostname!='vision.test':route.abort();return
+                            if parsed.path == '/auth-config':
+                                route.fulfill(status=200,content_type='application/json',body=json.dumps({
+                                    'provider':'supabase','environment':'staging','url':'https://supabase.test',
+                                    'publishableKey':'sb_publishable_browser_test','passwordGrant':True,'persistence':'memory-only'
+                                }));return
+                            if parsed.path == '/api/v1/session-scopes':
+                                route.fulfill(status=200,content_type='application/json',body=json.dumps({
+                                    'actorId':'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','module':'views',
+                                    'scopes':[{
+                                        'tenantId':'11111111-1111-4111-8111-111111111111',
+                                        'organizationId':'44444444-4444-4444-8444-444444444444',
+                                        'organizationName':'Views Hotel & Apartments',
+                                        'memberAuthorized':True,'guestLinked':False
+                                    }]
+                                }));return
                             if parsed.path == '/api/v1/context':
                                 route.fulfill(status=200,content_type='application/json',body=json.dumps({
                                     'actorId':'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
@@ -81,7 +106,7 @@ def run(live=False):
                             if parsed.path=='/system-status':
                                 route.fulfill(status=200,content_type='application/json',body=json.dumps({
                                     'service':'VERTEX VISION','environment':'staging','sourceCommit':None,
-                                    'architectureVersion':'2.0','requiredMigration':'0015_background_runtime.sql',
+                                    'architectureVersion':'2.1','requiredMigration':'0016_staging_session_activation.sql',
                                     'backendConfigured':False,'backgroundConsumerConnected':False,
                                     'escalationSchedulerConnected':False,'readinessChecked':False,
                                     'databaseReady':None,'latestMigration':None,'migrationCount':None,'viewsReleaseActive':None
@@ -106,7 +131,7 @@ def run(live=False):
                     page.wait_for_function("document.documentElement.dataset.visionReady==='true'")
                     check(str(width)+': VISION is the first section',page.locator('main > section').first.get_attribute('id')=='visionHome')
                     check(str(width)+': 19 visible child module cards',page.locator('[data-vv-open]').count()==19)
-                    check(str(width)+': Interface System 10 runtime',page.evaluate("document.documentElement.dataset.visionUi==='10.0'"))
+                    check(str(width)+': Interface System 11 runtime',page.evaluate("document.documentElement.dataset.visionUi==='11.0'"))
                     check(str(width)+': five grouped module categories',page.locator('[data-vv-category]').count()==5)
                     check(str(width)+': every module uses a line SVG icon',page.locator('.vv-card-icon svg').count()==19)
                     check(str(width)+': Today context rail is visible',page.locator('#visionHome .vv-today').is_visible())
@@ -148,7 +173,7 @@ def run(live=False):
                     check(str(width)+': System Status opens from Hub',page.evaluate("VertexVisionSystemStatus.open()"))
                     check(str(width)+': System Status Center is visible',page.locator('#visionSystemStatus').is_visible())
                     check(str(width)+': System Status renders six factual signals',page.locator('#visionSystemStatus .vvs-card').count()==6)
-                    check(str(width)+': System Status exposes architecture and required migration','2.0' in page.locator('#visionSystemStatus').inner_text() and '0015_background_runtime.sql' in page.locator('#visionSystemStatus').inner_text())
+                    check(str(width)+': System Status exposes architecture and required migration','2.1' in page.locator('#visionSystemStatus').inner_text() and '0016_staging_session_activation.sql' in page.locator('#visionSystemStatus').inner_text())
                     check(str(width)+': disconnected System Status contains no secret-shaped values','sb_publishable_' not in page.locator('#visionSystemStatus').inner_text() and 'postgres://' not in page.locator('#visionSystemStatus').inner_text())
                     page.keyboard.press('Escape')
                     page.screenshot(path=str(OUT/f'vision-home-{width}.png'))
@@ -167,7 +192,15 @@ def run(live=False):
                     check(str(width)+': disconnected operations state is explicit',page.locator('#visionViewsOperations .vvo-connect').is_visible())
                     page.keyboard.press('Escape')
                     if not live:
-                        page.evaluate("VertexVisionViews.configure({tenantId:'11111111-1111-4111-8111-111111111111',organizationId:'44444444-4444-4444-8444-444444444444',token:'test.jwt.token'})")
+                        check(str(width)+': Session Center opens from Hub',page.evaluate("VertexVisionSessionCenter.open()"))
+                        check(str(width)+': Session Center is visible',page.locator('#visionSessionCenter').is_visible())
+                        page.locator('#visionSessionCenter input[name="email"]').fill('synthetic@example.test')
+                        page.locator('#visionSessionCenter input[name="password"]').fill('synthetic-password')
+                        page.locator('#visionSessionCenter [data-vvsn-login] button[type="submit"]').click()
+                        page.wait_for_function("VertexVisionSessionCenter.status().signedIn===true && VertexVisionSessionCenter.status().activeOrganizationId==='44444444-4444-4444-8444-444444444444'")
+                        check(str(width)+': staging sign-in activates Views scope',page.evaluate("VertexVisionViews.status().configured===true"))
+                        check(str(width)+': Session Center keeps token memory-only',page.evaluate("VertexVisionSessionCenter.status().persistence==='memory-only' && !Object.keys(localStorage).some(k=>/token|auth/i.test(k)) && !Object.keys(sessionStorage).some(k=>/token|auth/i.test(k))"))
+                        page.keyboard.press('Escape')
                         check(str(width)+': configured Views operations opens',page.evaluate("VertexVision.navigate('views','operations')"))
                         page.wait_for_selector('#visionViewsOperations .vvo-kpis')
                         check(str(width)+': real-data workspace renders mocked unit',page.locator('#visionViewsOperations').get_by_text('TEST-235').count()>0)
@@ -205,7 +238,9 @@ def run(live=False):
                         check(str(width)+': escalation renders',page.locator('#visionNotifications').get_by_text('Prepare TEST-235').count()>0)
                         check(str(width)+': server-derived escalation acknowledge action renders',page.locator('#visionNotifications [data-vvn-action="escalation_ack"]').count()==1)
                         page.keyboard.press('Escape')
-                        page.evaluate("VertexVisionViews.clearSession()")
+                        page.evaluate("VertexVisionSessionCenter.signOut()")
+                        page.wait_for_function("VertexVisionSessionCenter.status().signedIn===false")
+                        check(str(width)+': sign-out clears Views operational session',page.evaluate("VertexVisionViews.status().configured===false"))
                     check(str(width)+': Views adapter remains launchable',page.evaluate("VertexVision.navigate('views','host')"))
                     check(str(width)+': existing Views UI opens',page.locator('.vh-shell').first.is_visible())
                     for module,action in [('taxi','taxi'),('travel','packages'),('cleaning','cleaning-request'),('concierge','guest-guide')]:
