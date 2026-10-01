@@ -81,3 +81,61 @@
 }
 @media(max-width:380px){.vvo-kpis{grid-template-columns:1fr}.vvo-tabs button{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.vvo-loading span{animation:none}.vvo-head-actions button,.vvo-row-actions button{transition:none;transform:none!important}}
+
+
+/* Interface System 3.0 — dark premium Views workspace, matching the VERTEX VISION control-center boards. */
+.vvo-dialog{
+  --vvo-bg:#0f1412;--vvo-surface:#161d19;--vvo-surface-2:#1b241f;--vvo-ink:#f4efe5;--vvo-muted:#99a49d;
+  --vvo-line:rgba(221,194,135,.16);--vvo-gold:#cdb276;--vvo-gold-soft:#5f5133;--vvo-steel:#8498ab;
+  --vvo-success:#70c294;--vvo-info:#79a7d0;--vvo-warning:#d9a95f;--vvo-danger:#db7e7e;
+  background:
+    radial-gradient(circle at 92% 6%,rgba(132,152,171,.08),transparent 30rem),
+    linear-gradient(180deg,#111713,#0d1210);
+  border-color:rgba(221,194,135,.24);color:var(--vvo-ink);box-shadow:0 34px 110px rgba(0,0,0,.5)
+}
+.vvo-head{background:rgba(18,24,21,.97);border-bottom-color:var(--vvo-line)}
+.vvo-head small{color:#dfc17d}
+.vvo-head h2{color:#fff}
+.vvo-head p{color:#9ba59e}
+.vvo-head-actions button,.vvo-connect button,.vvo-error button,.vvo-row-actions button{
+  border-color:rgba(221,194,135,.18);background:#171e1a;color:#ece8df
+}
+.vvo-head-actions button:hover,.vvo-connect button:hover,.vvo-error button:hover,.vvo-row-actions button:hover{
+  border-color:var(--vvo-gold);background:rgba(205,178,118,.10)
+}
+.vvo-connection{background:rgba(132,152,171,.10);color:#aab8c4;border:1px solid rgba(132,152,171,.16)}
+.vvo-connection.is-on{background:rgba(112,194,148,.10);color:#9bd9b6;border-color:rgba(112,194,148,.24)}
+.vvo-tabs{background:#121814;border-bottom-color:var(--vvo-line)}
+.vvo-tabs button{color:#9fa8a2}
+.vvo-tabs button:hover{background:rgba(205,178,118,.06);color:#eeeae2}
+.vvo-tabs button[aria-current="page"]{background:linear-gradient(180deg,#5b4b2e,#3e3523);color:#fff2d3;border-color:#967f50;box-shadow:0 8px 24px rgba(0,0,0,.28)}
+.vvo-main{background:
+  linear-gradient(rgba(205,178,118,.025) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(205,178,118,.025) 1px,transparent 1px),
+  linear-gradient(180deg,#101612,#0d1210);
+  background-size:28px 28px,28px 28px,auto}
+.vvo-kpis article,.vvo-row,.vvo-unit-grid article,.vvo-calendar article{
+  background:linear-gradient(180deg,rgba(25,33,29,.98),rgba(18,24,21,.98));
+  border-color:rgba(221,194,135,.13);box-shadow:0 8px 24px rgba(0,0,0,.16)
+}
+.vvo-kpis article{position:relative;overflow:hidden}
+.vvo-kpis article::after{content:"";position:absolute;left:16px;bottom:0;width:38px;height:1px;background:linear-gradient(90deg,var(--vvo-gold),transparent)}
+.vvo-kpis span,.vvo-row small,.vvo-row span,.vvo-unit-grid small,.vvo-unit-grid p,.vvo-section-head>span,.vvo-calendar em{color:#8e9992}
+.vvo-kpis strong,.vvo-section-head h3,.vvo-row strong,.vvo-row b,.vvo-unit-grid strong,.vvo-calendar article>strong{color:#f6f1e8}
+.vvo-row-actions button{min-height:38px}
+.vvo-status{background:rgba(132,152,171,.09);color:#aeb9c3;border-color:rgba(132,152,171,.14)}
+.vvo-status-checked-in,.vvo-status-occupied{background:rgba(121,167,208,.10);color:#9ec5e6;border-color:rgba(121,167,208,.20)}
+.vvo-status-confirmed,.vvo-status-ready,.vvo-status-verified{background:rgba(112,194,148,.10);color:#9bd8b6;border-color:rgba(112,194,148,.20)}
+.vvo-status-cleaning,.vvo-status-in-progress,.vvo-status-inspection,.vvo-status-required{background:rgba(217,169,95,.10);color:#e6be7f;border-color:rgba(217,169,95,.20)}
+.vvo-status-cancelled,.vvo-status-blocked,.vvo-status-maintenance{background:rgba(219,126,126,.10);color:#e9a5a5;border-color:rgba(219,126,126,.20)}
+.vvo-calendar article>div>span{background:#151c18;border-color:rgba(221,194,135,.13);color:#d7d8d2}
+.vvo-empty,.vvo-connect,.vvo-error{background:#151c18;border-color:rgba(221,194,135,.18);color:#9da7a0}
+.vvo-empty strong,.vvo-connect strong,.vvo-error strong{color:#f4efe6}
+.vvo-connect{border-left-color:var(--vvo-gold)}
+.vvo-error{border-left-color:var(--vvo-danger)}
+.vvo-loading span{background:linear-gradient(90deg,#19211d,#242e28,#19211d);background-size:220% 100%}
+.vvo-dialog button:focus-visible{outline-color:#e1c47f}
+@media(max-width:600px){
+  .vvo-tabs{background:#111713;border-top-color:var(--vvo-line);box-shadow:0 -12px 32px rgba(0,0,0,.34)}
+  .vvo-tabs button[aria-current="page"]{background:#4f422a}
+}
