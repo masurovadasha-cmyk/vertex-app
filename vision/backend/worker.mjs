@@ -3,11 +3,12 @@ const json = (body,status=200) => Response.json(body,{status,headers:{'cache-con
 
 const integrationUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function taxiIntegrationHeaders(request, correlationId) {
+function taxiIntegrationHeaders(request, correlationId, userId) {
   const headers = new Headers({
     'x-vertex-correlation-id': correlationId,
     'x-vertex-caller': 'vertex-vision',
     'x-vertex-integration-version': '1',
+    'x-vertex-user-id': userId,
     'cache-control': 'no-store',
   });
   for (const name of ['authorization','x-vertex-tenant-id','x-vertex-organization-id','idempotency-key']) {
@@ -17,9 +18,9 @@ function taxiIntegrationHeaders(request, correlationId) {
   return headers;
 }
 
-async function taxiFetch(env, path, request, body) {
+async function taxiFetch(env, path, request, body, userId) {
   const correlationId = request.headers.get('x-vertex-correlation-id') || crypto.randomUUID();
-  const headers = taxiIntegrationHeaders(request, correlationId);
+  const headers = taxiIntegrationHeaders(request, correlationId, userId);
   const retryable = request.method === 'GET' || Boolean(request.headers.get('idempotency-key'));
   const maxAttempts = retryable ? 3 : 1;
   let lastError;
@@ -112,6 +113,12 @@ export async function handle(request,env,fetcher=fetch) {
       const correlation = request.headers.get('x-vertex-correlation-id') || '';
       if (!integrationUuid.test(tenantId) || !integrationUuid.test(organizationId)) return json({error:'tenant_context_required'},400);
       if (correlation.length > 128) return json({error:'correlation_id_too_long'},400);
+      const delegation=await upstream('/rest/v1/rpc/vision_external_module_context_allowed',{
+        method:'POST',
+        body:JSON.stringify({t:tenantId,org:organizationId,module_id:'taxi'}),
+      });
+      if(!delegation.ok)return json({error:'backend_unavailable'},503);
+      if((await upstreamJSON(delegation,65536))!==true)return json({error:'forbidden'},403);
       const mutation = request.method === 'POST';
       if (mutation && !request.headers.get('idempotency-key')) return json({error:'idempotency_required'},400);
       let body;
@@ -120,7 +127,7 @@ export async function handle(request,env,fetcher=fetch) {
         if (mediaType!=='application/json') return json({error:'json_required'},415);
         body=JSON.stringify(await boundedJSON(request,8192));
       }
-      const taxiResponse=await taxiFetch(env,taxiTarget,request,body);
+      const taxiResponse=await taxiFetch(env,taxiTarget,request,body,user.id);
       if (!taxiResponse) return json({error:'taxi_integration_not_configured'},503);
       const taxiBody=await upstreamJSON(taxiResponse,1048576);
       return json(taxiBody,taxiResponse.status);
