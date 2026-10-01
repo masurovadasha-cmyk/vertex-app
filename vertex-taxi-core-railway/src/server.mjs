@@ -38,6 +38,23 @@ const app = Fastify({
 await app.register(cors, { origin: true });
 await app.register(websocket);
 
+const demoHits = new Map();
+
+function demoRateLimit(req, reply) {
+  const key = String(req.ip || "unknown");
+  const now = Date.now();
+  const bucket = demoHits.get(key) || { count: 0, resetAt: now + 60_000 };
+  if (now >= bucket.resetAt) {
+    bucket.count = 0;
+    bucket.resetAt = now + 60_000;
+  }
+  bucket.count += 1;
+  demoHits.set(key, bucket);
+  if (bucket.count > 120) {
+    return reply.code(429).send({ error: "demo_rate_limited" });
+  }
+}
+
 function auth(req, reply) {
   const value = req.headers.authorization || "";
   const allowed = new Set(
@@ -47,6 +64,26 @@ function auth(req, reply) {
   if (!allowed.has(value)) {
     return reply.code(401).send({ error: "unauthorized" });
   }
+}
+
+function demoOnly(req, reply) {
+  const limited = demoRateLimit(req, reply);
+  if (limited) return limited;
+  req.vertexDemo = true;
+}
+
+function assertDemoIdentity(value, kind) {
+  const text = String(value || "");
+  const allowed =
+    kind === "user" ? /^demo-client-[a-z0-9_-]{1,64}$/ :
+    kind === "driver" ? /^demo-driver-[a-z0-9_-]{1,64}$/ :
+    false;
+  if (!allowed) {
+    const error = new Error("demo_identity_required");
+    error.statusCode = 403;
+    throw error;
+  }
+  return text;
 }
 
 function fareMinor(distanceKm) {
@@ -310,6 +347,128 @@ app.post("/v1/offers/:offerId/accept", { preHandler: auth }, async (req, reply) 
 });
 
 
+
+app.get("/demo/health", { preHandler: demoOnly }, async () => {
+  const dbOk = await db.query("select 1 as ok");
+  const redisOk = await redis.ping();
+  return {
+    service: "vertex-taxi-core-demo",
+    version: "0.3.0",
+    status: dbOk.rows[0]?.ok === 1 && redisOk === "PONG" ? "ok" : "degraded",
+    demo: true,
+  };
+});
+
+app.post("/demo/v1/quotes", { preHandler: demoOnly }, async (req, reply) => {
+  const input = quoteInput.parse(req.body);
+  assertDemoIdentity(input.userId, "user");
+  const fare = fareMinor(input.distanceKm);
+  const result = await db.query(
+    `insert into taxi_quotes
+      (user_id,pickup_lat,pickup_lng,pickup_label,destination_lat,destination_lng,
+       destination_label,service_class,distance_km,fare_minor,currency,expires_at)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'USD',now()+interval '15 minutes')
+     returning *`,
+    [input.userId,input.pickup.lat,input.pickup.lng,input.pickup.label,
+     input.destination.lat,input.destination.lng,input.destination.label,
+     input.serviceClass,input.distanceKm,fare]
+  );
+  reply.code(201);
+  return { data: result.rows[0] };
+});
+
+app.post("/demo/v1/rides", { preHandler: demoOnly }, async (req, reply) => {
+  const input = rideInput.parse(req.body);
+  assertDemoIdentity(input.userId, "user");
+  const q = await db.query(
+    "select * from taxi_quotes where id=$1 and user_id=$2 and expires_at>now()",
+    [input.quoteId,input.userId]
+  );
+  if (!q.rowCount) return reply.code(409).send({ error: "quote_expired_or_missing" });
+  const quote = q.rows[0];
+  const r = await db.query(
+    `insert into taxi_rides
+     (user_id,quote_id,state,service_class,pickup_lat,pickup_lng,pickup_label,
+      destination_lat,destination_lng,destination_label,fare_minor,currency)
+     values ($1,$2,'REQUESTED',$3,$4,$5,$6,$7,$8,$9,$10,$11)
+     returning *`,
+    [input.userId,quote.id,quote.service_class,quote.pickup_lat,quote.pickup_lng,
+     quote.pickup_label,quote.destination_lat,quote.destination_lng,
+     quote.destination_label,quote.fare_minor,quote.currency]
+  );
+  reply.code(201);
+  return { data:r.rows[0] };
+});
+
+app.post("/demo/v1/drivers/:driverId/location", { preHandler: demoOnly }, async (req, reply) => {
+  const driverId=assertDemoIdentity(req.params.driverId,"driver");
+  const input=locationInput.parse(req.body);
+  if (input.accuracyM > 80) return reply.code(422).send({ error: "location_accuracy_too_low" });
+  const cell=latLngToCell(input.lat,input.lng,H3_RESOLUTION);
+  const previous=await redis.hGet(locationKey(driverId),"cell");
+  const tx=redis.multi();
+  if(previous && previous!==cell) tx.sRem(cellKey(previous),driverId);
+  tx.hSet(locationKey(driverId),{
+    lat:String(input.lat),lng:String(input.lng),accuracyM:String(input.accuracyM),
+    heading:String(input.heading ?? ""),speedMps:String(input.speedMps ?? ""),
+    available:String(input.available),serviceClasses:JSON.stringify(input.serviceClasses),
+    cell,updatedAt:String(Date.now()),
+  });
+  tx.expire(locationKey(driverId),LOCATION_TTL_SECONDS);
+  tx.sAdd(cellKey(cell),driverId);
+  tx.expire(cellKey(cell),LOCATION_TTL_SECONDS*3);
+  await tx.exec();
+  return {data:{driverId,cell,ttlSeconds:LOCATION_TTL_SECONDS}};
+});
+
+app.get("/demo/v1/dispatch/:rideId/candidates", { preHandler: demoOnly }, async (req, reply) => {
+  const rideId=z.string().uuid().parse(req.params.rideId);
+  const r=await db.query("select * from taxi_rides where id=$1",[rideId]);
+  if(!r.rowCount) return reply.code(404).send({error:"ride_not_found"});
+  if(!String(r.rows[0].user_id).startsWith("demo-client-")) return reply.code(403).send({error:"demo_only"});
+  const candidates=(await candidatesForRide(r.rows[0]))
+    .filter(candidate => String(candidate.driverId).startsWith("demo-driver-"));
+  return {data:candidates};
+});
+
+app.post("/demo/v1/offers", { preHandler: demoOnly }, async (req, reply) => {
+  const input=offerInput.parse(req.body);
+  assertDemoIdentity(input.driverId,"driver");
+  const rideCheck=await db.query("select user_id from taxi_rides where id=$1",[input.rideId]);
+  if(!rideCheck.rowCount || !String(rideCheck.rows[0].user_id).startsWith("demo-client-"))
+    return reply.code(403).send({error:"demo_only"});
+  const offerId=crypto.randomUUID();
+  const expiresAt=new Date(Date.now()+OFFER_TTL_MS);
+  const rideLease=await redis.set(rideLeaseKey(input.rideId),input.driverId,{NX:true,PX:OFFER_TTL_MS});
+  if(rideLease!=="OK") return reply.code(409).send({error:"ride_already_reserved"});
+  const driverLease=await redis.set(driverLeaseKey(input.driverId),input.rideId,{NX:true,PX:OFFER_TTL_MS});
+  if(driverLease!=="OK"){ await redis.del(rideLeaseKey(input.rideId)); return reply.code(409).send({error:"driver_already_reserved"}); }
+  await db.query("insert into taxi_offers(id,ride_id,driver_id,state,expires_at) values($1,$2,$3,'OFFERED',$4)",[offerId,input.rideId,input.driverId,expiresAt]);
+  await db.query("update taxi_rides set state='DRIVER_OFFERED',version=version+1,updated_at=now() where id=$1 and state in ('REQUESTED','SEARCHING')",[input.rideId]);
+  reply.code(201);
+  return {data:{offerId,expiresAt}};
+});
+
+app.post("/demo/v1/offers/:offerId/accept", { preHandler: demoOnly }, async (req, reply) => {
+  const offerId=z.string().uuid().parse(req.params.offerId);
+  const o=await db.query(
+    `select o.*,r.user_id from taxi_offers o join taxi_rides r on r.id=o.ride_id where o.id=$1`,
+    [offerId]
+  );
+  if(!o.rowCount) return reply.code(404).send({error:"offer_not_found"});
+  const offer=o.rows[0];
+  if(!String(offer.user_id).startsWith("demo-client-") || !String(offer.driver_id).startsWith("demo-driver-"))
+    return reply.code(403).send({error:"demo_only"});
+  if(offer.state!=="OFFERED" || new Date(offer.expires_at)<=new Date()) return reply.code(409).send({error:"offer_expired"});
+  await db.query("update taxi_offers set state='ACCEPTED',updated_at=now() where id=$1",[offerId]);
+  const updated=await db.query(
+    `update taxi_rides set state='DRIVER_ASSIGNED',driver_id=$2,version=version+1,updated_at=now()
+     where id=$1 and state='DRIVER_OFFERED' returning *`,
+    [offer.ride_id,offer.driver_id]
+  );
+  return {data:updated.rows[0]};
+});
+
 const rideCommandInput = z.object({
   command: z.enum([
     "DRIVER_EN_ROUTE","ARRIVED","RIDER_ONBOARD","START","COMPLETE",
@@ -500,6 +659,7 @@ app.get("/v1/realtime/rides/:rideId", { websocket:true }, (socket, req) => {
 app.setErrorHandler((err, req, reply)=>{
   req.log.error(err);
   if(err?.name==="ZodError") return reply.code(400).send({error:"invalid_request",issues:err.issues});
+  if(err?.statusCode) return reply.code(err.statusCode).send({error:err.message});
   reply.code(500).send({error:"internal_error"});
 });
 
