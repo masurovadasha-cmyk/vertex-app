@@ -7,12 +7,18 @@ const priority=new Set(['LOW','NORMAL','HIGH','CRITICAL']);
 const reason=/^[A-Z][A-Z0-9_]{1,63}$/;
 const kind=/^[a-z][a-z0-9_.-]{1,63}$/;
 const type=new Set(['task','approval','request','attention']);
+const slaState=new Set(['NONE','ACTIVE','BREACHED']);
+const actionsByType=Object.freeze({
+  task:new Set(['task_assign','task_accept','task_wait','task_resume','task_submit','quality_pass','quality_reject']),
+  approval:new Set(['approval_approve','approval_reject']),request:new Set(),attention:new Set()
+});
 
 const rootKeys=new Set(['generated_at','tasks','approvals','attention','requests','counts']);
 const countKeys=new Set(['tasks','approvals','attention','requests']);
 const allowedItemKeys=new Set([
   'id','type','source','kind','title','status','priority','reason','due_at','assigned_to_me',
-  'source_id','entity_type','entity_id','created_at','updated_at','priority_rank'
+  'source_id','entity_type','entity_id','created_at','updated_at','priority_rank','version','order_version',
+  'assigned_user_id','requested_by','sla_state','actions'
 ]);
 
 function instant(value,nullable=true){
@@ -48,12 +54,22 @@ function projectItem(item,expected){
     assignedToMe:typeof item.assigned_to_me==='boolean'?item.assigned_to_me:null,
     sourceId:id(item.source_id,true),
     createdAt:instant(item.created_at,false),
-    updatedAt:instant(item.updated_at,true)
+    updatedAt:instant(item.updated_at,true),
+    version:item.version==null?null:(Number.isSafeInteger(item.version)&&item.version>0?item.version:(()=>{throw new Error('upstream_invalid_response');})()),
+    orderVersion:item.order_version==null?null:(Number.isSafeInteger(item.order_version)&&item.order_version>0?item.order_version:(()=>{throw new Error('upstream_invalid_response');})()),
+    assignedUserId:id(item.assigned_user_id,true),
+    slaState:item.sla_state==null?null:(slaState.has(item.sla_state)?item.sla_state:(()=>{throw new Error('upstream_invalid_response');})()),
+    actions:(()=>{
+      const values=item.actions??[];
+      if(!Array.isArray(values)||values.length>8||new Set(values).size!==values.length||values.some(value=>typeof value!=='string'||!actionsByType[expected].has(value)))throw new Error('upstream_invalid_response');
+      return Object.freeze([...values]);
+    })()
   };
   if(expected==='approval'){
     base.kind=kind.test(item.kind||'')?item.kind:(()=>{throw new Error('upstream_invalid_response');})();
     base.entityType=text(item.entity_type,80,true);
     base.entityId=id(item.entity_id,true);
+    base.requestedBy=id(item.requested_by,true);
   }
   if(expected==='attention'){
     base.reason=reason.test(item.reason||'')?item.reason:(()=>{throw new Error('upstream_invalid_response');})();
