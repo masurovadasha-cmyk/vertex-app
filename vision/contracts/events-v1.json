@@ -209,6 +209,16 @@
         "correlation_id",
         "occurred_at"
       ]
+    },
+    "approval.requested": {
+      "required": [
+        "event_id",
+        "tenant_id",
+        "organization_id",
+        "approval_id",
+        "correlation_id",
+        "occurred_at"
+      ]
     }
   }
 }
