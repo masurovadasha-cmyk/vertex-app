@@ -14,7 +14,7 @@ VISION staging exposes authenticated routes:
 - `POST /api/taxi/rides`
 - `POST /api/taxi/rides/{ride_id}/commands`
 
-The gateway first authenticates the VISION user against the existing staging identity layer. It forwards only the delegated identity/tenant headers and mutation idempotency key. Taxi remains the source of truth.
+The gateway first authenticates the VISION user against the existing staging identity layer, verifies that the user has an active membership in the requested tenant/organization context, and derives `x-vertex-user-id` from the verified identity (never from a client-supplied user-id header). It then forwards the delegated identity/tenant headers and mutation idempotency key. Taxi remains the source of truth.
 
 ## Transport order
 
@@ -36,3 +36,7 @@ Production remains unchanged until the staging golden flow passes:
 
 `VISION → create ride → dispatch → driver accept → trip → complete → Taxi event → VISION projection`
 
+
+## Event return path
+
+The request gateway does not by itself complete the reverse event path. The agreed async boundary remains `Taxi Outbox → Event Gateway → VISION Inbox`, with at-least-once delivery and deduplication by event id. `Taxi event → VISION projection` remains a required staging gate before the Golden E2E can be declared complete.
