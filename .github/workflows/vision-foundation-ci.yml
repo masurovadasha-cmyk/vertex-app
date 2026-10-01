@@ -1,7 +1,7 @@
 name: VERTEX VISION Foundation CI
 on:
   push:
-    branches: ['vision-foundation-*']
+    branches: ['vision-foundation-*', 'vision-rc-*']
   pull_request:
     branches: [master]
     paths:
@@ -44,6 +44,8 @@ jobs:
         run: node --test vision/tests/database.test.mjs
         env:
           VISION_TEST_DATABASE_URL: postgres://postgres:disposable-ci-only@localhost:5432/vision_test_ci
+      - name: VISION staging static preflight
+        run: node vision/tools/staging-preflight.mjs
       - name: Cloudflare compatibility dry-run
         run: npm run check:deploy
       - name: Separate VISION staging build without deployment
@@ -54,4 +56,3 @@ jobs:
           test -f vision/contracts/events-v1.json
           test -f vision/module-sdk/module-contract-v1.json
           node vision/tools/check-seeds.cjs
-
