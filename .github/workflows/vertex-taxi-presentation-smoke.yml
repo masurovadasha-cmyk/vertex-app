@@ -1,0 +1,31 @@
+name: Vertex Taxi Presentation Smoke
+
+on:
+  push:
+    branches: [vertex-taxi-core-railway-staging]
+    paths:
+      - 'vertex-taxi-core-railway/presentation/**'
+      - 'vertex-taxi-core-railway/src/server.mjs'
+      - '.github/workflows/vertex-taxi-presentation-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check server and presentation JavaScript syntax
+        run: |
+          node --check vertex-taxi-core-railway/src/server.mjs
+          node --check vertex-taxi-core-railway/presentation/app.js
+      - name: Verify required presentation files
+        run: |
+          test -s vertex-taxi-core-railway/presentation/index.html
+          test -s vertex-taxi-core-railway/presentation/styles.css
+          test -s vertex-taxi-core-railway/presentation/manifest.webmanifest
