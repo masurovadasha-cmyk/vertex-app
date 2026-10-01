@@ -1,0 +1,63 @@
+name: Vertex Taxi Security Preflight
+
+on:
+  push:
+    branches: [vertex-taxi-core-railway-staging]
+    paths:
+      - 'vertex-taxi-core-railway/**'
+      - 'vertex-taxi-edge-cloudflare/**'
+      - '.github/workflows/vertex-taxi-security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Reject credential files
+        run: |
+          set -euo pipefail
+          bad="$(find . -type f \( -name '*.jks' -o -name '*.keystore' -o -name 'google-services.json' -o -name '*service-account*.json' -o -name '*.p12' -o -name '*.pem' \) -not -path './.git/*' -print)"
+          if [ -n "$bad" ]; then
+            echo "Credential-like files must not be committed:"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: Reject obvious private keys
+        run: |
+          set -euo pipefail
+          if grep -R -n -E --exclude-dir=.git --exclude='*.md' -- 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AIza[0-9A-Za-z_-]{30,}|-----BEGIN PRIVATE KEY-----' .; then
+            echo "Potential secret material found"
+            exit 1
+          fi
+
+      - name: Production dependency audit
+        working-directory: vertex-taxi-core-railway
+        run: |
+          npm install --package-lock-only --ignore-scripts
+          npm audit --omit=dev --audit-level=high
+
+      - name: Static security invariants
+        run: |
+          node <<'NODE'
+          import fs from 'node:fs';
+          const s=fs.readFileSync('vertex-taxi-core-railway/src/server.mjs','utf8');
+          const checks=[
+            ['CORS is not wildcard',!s.includes('origin: true')],
+            ['readiness endpoint',s.includes('/readyz')],
+            ['liveness endpoint',s.includes('/livez')],
+            ['nosniff header',s.includes('x-content-type-options')],
+            ['demo rate limit',s.includes('demoRateLimit')],
+            ['protected API auth',s.includes('function auth')]
+          ];
+          for(const [name,ok] of checks){console.log(name,ok?'PASS':'FAIL');if(!ok)process.exitCode=1}
+          NODE
