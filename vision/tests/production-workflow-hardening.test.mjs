@@ -5,6 +5,7 @@ import fs from 'node:fs';
 const workflows=[
   '.github/workflows/vision-assembly.yml',
   '.github/workflows/vision-cloud-e2e.yml',
+  '.github/workflows/vision-background-staging-smoke.yml',
   '.github/workflows/vision-staging-deploy.yml',
   '.github/workflows/vision-rc2-safety.yml',
   '.github/workflows/vision-production-backup-restore.yml',
