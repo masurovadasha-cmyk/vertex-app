@@ -59,6 +59,15 @@ if(policyOnly){
     if(cloud.architectureVersion!==release.architectureVersion)reasons.push('cloud_architecture_mismatch');
     if(cloud.latestMigration!==release.databaseMigration)reasons.push('cloud_migration_mismatch');
   }
+  const background=evidence['background-staging-smoke'];
+  if(background){
+    for(const [key,expected] of Object.entries(policy.rules.backgroundSmoke))if(background[key]!==expected)reasons.push('background:'+key+'='+String(background[key]));
+    if(background.sourceCommit!==candidateSha)reasons.push('background_candidate_commit_mismatch');
+    if(!background.notifications||typeof background.notifications.claimed!=='number'||typeof background.notifications.failed!=='number')reasons.push('background_notifications_invalid');
+    if(!background.escalations||typeof background.escalations.scopes!=='number'||typeof background.escalations.failed!=='number')reasons.push('background_escalations_invalid');
+    if(background.notifications.failed!==0)reasons.push('background_notification_failures');
+    if(background.escalations.failed!==0)reasons.push('background_escalation_failures');
+  }
   const backup=evidence['production-backup-restore'];
   if(backup){
     for(const [key,expected] of Object.entries(policy.rules.productionBackupRestore))if(backup[key]!==expected)reasons.push('backup:'+key+'='+String(backup[key]));
