@@ -36,9 +36,11 @@ const presentationAssets = {
 const migration = await fs.readFile(new URL("../migrations/001_init.sql", import.meta.url), "utf8");
 const presentationMigration = await fs.readFile(new URL("../migrations/002_presentation.sql", import.meta.url), "utf8");
 const notificationMigration = await fs.readFile(new URL("../migrations/003_notifications_realtime.sql", import.meta.url), "utf8");
+const fencingMigration = await fs.readFile(new URL("../migrations/004_fencing.sql", import.meta.url), "utf8");
 await db.query(migration);
 await db.query(presentationMigration);
 await db.query(notificationMigration);
+await db.query(fencingMigration);
 
 const app = Fastify({
   logger: true,
@@ -107,6 +109,40 @@ function locationKey(driverId) { return `taxi:driver:${driverId}:location`; }
 function cellKey(cell) { return `taxi:h3:${cell}:drivers`; }
 function driverLeaseKey(driverId) { return `taxi:lease:driver:${driverId}`; }
 function rideLeaseKey(rideId) { return `taxi:lease:ride:${rideId}`; }
+
+async function acquireOfferLease(rideId,driverId) {
+  const leaseToken=crypto.randomUUID();
+  const fencingToken=await redis.incr("taxi:lease:fencing:sequence");
+  const value=JSON.stringify({rideId,driverId,leaseToken,fencingToken});
+  const rideOk=await redis.set(rideLeaseKey(rideId),value,{NX:true,PX:OFFER_TTL_MS});
+  if(rideOk!=="OK") return {ok:false,error:"ride_already_reserved"};
+  const driverOk=await redis.set(driverLeaseKey(driverId),value,{NX:true,PX:OFFER_TTL_MS});
+  if(driverOk!=="OK"){
+    await releaseLeaseIfOwner(rideLeaseKey(rideId),value);
+    return {ok:false,error:"driver_already_reserved"};
+  }
+  return {ok:true,value,leaseToken,fencingToken};
+}
+
+async function releaseLeaseIfOwner(key,value) {
+  return redis.eval(
+    "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end",
+    {keys:[key],arguments:[value]}
+  );
+}
+
+async function verifyOfferLease(offer) {
+  if(!offer.lease_token || offer.fencing_token==null) return {ok:false,error:"legacy_lease"};
+  const expected=JSON.stringify({
+    rideId:String(offer.ride_id),driverId:String(offer.driver_id),
+    leaseToken:String(offer.lease_token),fencingToken:Number(offer.fencing_token)
+  });
+  const [rideValue,driverValue]=await Promise.all([
+    redis.get(rideLeaseKey(offer.ride_id)),
+    redis.get(driverLeaseKey(offer.driver_id))
+  ]);
+  return {ok:rideValue===expected&&driverValue===expected,expected};
+}
 
 async function publishRideEvent(rideId, event) {
   const streamKey=`taxi:realtime:ride:${rideId}:stream`;
@@ -332,16 +368,11 @@ app.post("/v1/offers", { preHandler: auth }, async (req, reply) => {
   const input=offerInput.parse(req.body);
   const offerId=crypto.randomUUID();
   const expiresAt=new Date(Date.now()+OFFER_TTL_MS);
-  const rideLease=await redis.set(rideLeaseKey(input.rideId),input.driverId,{NX:true,PX:OFFER_TTL_MS});
-  if(rideLease!=="OK") return reply.code(409).send({error:"ride_already_reserved"});
-  const driverLease=await redis.set(driverLeaseKey(input.driverId),input.rideId,{NX:true,PX:OFFER_TTL_MS});
-  if(driverLease!=="OK"){
-    await redis.del(rideLeaseKey(input.rideId));
-    return reply.code(409).send({error:"driver_already_reserved"});
-  }
+  const lease=await acquireOfferLease(input.rideId,input.driverId);
+  if(!lease.ok) return reply.code(409).send({error:lease.error});
   await db.query(
-    "insert into taxi_offers(id,ride_id,driver_id,state,expires_at) values($1,$2,$3,'OFFERED',$4)",
-    [offerId,input.rideId,input.driverId,expiresAt]
+    "insert into taxi_offers(id,ride_id,driver_id,state,expires_at,lease_token,fencing_token) values($1,$2,$3,'OFFERED',$4,$5,$6)",
+    [offerId,input.rideId,input.driverId,expiresAt,lease.leaseToken,lease.fencingToken]
   );
   await db.query(
     "update taxi_rides set state='DRIVER_OFFERED',version=version+1,updated_at=now() where id=$1 and state in ('REQUESTED','SEARCHING')",
@@ -370,9 +401,8 @@ app.post("/v1/offers/:offerId/accept", { preHandler: auth }, async (req, reply) 
       await client.query("rollback");
       return reply.code(409).send({error:"offer_expired"});
     }
-    const driverRide=await redis.get(driverLeaseKey(offer.driver_id));
-    const rideDriver=await redis.get(rideLeaseKey(offer.ride_id));
-    if(driverRide!==offer.ride_id || rideDriver!==offer.driver_id){
+    const leaseCheck=await verifyOfferLease(offer);
+    if(!leaseCheck.ok){
       await client.query("rollback");
       return reply.code(409).send({error:"lease_lost"});
     }
@@ -482,11 +512,12 @@ app.post("/demo/v1/offers", { preHandler: demoOnly }, async (req, reply) => {
     return reply.code(403).send({error:"demo_only"});
   const offerId=crypto.randomUUID();
   const expiresAt=new Date(Date.now()+OFFER_TTL_MS);
-  const rideLease=await redis.set(rideLeaseKey(input.rideId),input.driverId,{NX:true,PX:OFFER_TTL_MS});
-  if(rideLease!=="OK") return reply.code(409).send({error:"ride_already_reserved"});
-  const driverLease=await redis.set(driverLeaseKey(input.driverId),input.rideId,{NX:true,PX:OFFER_TTL_MS});
-  if(driverLease!=="OK"){ await redis.del(rideLeaseKey(input.rideId)); return reply.code(409).send({error:"driver_already_reserved"}); }
-  await db.query("insert into taxi_offers(id,ride_id,driver_id,state,expires_at) values($1,$2,$3,'OFFERED',$4)",[offerId,input.rideId,input.driverId,expiresAt]);
+  const lease=await acquireOfferLease(input.rideId,input.driverId);
+  if(!lease.ok) return reply.code(409).send({error:lease.error});
+  await db.query(
+    "insert into taxi_offers(id,ride_id,driver_id,state,expires_at,lease_token,fencing_token) values($1,$2,$3,'OFFERED',$4,$5,$6)",
+    [offerId,input.rideId,input.driverId,expiresAt,lease.leaseToken,lease.fencingToken]
+  );
   await db.query("update taxi_rides set state='DRIVER_OFFERED',version=version+1,updated_at=now() where id=$1 and state in ('REQUESTED','SEARCHING')",[input.rideId]);
   reply.code(201);
   return {data:{offerId,expiresAt}};
@@ -503,6 +534,8 @@ app.post("/demo/v1/offers/:offerId/accept", { preHandler: demoOnly }, async (req
   if(!String(offer.user_id).startsWith("demo-client-") || !String(offer.driver_id).startsWith("demo-driver-"))
     return reply.code(403).send({error:"demo_only"});
   if(offer.state!=="OFFERED" || new Date(offer.expires_at)<=new Date()) return reply.code(409).send({error:"offer_expired"});
+  const leaseCheck=await verifyOfferLease(offer);
+  if(!leaseCheck.ok) return reply.code(409).send({error:"lease_lost"});
   await db.query("update taxi_offers set state='ACCEPTED',updated_at=now() where id=$1",[offerId]);
   const updated=await db.query(
     `update taxi_rides set state='DRIVER_ASSIGNED',driver_id=$2,version=version+1,updated_at=now()
