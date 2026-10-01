@@ -86,6 +86,20 @@ test('Taxi inbound events are deduplicated, server-only and projected without Ta
     await assert.rejects(()=>receive(bad),/invalid_event_payload/);
   });
 
+  await t.test('private or oversized event payloads are rejected before persistence',async()=>{
+    const ride=randomUUID();
+    const leaked=event({
+      ride,
+      payload:{service_class_id:'standard',quote_id:'q-private',latitude:41.3111,longitude:69.2797},
+    });
+    await assert.rejects(()=>receive(leaked),/private_event_fields_not_allowed/);
+    const huge=event({
+      ride:randomUUID(),
+      payload:{service_class_id:'standard',quote_id:'x'.repeat(70000)},
+    });
+    await assert.rejects(()=>receive(huge),/event_too_large/);
+  });
+
   await t.test('normal ride lifecycle reaches COMPLETED and keeps public driver/vehicle references',async()=>{
     const ride=randomUUID(),driver=randomUUID(),vehicle=randomUUID(),trip=randomUUID();
     const events=[
