@@ -11,6 +11,7 @@ import {validateWorkCommand,projectWorkCommandResponse} from '../contracts/work-
 import {projectWorkAssignees} from '../contracts/work-assignees.mjs';
 import {projectNotificationFeed} from '../contracts/notification-feed.mjs';
 import {validateNotificationCommand,projectNotificationCommandResponse} from '../contracts/notification-command.mjs';
+import {taxiRoute,taxiContext,taxiScopeAllowed,taxiForward} from './taxi-gateway.mjs';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const json=(body,status=200,extra={})=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff',...extra}});
@@ -115,6 +116,41 @@ export async function handle(request,env,fetcher=fetch){
     }
     const user=await upstreamJSON(identity,65536);
     if(!uuid.test(user.id||''))return reply({error:'unauthorized'},401);
+
+    const taxiTarget=taxiRoute(url.pathname);
+    if(taxiTarget){
+      let context;
+      try{context=taxiContext(request);}catch(error){
+        if(error.message==='tenant_context_required')return reply({error:'tenant_context_required'},400);
+        if(error.message==='invalid_correlation_id')return reply({error:'invalid_correlation_id'},400);
+        throw error;
+      }
+      const scopesResponse=await upstream('/rest/v1/rpc/vision_session_scopes',{method:'POST',body:'{}'});
+      const scopesBody=await upstreamJSON(scopesResponse,65536);
+      if(!scopesResponse.ok){
+        const mapped=mapUpstreamError(scopesBody,scopesResponse.status);
+        return reply({error:mapped.error},mapped.status);
+      }
+      const scopes=projectSessionScopes(scopesBody);
+      if(!taxiScopeAllowed(scopes,context))return reply({error:'forbidden'},403);
+      const mutation=request.method==='POST';
+      if(mutation&&!request.headers.get('idempotency-key'))return reply({error:'idempotency_required'},400);
+      let body;
+      if(mutation){
+        const mediaType=request.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
+        if(mediaType!=='application/json')return reply({error:'json_required'},415);
+        body=JSON.stringify(await boundedJSON(request,8192));
+      }
+      const taxiResponse=await taxiForward(env,taxiTarget,request,body,user.id,context,fetcher);
+      if(!taxiResponse)return reply({error:'taxi_integration_not_configured'},503);
+      const taxiBody=await upstreamJSON(taxiResponse,1048576);
+      if(!taxiResponse.ok){
+        const status=[400,401,403,404,409].includes(taxiResponse.status)?taxiResponse.status:503;
+        const error=status===403?'forbidden':status===404?'not_found':status===409?'conflict':status===400?'invalid_command':'taxi_unavailable';
+        return reply({error},status,{'x-correlation-id':context.correlation});
+      }
+      return reply(taxiBody,taxiResponse.status,{'x-correlation-id':context.correlation});
+    }
 
     const plan=routePlan(url,request.method);
     if(!plan)return reply({error:'not_found'},404);
