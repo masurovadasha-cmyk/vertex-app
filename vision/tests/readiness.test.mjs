@@ -12,8 +12,8 @@ const env={
 };
 const raw={
   ready:true,
-  latest_migration:'0016_staging_session_activation.sql',
-  migration_count:16,
+  latest_migration:'0017_engineers_module_v0_2.sql',
+  migration_count:17,
   tables_ok:true,
   functions_ok:true,
   rls_ok:true,
@@ -60,7 +60,7 @@ test('readyz uses publishable key only and returns an allowlisted readiness DTO'
   const ok=await handle(new Request('https://vision.example/readyz'),env,async()=>Response.json(raw));
   assert.equal(ok.status,200);
   assert.deepEqual(await ok.json(),{
-    ready:true,latestMigration:'0016_staging_session_activation.sql',migrationCount:16,
+    ready:true,latestMigration:'0017_engineers_module_v0_2.sql',migrationCount:17,
     tablesOk:true,functionsOk:true,rlsOk:true,viewsReleaseActive:true,architectureVersion:'2.1'
   });
   assert.match(ok.headers.get('x-request-id')||'',/^[0-9a-f-]{36}$/i);
