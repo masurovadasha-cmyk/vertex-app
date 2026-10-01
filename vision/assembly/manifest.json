@@ -1,13 +1,13 @@
 {
   "product": "VERTEX Vision",
   "assembly": "0.1",
-  "architectureVersion": "2.2",
+  "architectureVersion": "2.3",
   "releaseManifest": "vision/release/0.1-RC1.json",
   "platformVersion": "1.18-rc1",
   "apiVersion": "v1",
   "database": {
-    "latestMigration": "0018_engineers_readiness.sql",
-    "migrationsExpected": 18,
+    "latestMigration": "0019_external_module_delegation.sql",
+    "migrationsExpected": 19,
     "sourceOfTruth": "PostgreSQL/Supabase",
     "productionApplied": false
   },
@@ -75,7 +75,8 @@
     "productionMerge": false,
     "productionDeploy": false,
     "cloudDatabaseMigration": false,
-    "interfaceDesign": "design-integrated-no-new-business-modules-activated"
+    "interfaceDesign": "design-integrated-no-new-business-modules-activated",
+    "taxi": "separate-project-signed-api-events-only"
   },
   "gates": [
     "assembly-contract",
@@ -105,7 +106,8 @@
     "effective-read-only-backup-principal",
     "unified-work-feed",
     "approval-read-foundation",
-    "staging-auth-session-activation"
+    "staging-auth-session-activation",
+    "taxi-signed-staging-gateway"
   ],
   "kernel": {
     "routePolicy": "vision/backend/kernel.mjs",
@@ -159,7 +161,8 @@
       "notification-command-rpc",
       "notification-consumer-rpc",
       "outbox-fail-rpc",
-      "background-scopes-rpc"
+      "background-scopes-rpc",
+      "external-module-delegation-rpc"
     ],
     "serviceRoleRequired": false
   },
@@ -325,6 +328,20 @@
       "passwordPersistence": false,
       "scopeDiscovery": "server-authoritative",
       "fabricatedFallback": false
+    }
+  },
+  "externalIntegrations": {
+    "taxi": {
+      "status": "staging-gateway-implemented",
+      "sourceOfTruth": "vertex-taxi-core",
+      "transport": [
+        "cloudflare-service-binding",
+        "p256-signed-https"
+      ],
+      "sharedDatabase": false,
+      "serviceProof": "ecdsa-p256",
+      "eventInbox": "reuse-generic-0011-event-inbox",
+      "productionConnected": false
     }
   }
 }
