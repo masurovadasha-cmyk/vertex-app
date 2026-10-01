@@ -81,6 +81,15 @@ jobs:
           npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
           node --test vision/tests/background-operations.test.mjs vision/tests/postgres-background-adapter.test.mjs vision/tests/background-principal.test.mjs vision/tests/interface-system-9.test.cjs
 
+      - name: Verify effective background principal privileges
+        shell: bash
+        working-directory: candidate
+        env:
+          VISION_BACKGROUND_DATABASE_URL: ${{ secrets.VISION_BACKGROUND_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          node vision/staging/verify-background-principal.mjs > ../background-principal.json
+
       - name: Run one bounded background staging cycle
         shell: bash
         working-directory: candidate
@@ -101,6 +110,8 @@ jobs:
         if: always()
         with:
           name: Vertex-Vision-Background-Smoke-${{ env.VISION_CANDIDATE_SHA }}
-          path: background-smoke.json
+          path: |
+            background-principal.json
+            background-smoke.json
           retention-days: 30
           if-no-files-found: ignore
