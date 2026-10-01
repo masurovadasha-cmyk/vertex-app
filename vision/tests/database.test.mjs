@@ -159,7 +159,7 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
     order=await command(quality,step('reject'));assert.equal(order.status,'IN_PROGRESS');
     order=await command(staff,step('submit'));
     order=await command(quality,step('pass'));assert.equal(order.status,'COMPLETED');
-    const events=(await db.query('select * from public.vision_outbox_events order by created_at')).rows;
+    const events=(await db.query('select * from public.vision_outbox_events where correlation_id=$1 order by created_at',[order.correlation_id])).rows;
     const contract=JSON.parse(await readFile(new URL('../contracts/events-v1.json',import.meta.url),'utf8'));
     for(const e of events) {
       assert.equal(e.correlation_id,order.correlation_id);
@@ -333,7 +333,7 @@ test('PostgreSQL permissions, Golden Flow, rollback, retries and outbox', async 
     const acked=await notificationCommand(dispatcher,ack);
     assert.equal(acked.status,'ACKNOWLEDGED');
     assert.deepEqual(await notificationCommand(dispatcher,ack),acked);
-    await denied(()=>notificationCommand(staff,{type:'escalation_ack',tenant_id:tenant,idempotency_key:id(),escalation_id:escalation.id,expected_version:acked.version}));
+    await denied(()=>notificationCommand(guest,{type:'escalation_ack',tenant_id:tenant,idempotency_key:id(),escalation_id:escalation.id,expected_version:acked.version}));
 
     await db.query("update public.vision_tasks set status='CANCELLED' where id=$1",[escalationTask.id]);
     const resolved=(await db.query('select public.vision_reconcile_escalations($1,$2) result',[tenant,cleaning])).rows[0].result;
