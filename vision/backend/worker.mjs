@@ -1,6 +1,50 @@
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const json = (body,status=200) => Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
 
+async function taxiFetch(env, path, request, body) {
+  const correlationId = request.headers.get('x-vertex-correlation-id') || crypto.randomUUID();
+  const headers = new Headers({
+    'x-vertex-correlation-id': correlationId,
+    'cache-control': 'no-store',
+  });
+  for (const name of ['authorization','x-vertex-tenant-id','x-vertex-organization-id','idempotency-key']) {
+    const value = request.headers.get(name);
+    if (value) headers.set(name, value);
+  }
+  if (env.VERTEX_TAXI_CORE && typeof env.VERTEX_TAXI_CORE.fetch === 'function') {
+    if (body !== undefined) headers.set('content-type','application/json');
+    const target = new Request('https://vertex-taxi-core.internal' + path, {
+      method: request.method,
+      headers,
+      body: body === undefined ? undefined : body,
+    });
+    return await env.VERTEX_TAXI_CORE.fetch(target);
+  }
+  if (env.TAXI_INTEGRATION_URL && env.TAXI_INTEGRATION_SHARED_SECRET) {
+    headers.set('x-vertex-integration-secret', env.TAXI_INTEGRATION_SHARED_SECRET);
+    if (body !== undefined) headers.set('content-type','application/json');
+    return await fetch(env.TAXI_INTEGRATION_URL.replace(/\\/$/,'') + path, {
+      method: request.method,
+      headers,
+      body: body === undefined ? undefined : body,
+      redirect: 'error',
+      signal: AbortSignal.timeout(2500),
+    });
+  }
+  return null;
+}
+
+function taxiPath(pathname) {
+  if (pathname === '/api/taxi/capabilities') return '/integration/v1/capabilities';
+  if (pathname === '/api/taxi/health') return '/integration/v1/health';
+  const ride = pathname.match(/^\/api\/taxi\/rides\/([^/]+)$/);
+  if (ride) return '/integration/v1/rides/' + encodeURIComponent(ride[1]);
+  if (pathname === '/api/taxi/rides') return '/integration/v1/rides';
+  const command = pathname.match(/^\/api\/taxi\/rides\/([^/]+)\/commands$/);
+  if (command) return '/integration/v1/rides/' + encodeURIComponent(command[1]) + '/commands';
+  return null;
+}
+
 async function boundedJSON(source,limit) {
   if(Number(source.headers.get('content-length'))>limit) throw new Error('body_too_large');
   const reader=source.body?.getReader();if(!reader)throw new Error('invalid_json');
@@ -37,6 +81,20 @@ export async function handle(request,env,fetcher=fetch) {
     const user=await upstreamJSON(identity,65536);
     if(!uuid.test(user.id||''))return json({error:'unauthorized'},401);
     let result;
+    const taxiTarget = taxiPath(url.pathname);
+    if (taxiTarget) {
+      if (!['GET','POST'].includes(request.method)) return json({error:'method_not_allowed'},405);
+      let body;
+      if (request.method === 'POST') {
+        const mediaType=request.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
+        if (mediaType!=='application/json') return json({error:'json_required'},415);
+        body=JSON.stringify(await boundedJSON(request,8192));
+      }
+      const taxiResponse=await taxiFetch(env,taxiTarget,request,body);
+      if (!taxiResponse) return json({error:'taxi_integration_not_configured'},503);
+      const taxiBody=await upstreamJSON(taxiResponse,1048576);
+      return json(taxiBody,taxiResponse.status);
+    }
     if(url.pathname==='/api/commands' && request.method==='POST') {
       const mediaType=request.headers.get('content-type')?.split(';',1)[0].trim().toLowerCase();
       if(mediaType!=='application/json')return json({error:'json_required'},415);
