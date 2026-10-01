@@ -1,0 +1,106 @@
+name: VERTEX VISION Background Staging Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact VISION candidate commit to verify
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vertex-vision-background-staging-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: staging
+    env:
+      VISION_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+
+    steps:
+      - name: Require trusted controller
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/master"
+          [[ "$VISION_CANDIDATE_SHA" =~ ^[a-f0-9]{40}$ ]]
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: master
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+
+      - name: Checkout immutable candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ env.VISION_CANDIDATE_SHA }}
+          path: candidate
+
+      - name: Validate candidate identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C candidate rev-parse HEAD)" = "$VISION_CANDIDATE_SHA"
+
+      - name: Install trusted dependencies
+        run: |
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+
+      - name: Validate background staging credential without printing it
+        shell: bash
+        env:
+          VISION_BACKGROUND_DATABASE_URL: ${{ secrets.VISION_BACKGROUND_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$VISION_BACKGROUND_DATABASE_URL"
+          node --input-type=module - <<'JS'
+          const url=process.env.VISION_BACKGROUND_DATABASE_URL||'';
+          if(!/^postgres(?:ql)?:\/\//.test(url)) throw Error('background database URL required');
+          if(!/sslmode=(require|verify-full)/.test(url)) throw Error('background database SSL required');
+          if(!url.includes('vision_background_staging')) throw Error('wrong background database principal');
+          JS
+
+      - name: Verify candidate source before secret use
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd candidate
+          npm install
+          npx --yes pnpm@11.19.0 --dir vision install --frozen-lockfile
+          node --test vision/tests/background-operations.test.mjs vision/tests/postgres-background-adapter.test.mjs vision/tests/background-principal.test.mjs vision/tests/interface-system-9.test.cjs
+
+      - name: Run one bounded background staging cycle
+        shell: bash
+        working-directory: candidate
+        env:
+          VISION_BACKGROUND_DATABASE_URL: ${{ secrets.VISION_BACKGROUND_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          node vision/runtime/run-staging-background.mjs > ../background-smoke.json
+          node --input-type=module - <<'JS'
+          import fs from 'node:fs';
+          const report=JSON.parse(fs.readFileSync('../background-smoke.json','utf8'));
+          if(report.runtime!=='VERTEX VISION Background Operations') throw Error('wrong runtime');
+          if(report.productionChanged!==false) throw Error('production mutation claim');
+          if(!report.notifications||!report.escalations) throw Error('incomplete smoke report');
+          JS
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: Vertex-Vision-Background-Smoke-${{ env.VISION_CANDIDATE_SHA }}
+          path: background-smoke.json
+          retention-days: 30
+          if-no-files-found: ignore
