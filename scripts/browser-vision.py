@@ -69,6 +69,15 @@ def run(live=False):
                                 route.fulfill(status=200,content_type='application/json',body=json.dumps([{'id':'cccccccc-cccc-4ccc-8ccc-cccccccccccc','displayName':'Synthetic Cleaner'}]));return
                             if parsed.path == '/api/v1/work/commands':
                                 route.fulfill(status=200,content_type='application/json',body=json.dumps({'entityType':'task','taskId':'55555555-5555-4555-8555-555555555555','taskStatus':'ASSIGNED','taskVersion':2,'orderId':'66666666-6666-4666-8666-666666666666','orderStatus':'ACCEPTED','orderVersion':2,'correlationId':'dddddddd-dddd-4ddd-8ddd-dddddddddddd'}));return
+                            if parsed.path == '/api/v1/notifications':
+                                route.fulfill(status=200,content_type='application/json',body=json.dumps({
+                                    'generatedAt':'2026-10-01T02:00:00.000Z',
+                                    'notifications':[{'id':'12121212-1212-4121-8121-121212121212','type':'notification','kind':'task','title':'Task assigned','body':None,'severity':'INFO','status':'UNREAD','eventType':'order.assigned','entityType':'task','entityId':'55555555-5555-4555-8555-555555555555','correlationId':'dddddddd-dddd-4ddd-8ddd-dddddddddddd','version':1,'createdAt':'2026-10-01T02:00:00.000Z','readAt':None,'dismissedAt':None}],
+                                    'escalations':[{'id':'13131313-1313-4131-8131-131313131313','type':'escalation','sourceType':'TASK','sourceId':'55555555-5555-4555-8555-555555555555','ruleCode':'TASK_SLA_BREACH','title':'Prepare TEST-235','severity':'WARNING','status':'OPEN','assignedUserId':'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','correlationId':'dddddddd-dddd-4ddd-8ddd-dddddddddddd','version':1,'openedAt':'2026-10-01T01:30:00.000Z','acknowledgedAt':None,'resolvedAt':None,'canAck':True}],
+                                    'counts':{'unread':1,'escalations':1}
+                                }));return
+                            if parsed.path == '/api/v1/notifications/commands':
+                                route.fulfill(status=200,content_type='application/json',body=json.dumps({'entityType':'notification','notificationId':'12121212-1212-4121-8121-121212121212','status':'READ','version':2,'correlationId':'dddddddd-dddd-4ddd-8ddd-dddddddddddd'}));return
                             if parsed.path.startswith('/api/v1/views/'):
                                 if parsed.path.endswith('/units'):
                                     route.fulfill(status=200,content_type='application/json',body=json.dumps([{'id':'22222222-2222-4222-8222-222222222222','unit_number':'TEST-235','unit_type':'apartment','status':'READY'}]));return
@@ -89,7 +98,7 @@ def run(live=False):
                     page.wait_for_function("document.documentElement.dataset.visionReady==='true'")
                     check(str(width)+': VISION is the first section',page.locator('main > section').first.get_attribute('id')=='visionHome')
                     check(str(width)+': 19 visible child module cards',page.locator('[data-vv-open]').count()==19)
-                    check(str(width)+': Interface System 7 runtime',page.evaluate("document.documentElement.dataset.visionUi==='7.0'"))
+                    check(str(width)+': Interface System 8 runtime',page.evaluate("document.documentElement.dataset.visionUi==='8.0'"))
                     check(str(width)+': five grouped module categories',page.locator('[data-vv-category]').count()==5)
                     check(str(width)+': every module uses a line SVG icon',page.locator('.vv-card-icon svg').count()==19)
                     check(str(width)+': Today context rail is visible',page.locator('#visionHome .vv-today').is_visible())
@@ -120,6 +129,13 @@ def run(live=False):
                     check(str(width)+': Work Feed remains explicitly disconnected','не подключ' in page.locator('#visionWorkCenter').inner_text().lower())
                     page.locator('#visionWorkCenter [data-vvw-tab="operations"]').click()
                     check(str(width)+': disconnected operations show dash','—' in page.locator('#visionWorkCenter .vvw-main').inner_text())
+                    page.keyboard.press('Escape')
+                    check(str(width)+': Notification Center opens from Hub',page.evaluate("VertexVision.openNotifications('inbox')"))
+                    check(str(width)+': Notification Center is visible',page.locator('#visionNotifications').is_visible())
+                    check(str(width)+': Notification Center has two tabs',page.locator('#visionNotifications [data-vvn-tab]').count()==2)
+                    check(str(width)+': public Notification Center is honestly disconnected','not connected' in page.locator('#visionNotifications').inner_text().lower() or 'не подключ' in page.locator('#visionNotifications').inner_text().lower())
+                    check(str(width)+': disconnected notification state exposes no mutation actions',page.locator('#visionNotifications [data-vvn-action]').count()==0)
+                    check(str(width)+': notification badge remains dash without session',page.locator('#visionNotificationCount').inner_text()=='—')
                     page.keyboard.press('Escape')
                     page.screenshot(path=str(OUT/f'vision-home-{width}.png'))
                     page.locator('#visionSearch').fill('laundry');check(str(width)+': module search',page.locator('[data-vv-open]').count()==1)
@@ -163,6 +179,17 @@ def run(live=False):
                         check(str(width)+': Work Center renders authoritative Views counts',page.locator('#visionWorkCenter .vvw-stat').count()==4)
                         page.locator('#visionWorkCenter [data-vvw-views="calendar"]').click()
                         check(str(width)+': Work Center quick action opens Views calendar',page.evaluate("VertexVisionViews.status().tab==='calendar'") and page.locator('#visionViewsOperations').is_visible())
+                        page.keyboard.press('Escape')
+                        check(str(width)+': configured Notification Center opens',page.evaluate("VertexVision.openNotifications('inbox')"))
+                        page.wait_for_function("VertexVisionNotifications.status().connected===true")
+                        check(str(width)+': Notification feed is connected',page.evaluate("VertexVisionNotifications.status().connected===true"))
+                        check(str(width)+': Notification counts are authoritative fixtures',page.evaluate("VertexVisionNotifications.status().counts.unread===1 && VertexVisionNotifications.status().counts.escalations===1"))
+                        check(str(width)+': Notification Center uses polling not fake push realtime',page.evaluate("VertexVisionNotifications.status().refreshMode==='polling-30s' && VertexVisionNotifications.status().eventConsumerConnected===false && VertexVisionNotifications.status().escalationSchedulerConnected===false"))
+                        check(str(width)+': unread notification renders',page.locator('#visionNotifications').get_by_text('Task assigned').count()>0)
+                        check(str(width)+': own notification read action renders',page.locator('#visionNotifications [data-vvn-action="notification_read"]').count()==1)
+                        page.locator('#visionNotifications [data-vvn-tab="escalations"]').click()
+                        check(str(width)+': escalation renders',page.locator('#visionNotifications').get_by_text('Prepare TEST-235').count()>0)
+                        check(str(width)+': server-derived escalation acknowledge action renders',page.locator('#visionNotifications [data-vvn-action="escalation_ack"]').count()==1)
                         page.keyboard.press('Escape')
                         page.evaluate("VertexVisionViews.clearSession()")
                     check(str(width)+': Views adapter remains launchable',page.evaluate("VertexVision.navigate('views','host')"))
