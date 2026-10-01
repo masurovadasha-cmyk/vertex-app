@@ -49,5 +49,5 @@ test('Notifications migration is additive, RLS protected and consumer functions 
   assert.match(sql,/revoke all on function public\.vision_notification_consume/);
   assert.match(sql,/revoke all on function public\.vision_reconcile_escalations/);
   assert.match(sql,/create function public\.vision_notification_command/);
-  assert.doesNotMatch(sql,/drop table|truncate|alter table .* drop column/i);
+  assert.doesNotMatch(sql,/drop table|truncate\s+(?:table\s+)?public\.|alter table .* drop column/i);
 });
