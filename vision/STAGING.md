@@ -255,7 +255,7 @@ The migration creates `vision_approval_requests` with RLS and SELECT-only client
 
 ## Work Actions and SLA
 
-Migration `0013_work_actions.sql` adds the command layer used by Interface System 7.
+Migration `0014_notifications_escalations.sql` adds the command layer used by Interface System 7.
 
 - Task transitions are versioned and idempotent: assign → accept → wait/resume → submit → independent quality pass/reject.
 - Work assignment candidates come from `vision_work_assignees(tenant, organization)` and are returned only when the caller has dispatcher permission.
@@ -263,3 +263,15 @@ Migration `0013_work_actions.sql` adds the command layer used by Interface Syste
 - Approval decisions require `vision.approval.decide`, respect the assigned reviewer, forbid self-approval when `requested_by` is known, require Expected-Version, and write audit/outbox records.
 - Work Center refreshes the feed every 30 seconds while visible. This is polling, not a push/realtime subscription.
 - The public Cloudflare Preview still fails closed for all Work APIs because the real staging Auth/database is not connected there.
+
+
+## Notifications and escalations
+
+Migration `0014_notifications_escalations.sql` adds the Notification Center foundation.
+
+- `GET /api/v1/notifications?tenant_id=<uuid>&organization_id=<uuid>&limit=50` returns only the signed-in user's RLS-visible notifications and organization escalations.
+- `POST /api/v1/notifications/commands` handles versioned/idempotent read/unread/dismiss and escalation acknowledgement commands.
+- `vision_notification_consume(...)` projects supported outbox events through the durable `vision_event_inbox` boundary and is not granted to browser roles.
+- `vision_reconcile_escalations(tenant, organization)` opens/resolves SLA escalation records and is reserved for a dedicated scheduler/worker principal.
+- Public Preview does not claim that the consumer or scheduler is connected. Notification Center refresh is 30-second polling only.
+- No demo notifications or fabricated escalation counts are substituted when the backend is unavailable.
