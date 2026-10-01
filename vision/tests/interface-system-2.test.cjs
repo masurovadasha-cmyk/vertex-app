@@ -37,7 +37,7 @@ test('VISION runtime advances to Interface 10 while preserving Views-only activa
   assert.match(shell,/Interface 10\.0/);
   assert.match(shell,/String\(event\.key\)\.toLowerCase\(\)==='k'/);
   assert.match(registry,/REVISION='vision-interface-10-rc1'/);
-  assert.match(read('vision/platform/build.cjs'),/UI_CACHE_SUFFIX='interface-10'/);
+  assert.match(read('vision/platform/build.cjs'),/UI_CACHE_SUFFIX='interface-11'/);
   assert.match(registry,/const status=id==='views'\?'active':'coming-soon'/);
 });
 
