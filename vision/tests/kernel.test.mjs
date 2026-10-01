@@ -15,6 +15,9 @@ test('Application Kernel exposes only declared command, context and read routes'
   assert.equal(routePlan(url('/api/v1/views/bookings?tenant_id='+tenant+'&organization_id='+organization),'GET').table,'vision_views_bookings');
   const work=routePlan(url('/api/v1/work-feed?tenant_id='+tenant+'&organization_id='+organization+'&limit=25'),'GET');
   assert.deepEqual({kind:work.kind,rpc:work.rpc,tenant:work.tenant,organization:work.organization,limit:work.limit},{kind:'work-feed',rpc:'vision_work_feed',tenant,organization,limit:25});
+  assert.equal(routePlan(url('/api/v1/work/commands'),'POST').rpc,'vision_work_command');
+  const assignees=routePlan(url('/api/v1/work-assignees?tenant_id='+tenant+'&organization_id='+organization),'GET');
+  assert.deepEqual({kind:assignees.kind,rpc:assignees.rpc,tenant:assignees.tenant,organization:assignees.organization},{kind:'work-assignees',rpc:'vision_work_assignees',tenant,organization});
   assert.equal(routePlan(url('/api/v1/views/commands'),'GET'),null);
   assert.equal(routePlan(url('/api/v1/unknown'),'GET'),null);
 });
@@ -33,6 +36,11 @@ test('Application Kernel rejects ambiguous or malformed context scope',()=>{
     '/api/v1/work-feed?tenant_id='+tenant+'&organization_id='+organization+'&limit=101',
     '/api/v1/work-feed?tenant_id='+tenant+'&organization_id='+organization+'&admin=true'
   ])assert.throws(()=>routePlan(url(path),'GET'),/invalid_work_feed_query/);
+  for(const path of [
+    '/api/v1/work-assignees?tenant_id='+tenant,
+    '/api/v1/work-assignees?tenant_id='+tenant+'&organization_id=bad',
+    '/api/v1/work-assignees?tenant_id='+tenant+'&organization_id='+organization+'&admin=true'
+  ])assert.throws(()=>routePlan(url(path),'GET'),/invalid_work_assignees_query/);
 });
 
 test('session context DTO strips unknown data and validates every permission/capability',()=>{
