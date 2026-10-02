@@ -1,0 +1,32 @@
+name: Vertex Taxi Core Unit
+
+on:
+  push:
+    branches: [vertex-taxi-core-railway-staging]
+    paths:
+      - 'vertex-taxi-core-railway/src/**'
+      - 'vertex-taxi-core-railway/test/**'
+      - 'vertex-taxi-core-railway/package.json'
+      - '.github/workflows/vertex-taxi-core-unit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: vertex-taxi-core-railway/package-lock.json
+      - name: Install
+        working-directory: vertex-taxi-core-railway
+        run: npm install --ignore-scripts
+      - name: Unit tests
+        working-directory: vertex-taxi-core-railway
+        run: npm test
