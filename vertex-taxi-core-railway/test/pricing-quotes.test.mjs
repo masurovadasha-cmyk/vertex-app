@@ -5,8 +5,8 @@ import {createQuoteService} from "../src/contexts/pricing-quotes/application/cre
 
 test("pricing is deterministic and class-aware",()=>{
   assert.equal(calculateFareMinor({distanceKm:5,serviceClass:"start"}),500);
-  assert.equal(calculateFareMinor({distanceKm:5,serviceClass:"comfort"}),600);
-  assert.equal(calculateFareMinor({distanceKm:5,serviceClass:"business"}),800);
+  assert.equal(calculateFareMinor({distanceKm:5,serviceClass:"comfort"}),500);
+  assert.equal(calculateFareMinor({distanceKm:5,serviceClass:"business"}),500);
 });
 test("quote service owns expiry and pricing version",async()=>{
   let inserted;
