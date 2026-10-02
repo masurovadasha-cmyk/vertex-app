@@ -7,6 +7,9 @@ import { Pool } from "pg";
 import { createClient } from "redis";
 import { latLngToCell, gridDisk } from "h3-js";
 import { z } from "zod";
+import { quoteInputSchema } from "./contexts/pricing-quotes/http/schema.mjs";
+import { createQuoteService } from "./contexts/pricing-quotes/application/create-quote.mjs";
+import { postgresQuoteRepository } from "./contexts/pricing-quotes/adapters/postgres-quote-repository.mjs";
 
 const PORT = Number(process.env.PORT || 3000);
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -121,13 +124,6 @@ function assertDemoIdentity(value, kind) {
     throw error;
   }
   return text;
-}
-
-function fareMinor(distanceKm) {
-  const tenths = Math.round(distanceKm * 10);
-  if (tenths <= 50) return 500;
-  if (tenths <= 100) return 1000;
-  return 1000 + (tenths - 100) * 15;
 }
 
 function locationKey(driverId) { return `taxi:driver:${driverId}:location`; }
@@ -251,35 +247,11 @@ app.get("/v1/capabilities", async () => ({
   offerLeaseTtlMs: OFFER_TTL_MS,
 }));
 
-const point = z.object({
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
-  label: z.string().min(1).max(200),
-});
-
-const quoteInput = z.object({
-  userId: z.string().min(1).max(128),
-  pickup: point,
-  destination: point,
-  serviceClass: z.enum(["start","comfort","business"]),
-  distanceKm: z.number().positive().max(500),
-});
-
-app.post("/v1/quotes", { preHandler: auth }, async (req, reply) => {
-  const input = quoteInput.parse(req.body);
-  const fare = fareMinor(input.distanceKm);
-  const result = await db.query(
-    `insert into taxi_quotes
-      (user_id,pickup_lat,pickup_lng,pickup_label,destination_lat,destination_lng,
-       destination_label,service_class,distance_km,fare_minor,currency,expires_at)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'USD',now()+interval '5 minutes')
-     returning *`,
-    [input.userId,input.pickup.lat,input.pickup.lng,input.pickup.label,
-     input.destination.lat,input.destination.lng,input.destination.label,
-     input.serviceClass,input.distanceKm,fare]
-  );
+const createQuote = createQuoteService({quoteRepository:postgresQuoteRepository(db)});\n\napp.post("/v1/quotes", { preHandler: auth }, async (req, reply) => {
+  const input = quoteInputSchema.parse(req.body);
+  const quote = await createQuote(input,{ttlMinutes:5,currency:"USD"});
   reply.code(201);
-  return { data: result.rows[0] };
+  return { data: quote };
 });
 
 const rideInput = z.object({
@@ -483,21 +455,11 @@ app.get("/demo/health", { preHandler: demoOnly }, async () => {
 });
 
 app.post("/demo/v1/quotes", { preHandler: demoOnly }, async (req, reply) => {
-  const input = quoteInput.parse(req.body);
+  const input = quoteInputSchema.parse(req.body);
   assertDemoIdentity(input.userId, "user");
-  const fare = fareMinor(input.distanceKm);
-  const result = await db.query(
-    `insert into taxi_quotes
-      (user_id,pickup_lat,pickup_lng,pickup_label,destination_lat,destination_lng,
-       destination_label,service_class,distance_km,fare_minor,currency,expires_at)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'USD',now()+interval '15 minutes')
-     returning *`,
-    [input.userId,input.pickup.lat,input.pickup.lng,input.pickup.label,
-     input.destination.lat,input.destination.lng,input.destination.label,
-     input.serviceClass,input.distanceKm,fare]
-  );
+  const quote = await createQuote(input,{ttlMinutes:15,currency:"USD"});
   reply.code(201);
-  return { data: result.rows[0] };
+  return { data: quote };
 });
 
 app.post("/demo/v1/rides", { preHandler: demoOnly }, async (req, reply) => {
