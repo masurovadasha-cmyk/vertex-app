@@ -10,6 +10,9 @@ import { z } from "zod";
 import { quoteInputSchema } from "./contexts/pricing-quotes/http/schema.mjs";
 import { createQuoteService } from "./contexts/pricing-quotes/application/create-quote.mjs";
 import { postgresQuoteRepository } from "./contexts/pricing-quotes/adapters/postgres-quote-repository.mjs";
+import { locationInputSchema } from "./contexts/geo-presence/http/schema.mjs";
+import { createPresenceService } from "./contexts/geo-presence/application/presence-service.mjs";
+import { redisPresenceStore } from "./contexts/geo-presence/adapters/redis-presence-store.mjs";
 
 const PORT = Number(process.env.PORT || 3000);
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -126,8 +129,6 @@ function assertDemoIdentity(value, kind) {
   return text;
 }
 
-function locationKey(driverId) { return `taxi:driver:${driverId}:location`; }
-function cellKey(cell) { return `taxi:h3:${cell}:drivers`; }
 function driverLeaseKey(driverId) { return `taxi:lease:driver:${driverId}`; }
 function rideLeaseKey(rideId) { return `taxi:lease:ride:${rideId}`; }
 
@@ -248,6 +249,7 @@ app.get("/v1/capabilities", async () => ({
 }));
 
 const createQuote = createQuoteService({quoteRepository:postgresQuoteRepository(db)});
+const presence = createPresenceService({store:redisPresenceStore(redis,{ttlSeconds:LOCATION_TTL_SECONDS}),h3Resolution:H3_RESOLUTION,ttlSeconds:LOCATION_TTL_SECONDS});
 
 app.post("/v1/quotes", { preHandler: auth }, async (req, reply) => {
   const input = quoteInputSchema.parse(req.body);
@@ -307,75 +309,25 @@ app.get("/v1/rides/:rideId", { preHandler: auth }, async (req, reply) => {
   return { data: r.rows[0] };
 });
 
-const locationInput = z.object({
-  lat: z.number().min(-90).max(90),
-  lng: z.number().min(-180).max(180),
-  accuracyM: z.number().positive().max(500),
-  heading: z.number().min(0).max(360).optional(),
-  speedMps: z.number().min(0).max(100).optional(),
-  available: z.boolean().default(true),
-  serviceClasses: z.array(z.enum(["start","comfort","business"])).min(1).default(["start"]),
-});
-
 app.post("/v1/drivers/:driverId/location", { preHandler: auth }, async (req, reply) => {
-  const driverId = z.string().min(1).max(128).parse(req.params.driverId);
-  const input = locationInput.parse(req.body);
-  if (input.accuracyM > 80) return reply.code(422).send({ error: "location_accuracy_too_low" });
-  const cell = latLngToCell(input.lat,input.lng,H3_RESOLUTION);
-  const previous = await redis.hGet(locationKey(driverId),"cell");
-  const tx = redis.multi();
-  if (previous && previous !== cell) tx.sRem(cellKey(previous),driverId);
-  tx.hSet(locationKey(driverId),{
-    lat:String(input.lat),
-    lng:String(input.lng),
-    accuracyM:String(input.accuracyM),
-    heading:String(input.heading ?? ""),
-    speedMps:String(input.speedMps ?? ""),
-    available:String(input.available),
-    serviceClasses:JSON.stringify(input.serviceClasses),
-    cell,
-    updatedAt:String(Date.now()),
-  });
-  tx.expire(locationKey(driverId),LOCATION_TTL_SECONDS);
-  tx.sAdd(cellKey(cell),driverId);
-  tx.expire(cellKey(cell),LOCATION_TTL_SECONDS * 3);
-  await tx.exec();
-  return { data:{driverId,cell,ttlSeconds:LOCATION_TTL_SECONDS} };
+  const driverId=z.string().min(1).max(128).parse(req.params.driverId);
+  const input=locationInputSchema.parse(req.body);
+  try {
+    return {data:await presence.update(driverId,input)};
+  } catch(error) {
+    if(error.message==="location_accuracy_too_low") return reply.code(422).send({error:error.message});
+    throw error;
+  }
 });
-
-async function candidatesForRide(ride) {
-  const origin = latLngToCell(Number(ride.pickup_lat),Number(ride.pickup_lng),H3_RESOLUTION);
-  const cells = gridDisk(origin,2);
-  const ids = new Set();
-  for (const cell of cells) {
-    const members = await redis.sMembers(cellKey(cell));
-    for (const id of members) ids.add(id);
-  }
-  const now = Date.now();
-  const candidates=[];
-  for (const driverId of ids) {
-    const raw = await redis.hGetAll(locationKey(driverId));
-    if (!raw.updatedAt) continue;
-    const ageMs=now-Number(raw.updatedAt);
-    if (ageMs>LOCATION_TTL_SECONDS*1000) continue;
-    if (raw.available!=="true") continue;
-    let classes=[];
-    try { classes=JSON.parse(raw.serviceClasses||"[]"); } catch {}
-    if (!classes.includes(ride.service_class)) continue;
-    const dLat=(Number(raw.lat)-Number(ride.pickup_lat))*111;
-    const dLng=(Number(raw.lng)-Number(ride.pickup_lng))*111*Math.cos(Number(ride.pickup_lat)*Math.PI/180);
-    const approxKm=Math.sqrt(dLat*dLat+dLng*dLng);
-    candidates.push({driverId,cell:raw.cell,ageMs,approxKm});
-  }
-  candidates.sort((a,b)=>a.approxKm-b.approxKm||a.ageMs-b.ageMs);
-  return candidates.slice(0,20);
-}
 
 app.get("/v1/dispatch/:rideId/candidates", { preHandler: auth }, async (req, reply) => {
   const rideId=z.string().uuid().parse(req.params.rideId);
   const r=await db.query("select * from taxi_rides where id=$1",[rideId]);
   if(!r.rowCount) return reply.code(404).send({error:"ride_not_found"});
-  const candidates=await candidatesForRide(r.rows[0]);
+  const candidates=await presence.candidates({
+    pickupLat:r.rows[0].pickup_lat,pickupLng:r.rows[0].pickup_lng,
+    serviceClass:r.rows[0].service_class
+  });
   await db.query(
     "insert into taxi_dispatch_attempts(ride_id,candidate_driver_ids,outcome,details) values($1,$2,$3,$4)",
     [rideId,JSON.stringify(candidates.map(c=>c.driverId)),candidates.length?"CANDIDATES":"NONE",JSON.stringify({count:candidates.length})]
@@ -489,23 +441,13 @@ app.post("/demo/v1/rides", { preHandler: demoOnly }, async (req, reply) => {
 
 app.post("/demo/v1/drivers/:driverId/location", { preHandler: demoOnly }, async (req, reply) => {
   const driverId=assertDemoIdentity(req.params.driverId,"driver");
-  const input=locationInput.parse(req.body);
-  if (input.accuracyM > 80) return reply.code(422).send({ error: "location_accuracy_too_low" });
-  const cell=latLngToCell(input.lat,input.lng,H3_RESOLUTION);
-  const previous=await redis.hGet(locationKey(driverId),"cell");
-  const tx=redis.multi();
-  if(previous && previous!==cell) tx.sRem(cellKey(previous),driverId);
-  tx.hSet(locationKey(driverId),{
-    lat:String(input.lat),lng:String(input.lng),accuracyM:String(input.accuracyM),
-    heading:String(input.heading ?? ""),speedMps:String(input.speedMps ?? ""),
-    available:String(input.available),serviceClasses:JSON.stringify(input.serviceClasses),
-    cell,updatedAt:String(Date.now()),
-  });
-  tx.expire(locationKey(driverId),LOCATION_TTL_SECONDS);
-  tx.sAdd(cellKey(cell),driverId);
-  tx.expire(cellKey(cell),LOCATION_TTL_SECONDS*3);
-  await tx.exec();
-  return {data:{driverId,cell,ttlSeconds:LOCATION_TTL_SECONDS}};
+  const input=locationInputSchema.parse(req.body);
+  try {
+    return {data:await presence.update(driverId,input)};
+  } catch(error) {
+    if(error.message==="location_accuracy_too_low") return reply.code(422).send({error:error.message});
+    throw error;
+  }
 });
 
 app.get("/demo/v1/dispatch/:rideId/candidates", { preHandler: demoOnly }, async (req, reply) => {
@@ -513,7 +455,10 @@ app.get("/demo/v1/dispatch/:rideId/candidates", { preHandler: demoOnly }, async 
   const r=await db.query("select * from taxi_rides where id=$1",[rideId]);
   if(!r.rowCount) return reply.code(404).send({error:"ride_not_found"});
   if(!String(r.rows[0].user_id).startsWith("demo-client-")) return reply.code(403).send({error:"demo_only"});
-  const candidates=(await candidatesForRide(r.rows[0]))
+  const candidates=(await presence.candidates({
+    pickupLat:r.rows[0].pickup_lat,pickupLng:r.rows[0].pickup_lng,
+    serviceClass:r.rows[0].service_class
+  }))
     .filter(candidate => String(candidate.driverId).startsWith("demo-driver-"));
   return {data:candidates};
 });
