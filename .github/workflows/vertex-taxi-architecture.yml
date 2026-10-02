@@ -1,0 +1,60 @@
+name: Vertex Taxi Architecture Boundaries
+
+on:
+  push:
+    branches: [vertex-taxi-core-railway-staging]
+    paths:
+      - 'vertex-taxi-core-railway/src/contexts/**'
+      - 'vertex-taxi-core-railway/src/kernel/**'
+      - 'vertex-taxi-core-railway/src/contracts/**'
+      - '.github/workflows/vertex-taxi-architecture.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  boundaries:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Enforce context boundaries
+        run: |
+          node <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const root='vertex-taxi-core-railway/src/contexts';
+          const violations=[];
+          function walk(dir){
+            for(const e of fs.readdirSync(dir,{withFileTypes:true})){
+              const p=path.join(dir,e.name);
+              if(e.isDirectory()) walk(p);
+              else if(/\.mjs$/.test(e.name)){
+                const rel=path.relative(root,p).replaceAll('\\','/');
+                const owner=rel.split('/')[0];
+                const src=fs.readFileSync(p,'utf8');
+                for(const m of src.matchAll(/from\s+["']([^"']+)["']/g)){
+                  const spec=m[1];
+                  if(!spec.startsWith('.')) continue;
+                  const resolved=path.normalize(path.join(path.dirname(p),spec));
+                  const targetRel=path.relative(root,resolved).replaceAll('\\','/');
+                  if(!targetRel.startsWith('..')){
+                    const target=targetRel.split('/')[0];
+                    if(target!==owner) violations.push({file:rel,owner,target,import:spec});
+                  }
+                }
+              }
+            }
+          }
+          walk(root);
+          if(violations.length){
+            console.error(JSON.stringify(violations,null,2));
+            process.exit(1);
+          }
+          console.log('Bounded-context import boundaries PASS');
+          NODE
