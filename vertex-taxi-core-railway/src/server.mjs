@@ -13,6 +13,8 @@ import { postgresQuoteRepository } from "./contexts/pricing-quotes/adapters/post
 import { locationInputSchema } from "./contexts/geo-presence/http/schema.mjs";
 import { createPresenceService } from "./contexts/geo-presence/application/presence-service.mjs";
 import { redisPresenceStore } from "./contexts/geo-presence/adapters/redis-presence-store.mjs";
+import { createLeaseService } from "./contexts/dispatch/application/lease-service.mjs";
+import { redisLeaseStore } from "./contexts/dispatch/adapters/redis-lease-store.mjs";
 
 const PORT = Number(process.env.PORT || 3000);
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -129,43 +131,6 @@ function assertDemoIdentity(value, kind) {
   return text;
 }
 
-function driverLeaseKey(driverId) { return `taxi:lease:driver:${driverId}`; }
-function rideLeaseKey(rideId) { return `taxi:lease:ride:${rideId}`; }
-
-async function acquireOfferLease(rideId,driverId) {
-  const leaseToken=crypto.randomUUID();
-  const fencingToken=await redis.incr("taxi:lease:fencing:sequence");
-  const value=JSON.stringify({rideId,driverId,leaseToken,fencingToken});
-  const rideOk=await redis.set(rideLeaseKey(rideId),value,{NX:true,PX:OFFER_TTL_MS});
-  if(rideOk!=="OK") return {ok:false,error:"ride_already_reserved"};
-  const driverOk=await redis.set(driverLeaseKey(driverId),value,{NX:true,PX:OFFER_TTL_MS});
-  if(driverOk!=="OK"){
-    await releaseLeaseIfOwner(rideLeaseKey(rideId),value);
-    return {ok:false,error:"driver_already_reserved"};
-  }
-  return {ok:true,value,leaseToken,fencingToken};
-}
-
-async function releaseLeaseIfOwner(key,value) {
-  return redis.eval(
-    "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end",
-    {keys:[key],arguments:[value]}
-  );
-}
-
-async function verifyOfferLease(offer) {
-  if(!offer.lease_token || offer.fencing_token==null) return {ok:false,error:"legacy_lease"};
-  const expected=JSON.stringify({
-    rideId:String(offer.ride_id),driverId:String(offer.driver_id),
-    leaseToken:String(offer.lease_token),fencingToken:Number(offer.fencing_token)
-  });
-  const [rideValue,driverValue]=await Promise.all([
-    redis.get(rideLeaseKey(offer.ride_id)),
-    redis.get(driverLeaseKey(offer.driver_id))
-  ]);
-  return {ok:rideValue===expected&&driverValue===expected,expected};
-}
-
 async function publishRideEvent(rideId, event) {
   const streamKey=`taxi:realtime:ride:${rideId}:stream`;
   const sequence=await redis.incr(`taxi:realtime:ride:${rideId}:sequence`);
@@ -250,6 +215,7 @@ app.get("/v1/capabilities", async () => ({
 
 const createQuote = createQuoteService({quoteRepository:postgresQuoteRepository(db)});
 const presence = createPresenceService({store:redisPresenceStore(redis,{ttlSeconds:LOCATION_TTL_SECONDS}),h3Resolution:H3_RESOLUTION,ttlSeconds:LOCATION_TTL_SECONDS});
+const leases = createLeaseService({store:redisLeaseStore(redis,{ttlMs:OFFER_TTL_MS})});
 
 app.post("/v1/quotes", { preHandler: auth }, async (req, reply) => {
   const input = quoteInputSchema.parse(req.body);
@@ -344,7 +310,7 @@ app.post("/v1/offers", { preHandler: auth }, async (req, reply) => {
   const input=offerInput.parse(req.body);
   const offerId=crypto.randomUUID();
   const expiresAt=new Date(Date.now()+OFFER_TTL_MS);
-  const lease=await acquireOfferLease(input.rideId,input.driverId);
+  const lease=await leases.acquire(input.rideId,input.driverId);
   if(!lease.ok) return reply.code(409).send({error:lease.error});
   await db.query(
     "insert into taxi_offers(id,ride_id,driver_id,state,expires_at,lease_token,fencing_token) values($1,$2,$3,'OFFERED',$4,$5,$6)",
@@ -377,7 +343,7 @@ app.post("/v1/offers/:offerId/accept", { preHandler: auth }, async (req, reply) 
       await client.query("rollback");
       return reply.code(409).send({error:"offer_expired"});
     }
-    const leaseCheck=await verifyOfferLease(offer);
+    const leaseCheck=await leases.verify(offer);
     if(!leaseCheck.ok){
       await client.query("rollback");
       return reply.code(409).send({error:"lease_lost"});
@@ -471,7 +437,7 @@ app.post("/demo/v1/offers", { preHandler: demoOnly }, async (req, reply) => {
     return reply.code(403).send({error:"demo_only"});
   const offerId=crypto.randomUUID();
   const expiresAt=new Date(Date.now()+OFFER_TTL_MS);
-  const lease=await acquireOfferLease(input.rideId,input.driverId);
+  const lease=await leases.acquire(input.rideId,input.driverId);
   if(!lease.ok) return reply.code(409).send({error:lease.error});
   await db.query(
     "insert into taxi_offers(id,ride_id,driver_id,state,expires_at,lease_token,fencing_token) values($1,$2,$3,'OFFERED',$4,$5,$6)",
@@ -493,7 +459,7 @@ app.post("/demo/v1/offers/:offerId/accept", { preHandler: demoOnly }, async (req
   if(!String(offer.user_id).startsWith("demo-client-") || !String(offer.driver_id).startsWith("demo-driver-"))
     return reply.code(403).send({error:"demo_only"});
   if(offer.state!=="OFFERED" || new Date(offer.expires_at)<=new Date()) return reply.code(409).send({error:"offer_expired"});
-  const leaseCheck=await verifyOfferLease(offer);
+  const leaseCheck=await leases.verify(offer);
   if(!leaseCheck.ok) return reply.code(409).send({error:"lease_lost"});
   await db.query("update taxi_offers set state='ACCEPTED',updated_at=now() where id=$1",[offerId]);
   const updated=await db.query(
@@ -563,8 +529,16 @@ app.post("/v1/rides/:rideId/commands", { preHandler: auth }, async (req, reply) 
     );
     await client.query("commit");
     if(["COMPLETED","RIDER_CANCELLED","DRIVER_CANCELLED"].includes(rule.to)){
-      if(next.driver_id) await redis.del(driverLeaseKey(next.driver_id));
-      await redis.del(rideLeaseKey(rideId));
+      if(next.driver_id){
+        const acceptedOffer=await db.query(
+          "select * from taxi_offers where ride_id=$1 and driver_id=$2 and state='ACCEPTED' order by updated_at desc limit 1",
+          [rideId,next.driver_id]
+        );
+        if(acceptedOffer.rowCount){
+          const ownership=await leases.verify(acceptedOffer.rows[0]);
+          if(ownership.expected) await leases.release(rideId,next.driver_id,ownership.expected);
+        }
+      }
     }
     await publishRideEvent(rideId,{type:"ride.state_changed",rideId,state:next.state,version:next.version});
     return {data:next};
@@ -745,8 +719,16 @@ app.post("/demo/v1/rides/:rideId/commands", { preHandler: demoOnly }, async (req
     );
     await client.query("commit");
     if(["COMPLETED","RIDER_CANCELLED","DRIVER_CANCELLED"].includes(rule.to)){
-      if(next.driver_id) await redis.del(driverLeaseKey(next.driver_id));
-      await redis.del(rideLeaseKey(rideId));
+      if(next.driver_id){
+        const acceptedOffer=await db.query(
+          "select * from taxi_offers where ride_id=$1 and driver_id=$2 and state='ACCEPTED' order by updated_at desc limit 1",
+          [rideId,next.driver_id]
+        );
+        if(acceptedOffer.rowCount){
+          const ownership=await leases.verify(acceptedOffer.rows[0]);
+          if(ownership.expected) await leases.release(rideId,next.driver_id,ownership.expected);
+        }
+      }
     }
     await publishRideEvent(rideId,{type:"ride.state_changed",rideId,state:next.state,version:next.version,demo:true});
     return {data:next};
