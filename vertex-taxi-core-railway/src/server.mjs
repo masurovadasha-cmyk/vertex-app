@@ -247,7 +247,9 @@ app.get("/v1/capabilities", async () => ({
   offerLeaseTtlMs: OFFER_TTL_MS,
 }));
 
-const createQuote = createQuoteService({quoteRepository:postgresQuoteRepository(db)});\n\napp.post("/v1/quotes", { preHandler: auth }, async (req, reply) => {
+const createQuote = createQuoteService({quoteRepository:postgresQuoteRepository(db)});
+
+app.post("/v1/quotes", { preHandler: auth }, async (req, reply) => {
   const input = quoteInputSchema.parse(req.body);
   const quote = await createQuote(input,{ttlMinutes:5,currency:"USD"});
   reply.code(201);
