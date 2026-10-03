@@ -15,6 +15,7 @@ import { createPresenceService } from "./contexts/geo-presence/application/prese
 import { redisPresenceStore } from "./contexts/geo-presence/adapters/redis-presence-store.mjs";
 import { createLeaseService } from "./contexts/dispatch/application/lease-service.mjs";
 import { redisLeaseStore } from "./contexts/dispatch/adapters/redis-lease-store.mjs";
+import { createRideCommandService } from "./contexts/trips/application/execute-ride-command.mjs";
 
 const PORT = Number(process.env.PORT || 3000);
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -216,6 +217,7 @@ app.get("/v1/capabilities", async () => ({
 const createQuote = createQuoteService({quoteRepository:postgresQuoteRepository(db)});
 const presence = createPresenceService({store:redisPresenceStore(redis,{ttlSeconds:LOCATION_TTL_SECONDS}),h3Resolution:H3_RESOLUTION,ttlSeconds:LOCATION_TTL_SECONDS});
 const leases = createLeaseService({store:redisLeaseStore(redis,{ttlMs:OFFER_TTL_MS})});
+const rideCommands = createRideCommandService({db,leases,publishRideEvent});
 
 app.post("/v1/quotes", { preHandler: auth }, async (req, reply) => {
   const input = quoteInputSchema.parse(req.body);
@@ -479,73 +481,17 @@ const rideCommandInput = z.object({
   expectedVersion: z.number().int().positive().optional(),
 });
 
-const transitions = {
-  DRIVER_EN_ROUTE: { from:["DRIVER_ASSIGNED"], to:"DRIVER_EN_ROUTE" },
-  ARRIVED: { from:["DRIVER_EN_ROUTE"], to:"DRIVER_ARRIVED" },
-  RIDER_ONBOARD: { from:["DRIVER_ARRIVED"], to:"RIDER_ONBOARD" },
-  START: { from:["RIDER_ONBOARD","DRIVER_ARRIVED"], to:"IN_PROGRESS" },
-  COMPLETE: { from:["IN_PROGRESS"], to:"COMPLETED" },
-  RIDER_CANCEL: { from:["REQUESTED","SEARCHING","DRIVER_OFFERED","DRIVER_ASSIGNED","DRIVER_EN_ROUTE","DRIVER_ARRIVED","RIDER_ONBOARD"], to:"RIDER_CANCELLED" },
-  DRIVER_CANCEL: { from:["DRIVER_OFFERED","DRIVER_ASSIGNED","DRIVER_EN_ROUTE","DRIVER_ARRIVED"], to:"DRIVER_CANCELLED" },
-};
-
 app.post("/v1/rides/:rideId/commands", { preHandler: auth }, async (req, reply) => {
   const rideId=z.string().uuid().parse(req.params.rideId);
   const input=rideCommandInput.parse(req.body);
-  const rule=transitions[input.command];
-  const client=await db.connect();
-  try{
-    await client.query("begin");
-    const current=await client.query("select * from taxi_rides where id=$1 for update",[rideId]);
-    if(!current.rowCount){ await client.query("rollback"); return reply.code(404).send({error:"ride_not_found"}); }
-    const ride=current.rows[0];
-    if(input.expectedVersion && Number(ride.version)!==input.expectedVersion){
-      await client.query("rollback");
-      return reply.code(409).send({error:"version_conflict",currentVersion:Number(ride.version)});
-    }
-    if(!rule.from.includes(ride.state)){
-      await client.query("rollback");
-      return reply.code(409).send({error:"invalid_transition",from:ride.state,command:input.command});
-    }
-    const updated=await client.query(
-      "update taxi_rides set state=$2,version=version+1,updated_at=now() where id=$1 returning *",
-      [rideId,rule.to]
-    );
-    const next=updated.rows[0];
-    await client.query(
-      `insert into taxi_outbox(event_type,aggregate_id,aggregate_version,payload,correlation_id)
-       values($1,$2,$3,$4,$5)`,
-      [`taxi.ride.v2.${String(rule.to).toLowerCase()}`,rideId,next.version,
-       JSON.stringify({ride_id:rideId,state:rule.to,actor_id:input.actorId??null}),next.correlation_id]
-    );
-    await client.query(
-      `insert into taxi_audit_timeline
-       (ride_id,actor_type,actor_id,action,before_json,after_json,reason,correlation_id)
-       values($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [rideId,input.command.startsWith("DRIVER")?"driver":"user",input.actorId??null,input.command,
-       JSON.stringify({state:ride.state,version:ride.version}),
-       JSON.stringify({state:next.state,version:next.version}),
-       "presentation_command",next.correlation_id]
-    );
-    await client.query("commit");
-    if(["COMPLETED","RIDER_CANCELLED","DRIVER_CANCELLED"].includes(rule.to)){
-      if(next.driver_id){
-        const acceptedOffer=await db.query(
-          "select * from taxi_offers where ride_id=$1 and driver_id=$2 and state='ACCEPTED' order by updated_at desc limit 1",
-          [rideId,next.driver_id]
-        );
-        if(acceptedOffer.rowCount){
-          const ownership=await leases.verify(acceptedOffer.rows[0]);
-          if(ownership.expected) await leases.release(rideId,next.driver_id,ownership.expected);
-        }
-      }
-    }
-    await publishRideEvent(rideId,{type:"ride.state_changed",rideId,state:next.state,version:next.version});
-    return {data:next};
-  } catch(error){
-    try{ await client.query("rollback"); }catch{}
-    throw error;
-  } finally { client.release(); }
+  const result=await rideCommands.execute({rideId,input});
+  if(!result.ok) return reply.code(result.status).send({
+    error:result.error,
+    ...(result.currentVersion?{currentVersion:result.currentVersion}:{}),
+    ...(result.from?{from:result.from}:{}),
+    ...(result.command?{command:result.command}:{})
+  });
+  return {data:result.data};
 });
 
 app.get("/v1/users/:userId/rides", { preHandler: auth }, async (req) => {
@@ -675,69 +621,20 @@ app.post("/demo/v1/rides/:rideId/commands", { preHandler: demoOnly }, async (req
   const input=rideCommandInput.parse(req.body);
   if(input.actorId){
     const actor=String(input.actorId);
-    const ok=actor.startsWith("demo-client-") || actor.startsWith("demo-driver-");
-    if(!ok) return reply.code(403).send({error:"demo_identity_required"});
+    if(!actor.startsWith("demo-client-")&&!actor.startsWith("demo-driver-"))
+      return reply.code(403).send({error:"demo_identity_required"});
   }
-  const client=await db.connect();
-  try{
-    await client.query("begin");
-    const current=await client.query("select * from taxi_rides where id=$1 for update",[rideId]);
-    if(!current.rowCount){ await client.query("rollback"); return reply.code(404).send({error:"ride_not_found"}); }
-    const ride=current.rows[0];
-    if(!String(ride.user_id).startsWith("demo-client-")){
-      await client.query("rollback");
-      return reply.code(403).send({error:"demo_only"});
-    }
-    const rule=transitions[input.command];
-    if(input.expectedVersion && Number(ride.version)!==input.expectedVersion){
-      await client.query("rollback");
-      return reply.code(409).send({error:"version_conflict",currentVersion:Number(ride.version)});
-    }
-    if(!rule.from.includes(ride.state)){
-      await client.query("rollback");
-      return reply.code(409).send({error:"invalid_transition",from:ride.state,command:input.command});
-    }
-    const updated=await client.query(
-      "update taxi_rides set state=$2,version=version+1,updated_at=now() where id=$1 returning *",
-      [rideId,rule.to]
-    );
-    const next=updated.rows[0];
-    await client.query(
-      `insert into taxi_outbox(event_type,aggregate_id,aggregate_version,payload,correlation_id)
-       values($1,$2,$3,$4,$5)`,
-      [`taxi.ride.v2.${String(rule.to).toLowerCase()}`,rideId,next.version,
-       JSON.stringify({ride_id:rideId,state:rule.to,actor_id:input.actorId??null,demo:true}),next.correlation_id]
-    );
-    await client.query(
-      `insert into taxi_audit_timeline
-       (ride_id,actor_type,actor_id,action,before_json,after_json,reason,correlation_id)
-       values($1,$2,$3,$4,$5,$6,$7,$8)`,
-      [rideId,input.command.startsWith("DRIVER")?"driver":"user",input.actorId??null,input.command,
-       JSON.stringify({state:ride.state,version:ride.version}),
-       JSON.stringify({state:next.state,version:next.version}),
-       "presentation_demo_command",next.correlation_id]
-    );
-    await client.query("commit");
-    if(["COMPLETED","RIDER_CANCELLED","DRIVER_CANCELLED"].includes(rule.to)){
-      if(next.driver_id){
-        const acceptedOffer=await db.query(
-          "select * from taxi_offers where ride_id=$1 and driver_id=$2 and state='ACCEPTED' order by updated_at desc limit 1",
-          [rideId,next.driver_id]
-        );
-        if(acceptedOffer.rowCount){
-          const ownership=await leases.verify(acceptedOffer.rows[0]);
-          if(ownership.expected) await leases.release(rideId,next.driver_id,ownership.expected);
-        }
-      }
-    }
-    await publishRideEvent(rideId,{type:"ride.state_changed",rideId,state:next.state,version:next.version,demo:true});
-    return {data:next};
-  }catch(error){
-    try{await client.query("rollback");}catch{}
-    throw error;
-  }finally{
-    client.release();
-  }
+  const result=await rideCommands.execute({
+    rideId,input,demo:true,
+    validateRide:(ride)=>String(ride.user_id).startsWith("demo-client-")
+  });
+  if(!result.ok) return reply.code(result.status).send({
+    error:result.error==="forbidden"?"demo_only":result.error,
+    ...(result.currentVersion?{currentVersion:result.currentVersion}:{}),
+    ...(result.from?{from:result.from}:{}),
+    ...(result.command?{command:result.command}:{})
+  });
+  return {data:result.data};
 });
 
 app.get("/demo/v1/users/:userId/rides", { preHandler: demoOnly }, async (req, reply) => {
