@@ -29,3 +29,26 @@ test('public production worker reserves readyz and fails closed',async()=>{
   assert.equal(body.error,'cloud_backend_not_connected');
   assert.equal(body.activeModule,'views');
 });
+
+
+test('public production worker exposes metadata-only System Status without backend claims',async()=>{
+  const r=await handle(req('/system-status'));
+  assert.equal(r.status,200);
+  const body=await r.json();
+  assert.equal(body.service,'VERTEX VISION');
+  assert.equal(body.environment,'public-demo');
+  assert.match(body.sourceCommit||'',/^[a-f0-9]{40}$/);
+  assert.equal(body.architectureVersion,'2.3');
+  assert.equal(body.requiredMigration,'0019_external_module_delegation.sql');
+  assert.equal(body.backendConfigured,false);
+  assert.equal(body.readinessChecked,false);
+  assert.equal(body.databaseReady,null);
+  assert.equal(Object.hasOwn(body,'SUPABASE_URL'),false);
+});
+
+test('public System Status is GET/HEAD only and HEAD is bodyless',async()=>{
+  const head=await handle(req('/system-status',{method:'HEAD'}));
+  assert.equal(head.status,200);assert.equal(await head.text(),'');
+  const post=await handle(req('/system-status',{method:'POST'}));
+  assert.equal(post.status,405);
+});

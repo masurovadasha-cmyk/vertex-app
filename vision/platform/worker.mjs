@@ -1,7 +1,15 @@
 import core from './registry.cjs';
 import {sourceCommit} from './build-info.generated.mjs';
+import releaseMeta from '../release/0.1-RC1.json' with {type:'json'};
 const json=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer'}});
 const metadata=()=>({service:core.name,version:core.version,revision:core.revision,sourceCommit,coreVersion:core.coreVersion,moduleCount:core.modules.length,...core.readiness()});
+const publicSystemStatus=()=>({
+  service:core.name,environment:'public-demo',sourceCommit,
+  architectureVersion:releaseMeta.architectureVersion,
+  requiredMigration:releaseMeta.databaseMigration,
+  backendConfigured:false,backgroundConsumerConnected:false,escalationSchedulerConnected:false,
+  readinessChecked:false,databaseReady:null,latestMigration:null,migrationCount:null,viewsReleaseActive:null
+});
 /** Public deployment deliberately contains NO profile impersonation or database credentials.
  * Supabase Auth/RLS integration stays in the separate staging worker until verified.
  * A metadata response is never evidence that Auth, migrations or a shared database work.
@@ -11,6 +19,10 @@ export async function handle(request,env={}){
   if(path==='/health'||path==='/api/vision/v1/health'){
     if(request.method!=='GET'&&request.method!=='HEAD')return json({error:'method_not_allowed'},405);
     return request.method==='HEAD'?new Response(null,{status:200,headers:{'cache-control':'no-store'}}):json(metadata());
+  }
+  if(path==='/system-status'){
+    if(request.method!=='GET'&&request.method!=='HEAD')return json({error:'method_not_allowed'},405);
+    return request.method==='HEAD'?new Response(null,{status:200,headers:{'cache-control':'no-store'}}):json(publicSystemStatus());
   }
   if(path==='/readyz')return json({error:'cloud_backend_not_connected',mode:'release-candidate',activeModule:'views',authenticated:false},503);
   if(path.startsWith('/api/')){

@@ -40,7 +40,7 @@
       '<div><span>'+T('Source commit','Source commit')+'</span><strong class="vvs-mono">'+E(d.sourceCommit||'—')+'</strong></div>'+
       '<div><span>'+T('Environment','Environment')+'</span><strong>'+E(d.environment||'—')+'</strong></div>'+
       '</section>'+
-      '<p class="vvs-note">'+T('Показываются только фактические staging-сигналы. Секреты, токены и строки подключения здесь никогда не отображаются.','Only factual staging signals are shown. Secrets, tokens, and connection strings are never displayed here.')+'</p>';
+      '<p class="vvs-note">'+T('Показываются только фактические runtime-сигналы. Секреты, токены и строки подключения здесь никогда не отображаются.','Only factual runtime signals are shown. Secrets, tokens, and connection strings are never displayed here.')+'</p>';
   }
   function render(){
     ensure();
@@ -52,7 +52,7 @@
       const response=await fetch('/system-status',{headers:{accept:'application/json'},cache:'no-store',credentials:'same-origin'});
       if(!response.ok)throw new Error('status_unavailable');
       const value=await response.json();
-      if(!value||value.service!=='VERTEX VISION'||value.environment!=='staging')throw new Error('invalid_status');
+      if(!value||value.service!=='VERTEX VISION'||!['staging','public-demo'].includes(value.environment))throw new Error('invalid_status');
       state.data=value;state.lastRefreshAt=new Date().toISOString();return value;
     }catch(error){state.error=error;state.data=null;return null;}
     finally{state.loading=false;render();}
