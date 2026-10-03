@@ -20,7 +20,7 @@ test('Interface System 11 defines real staging sign-in without demo fallback',()
   assert.equal(assembly.architectureVersion,'2.3');
   assert.equal(assembly.database.latestMigration,'0019_external_module_delegation.sql');
   assert.equal(assembly.database.migrationsExpected,19);
-  assert.equal(assembly.designSystem.experienceIteration,'11.0');
+  assert.equal(assembly.designSystem.experienceIteration,'14.0');
   assert.equal(release.platformVersion,'1.18-rc1');
   assert.equal(release.productionReady,false);
 });
@@ -32,7 +32,7 @@ test('Session Center is separate, memory-only and activates existing Views conte
   const css=read('vision/platform/session-center.css');
   assert.match(build,/session-center\.js','vision-session\.js'/);
   assert.match(build,/session-center\.css','vision-session\.css'/);
-  assert.match(build,/UI_CACHE_SUFFIX='interface-11'/);
+  assert.match(build,/UI_CACHE_SUFFIX='interface-14'/);
   assert.match(shell,/visionUi='14\.0'/);
   assert.match(shell,/Interface 14\.0/);
   assert.match(js,/\/auth-config/);
