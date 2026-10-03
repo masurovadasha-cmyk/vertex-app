@@ -8,11 +8,11 @@ const web=path.join(root,'vertex/dist');
 const android=path.join(root,'android/app/src/main/assets/site');
 const release=JSON.parse(fs.readFileSync(path.join(web,'release.json'),'utf8'));
 assert.equal(release.version,'1.18-rc1');
-assert.equal(release.revision,'vision-interface-11-rc1');
+assert.equal(release.revision,'vision-interface-14-rc1');
 assert.equal(release.platform,'vertex-vision');
 assert.equal(release.modules.length,19);
 assert.equal(release.cloud_database_connected,false);assert.deepEqual(release.active_modules,['views']);assert.equal(release.coming_soon_modules.length,18);assert.equal(release.mode,'release-candidate');
-assert.equal(release.date,'2026-09-30');
+assert.equal(release.date,'2026-10-03');
 assert.ok(Array.isArray(release.boundaries)&&release.boundaries.length>=5);
 assert.ok(release.features.includes('property discussions'));
 assert.ok(release.features.includes('owner operations dashboard'));
@@ -68,7 +68,7 @@ assert.match(profileMenu,/VertexGuestGuide\?\.open/);
 assert.match(profileMenu,/\['payment-methods','payment-history','payouts','transactions'\]/);
 assert.match(fs.readFileSync(path.join(web,'design.css'),'utf8'),/bottom:calc\(12px \+ env\(safe-area-inset-bottom\)\)/);
 const sw=fs.readFileSync(path.join(web,'sw.js'),'utf8');
-assert.match(sw,/vertex-vision-1-18-rc1-vision-interface-11-rc1-interface-11/);
+assert.match(sw,/vertex-vision-1-18-rc1-vision-interface-14-rc1-interface-14/);
 assert.doesNotMatch(sw,/bali\.jpg|istanbul\.jpg/i);
 for(const file of ['mobility.js','mobility.css','guest-guide.js','guest-guide.css','host-console.js','host-console-more.js','host-console.css','vision-core.js','vision-views.js','vision-views.css','vision-shell.js','vision-shell.css','vision-system-status.js','vision-system-status.css','vision-session.js','vision-session.css'])assert.ok(sw.includes(file));
 const hostCore=fs.readFileSync(path.join(web,'host-console.js'),'utf8');
@@ -87,4 +87,4 @@ for(const name of fs.readdirSync(web)){
  const source=fs.readFileSync(file,'utf8');assert.doesNotMatch(source,/\bOLX\b/i,'OLX reference remains in '+name);assert.doesNotMatch(source,/vertex-jarvis/i,'JARVIS source reference remains in '+name);
 }
 const androidRelease=JSON.parse(fs.readFileSync(path.join(android,'release.json'),'utf8'));assert.equal(androidRelease.version,release.version);
-console.log('PASS VISION 1.18 RC1 Interface 11 release semantics, Views-only active Hub and preserved Uzbekistan catalog');
+console.log('PASS VISION 1.18 RC1 Interface 14 release semantics, Views-only active Hub and preserved Uzbekistan catalog');
