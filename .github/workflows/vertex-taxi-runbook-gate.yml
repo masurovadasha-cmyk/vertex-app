@@ -1,0 +1,32 @@
+name: Vertex Taxi Runbook Gate
+
+on:
+  push:
+    branches: [vertex-taxi-core-railway-staging]
+    paths:
+      - 'vertex-taxi-core-railway/RUNBOOK.md'
+      - 'vertex-taxi-core-railway/RELEASE-RC-0.9.md'
+      - '.github/workflows/vertex-taxi-runbook-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  runbook:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify required recovery controls
+        run: |
+          set -euo pipefail
+          f=vertex-taxi-core-railway/RUNBOOK.md
+          test -s "$f"
+          grep -q "Redis unavailable" "$f"
+          grep -q "PostgreSQL unavailable" "$f"
+          grep -q "fencing" "$f"
+          grep -q "Golden E2E" "$f"
+          grep -q "Backup/Restore Drill" "$f"
+          grep -q "/readyz" "$f"
+          grep -q "forward repair migration" "$f"
+          echo "Recovery runbook gate PASS"
