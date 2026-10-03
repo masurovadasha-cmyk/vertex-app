@@ -18,7 +18,7 @@ test('Interface System 8 defines notification and escalation foundation without 
   assert.equal(design.safety.fabricatedEvents,false);
   assert.equal(assembly.architectureVersion,'2.3');
   assert.equal(assembly.database.latestMigration,'0019_external_module_delegation.sql');
-  assert.equal(assembly.designSystem.experienceIteration,'11.0');
+  assert.equal(assembly.designSystem.experienceIteration,'14.0');
   assert.equal(assembly.designSystem.notifications.refreshMode,'polling-30s-not-push');
 });
 
@@ -29,7 +29,7 @@ test('Notification Center is a separate responsive runtime and Hub exposes it',(
   const css=read('vision/platform/notifications-center.css');
   assert.match(build,/notifications-center\.js','vision-notifications\.js'/);
   assert.match(build,/notifications-center\.css','vision-notifications\.css'/);
-  assert.match(build,/UI_CACHE_SUFFIX='interface-11'/);
+  assert.match(build,/UI_CACHE_SUFFIX='interface-14'/);
   assert.match(shell,/vvNotifications='hero'/);
   assert.match(shell,/openNotifications/);
   assert.match(js,/notificationFeed\(50\)/);

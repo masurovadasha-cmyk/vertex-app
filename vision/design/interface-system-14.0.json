@@ -1,0 +1,69 @@
+{
+  "name": "VERTEX VISION Interface System",
+  "version": "14.0",
+  "date": "2026-10-03",
+  "focus": "Mobile orbital launcher / direction landings / safe role entry",
+  "source": {
+    "type": "approved-user-reference",
+    "style": "dark premium technology",
+    "accents": [
+      "gold",
+      "deep-blue",
+      "black"
+    ]
+  },
+  "navigation": {
+    "orbitalModules": [
+      "travel",
+      "views",
+      "engineers",
+      "ditalia",
+      "managing",
+      "market",
+      "taxi"
+    ],
+    "mobileTabs": [
+      "home",
+      "modules",
+      "search",
+      "login"
+    ],
+    "allRegisteredModulesReachable": true,
+    "activeOperationalModule": "views"
+  },
+  "roleEntry": {
+    "entries": [
+      "guest",
+      "driver",
+      "hotel-staff",
+      "restaurant-staff",
+      "admin",
+      "owner",
+      "partner"
+    ],
+    "mode": "ui-preview-until-authenticated",
+    "browserRoleAuthority": false,
+    "serverDerivedAuthority": true,
+    "persistentPrivilegeStorage": false
+  },
+  "modulePolicy": {
+    "active": [
+      "views"
+    ],
+    "futureModules": "interface-preview-only",
+    "taxi": "external-api-boundary",
+    "engineers": "external-api-boundary"
+  },
+  "security": {
+    "privilegedRoleSelection": false,
+    "sessionPersistence": "memory-only",
+    "exactSourceLiveVerification": true,
+    "cspRequired": true
+  },
+  "accessibility": {
+    "keyboardNavigation": true,
+    "focusVisible": true,
+    "reducedMotion": true,
+    "responsiveMobile": true
+  }
+}

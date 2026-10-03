@@ -17,7 +17,7 @@ test('Interface System 9 advances background runtime without connecting producti
   assert.equal(assembly.architectureVersion,'2.3');
   assert.equal(assembly.database.latestMigration,'0019_external_module_delegation.sql');
   assert.equal(assembly.database.migrationsExpected,19);
-  assert.equal(assembly.designSystem.experienceIteration,'11.0');
+  assert.equal(assembly.designSystem.experienceIteration,'14.0');
   assert.equal(release.databaseMigration,'0019_external_module_delegation.sql');
   assert.equal(release.architectureVersion,'2.3');
   assert.equal(release.productionApproved,false);

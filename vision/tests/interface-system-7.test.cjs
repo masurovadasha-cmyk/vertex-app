@@ -18,7 +18,7 @@ test('Interface System 7 implements server-authoritative task and approval actio
   assert.equal(design.refresh.pushSubscription,false);
   assert.equal(assembly.architectureVersion,'2.3');
   assert.equal(assembly.database.latestMigration,'0019_external_module_delegation.sql');
-  assert.equal(assembly.designSystem.experienceIteration,'11.0');
+  assert.equal(assembly.designSystem.experienceIteration,'14.0');
   assert.equal(assembly.designSystem.workCenter.approvalDecisionsEnabled,true);
   assert.equal(assembly.designSystem.workCenter.refreshMode,'polling-30s-not-push');
 });

@@ -18,7 +18,7 @@ test('Interface System 6 connects My Day to an RLS-scoped read-only Work Feed',(
   assert.equal(design.safety.additiveMigrationOnly,true);
   assert.equal(assembly.architectureVersion,'2.3');
   assert.equal(assembly.database.latestMigration,'0019_external_module_delegation.sql');
-  assert.equal(assembly.designSystem.experienceIteration,'11.0');
+  assert.equal(assembly.designSystem.experienceIteration,'14.0');
   assert.equal(assembly.designSystem.workCenter.workFeedReadOnly,true);
 });
 
