@@ -112,7 +112,7 @@ def run(live=False):
                             if parsed.path=='/system-status':
                                 route.fulfill(status=200,content_type='application/json',body=json.dumps({
                                     'service':'VERTEX VISION','environment':'staging','sourceCommit':None,
-                                    'architectureVersion':'2.1','requiredMigration':'0018_engineers_readiness.sql',
+                                    'architectureVersion':'2.3','requiredMigration':'0019_external_module_delegation.sql',
                                     'backendConfigured':False,'backgroundConsumerConnected':False,
                                     'escalationSchedulerConnected':False,'readinessChecked':False,
                                     'databaseReady':None,'latestMigration':None,'migrationCount':None,'viewsReleaseActive':None
@@ -180,7 +180,7 @@ def run(live=False):
                     check(str(width)+': System Status Center is visible',page.locator('#visionSystemStatus').is_visible())
                     page.wait_for_selector('#visionSystemStatus .vvs-card')
                     check(str(width)+': System Status renders six factual signals',page.locator('#visionSystemStatus .vvs-card').count()==6)
-                    check(str(width)+': System Status exposes architecture and required migration','2.1' in page.locator('#visionSystemStatus').inner_text() and '0018_engineers_readiness.sql' in page.locator('#visionSystemStatus').inner_text())
+                    check(str(width)+': System Status exposes architecture and required migration','2.3' in page.locator('#visionSystemStatus').inner_text() and '0019_external_module_delegation.sql' in page.locator('#visionSystemStatus').inner_text())
                     check(str(width)+': disconnected System Status contains no secret-shaped values','sb_publishable_' not in page.locator('#visionSystemStatus').inner_text() and 'postgres://' not in page.locator('#visionSystemStatus').inner_text())
                     page.keyboard.press('Escape')
                     page.screenshot(path=str(OUT/f'vision-home-{width}.png'))
