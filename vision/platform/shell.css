@@ -218,3 +218,66 @@ header .brand .vv-wordmark{font:820 13px/1.2 system-ui,sans-serif;letter-spacing
 #visionHome [data-vv-notifications="attention"]{width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer}
 #visionHome [data-vv-notifications="attention"]:hover{border-color:rgba(224,197,138,.24);background:rgba(205,178,118,.055)}
 #visionHome [data-vv-notifications="attention"]:focus-visible{outline:3px solid #dfc17d;outline-offset:2px}
+
+
+/* Interface System 12.0 — direction landing pages based on the approved VERTEX VISION dark/gold mobile board. */
+.vv-direction-landing{margin:18px 0;padding:18px;border:1px solid rgba(224,197,138,.22);border-radius:18px;background:radial-gradient(circle at 85% 0%,rgba(222,174,72,.15),transparent 36%),linear-gradient(145deg,#0b1218,#101a21 52%,#090e12);box-shadow:inset 0 1px rgba(255,255,255,.035)}
+.vv-direction-brand{display:flex;align-items:center;gap:15px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.vv-direction-mark{display:grid;place-items:center;width:58px;height:58px;flex:0 0 auto;border:1px solid rgba(235,191,91,.42);border-radius:16px;color:#f1c969;background:radial-gradient(circle,rgba(235,191,91,.16),rgba(235,191,91,.03));box-shadow:0 0 30px rgba(214,159,39,.09)}
+.vv-direction-mark svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.vv-direction-brand small{display:block;margin-bottom:5px;color:#d9b35e;font:800 9px/1.35 system-ui,sans-serif;letter-spacing:.12em}
+.vv-direction-brand h3{margin:0 0 4px;color:#fff;font:760 22px/1.2 system-ui,sans-serif;letter-spacing:-.03em}
+.vv-direction-brand p{margin:0;color:#9eaaa5;font:12px/1.55 system-ui,sans-serif}
+.vv-direction-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:15px}
+.vv-direction-tile{min-height:94px;padding:13px;text-align:left;border:1px solid rgba(113,164,194,.17);border-radius:13px;background:linear-gradient(180deg,rgba(18,35,47,.88),rgba(10,24,34,.88));color:#edf2f2}
+.vv-direction-tile strong{display:block;font:720 11px/1.4 system-ui,sans-serif}
+.vv-direction-tile span{display:block;margin-top:8px;color:#82949c;font:9px/1.4 system-ui,sans-serif}
+.vv-direction-tile:disabled{opacity:.78;cursor:not-allowed}
+.vv-direction-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:13px;padding-top:12px;border-top:1px solid rgba(255,255,255,.065)}
+.vv-direction-status{color:#c8a85f;font:760 9px/1.4 system-ui,sans-serif;letter-spacing:.07em}
+@media(max-width:620px){.vv-dialog{width:min(100% - 14px,860px);max-height:calc(100dvh - 14px);padding:16px;border-radius:18px}.vv-direction-landing{padding:14px}.vv-direction-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vv-direction-brand h3{font-size:19px}}
+@media(max-width:390px){.vv-direction-grid{grid-template-columns:1fr 1fr}.vv-direction-tile{min-height:84px;padding:11px}}
+
+
+/* Mobile Shell 13.0 — role entry system derived from the approved VERTEX VISION board. */
+#visionHome .vv-role-launcher{margin-top:22px;padding:18px;border:1px solid rgba(224,197,138,.18);border-radius:20px;background:radial-gradient(circle at 50% 0%,rgba(225,171,48,.10),transparent 36%),linear-gradient(180deg,#0b1218,#080d11)}
+#visionHome .vv-role-launcher-head{text-align:center;max-width:640px;margin:0 auto 16px}
+#visionHome .vv-role-launcher-head small{color:#e0b657;font:800 9px/1.3 system-ui,sans-serif;letter-spacing:.18em}
+#visionHome .vv-role-launcher-head h2{margin:6px 0;color:#fff;font:760 24px/1.2 system-ui,sans-serif}
+#visionHome .vv-role-launcher-head p{margin:0;color:#87959a;font:12px/1.55 system-ui,sans-serif}
+#visionHome .vv-role-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+#visionHome .vv-role-card{min-height:112px;padding:12px 8px;border:1px solid rgba(99,153,187,.20);border-radius:13px;background:linear-gradient(180deg,#101d26,#09131a);color:#fff;cursor:pointer}
+#visionHome .vv-role-card:hover{border-color:rgba(229,185,83,.48);transform:translateY(-1px)}
+#visionHome .vv-role-card-icon{display:grid;place-items:center;width:34px;height:34px;margin:0 auto 9px;border:1px solid rgba(229,185,83,.32);border-radius:50%;color:#e6bd61}
+#visionHome .vv-role-card strong{display:block;font:700 10px/1.35 system-ui,sans-serif}
+#visionHome .vv-role-card small{display:block;margin-top:5px;color:#74878f;font:8px/1.35 system-ui,sans-serif}
+.vv-role-entry{text-align:center;padding:20px;border:1px solid rgba(224,197,138,.18);border-radius:18px;background:radial-gradient(circle at 50% 0%,rgba(222,174,72,.13),transparent 34%),linear-gradient(180deg,#0b141b,#081016)}
+.vv-role-emblem{display:grid;place-items:center;width:66px;height:66px;margin:0 auto 12px;border:1px solid rgba(231,188,87,.45);border-radius:50%;color:#efc65f;font:850 27px/1 serif;box-shadow:0 0 40px rgba(218,163,35,.10)}
+.vv-role-tagline{margin:0 0 16px;color:#b7c0c0;font:12px/1.45 system-ui,sans-serif}
+.vv-role-notice{max-width:520px;margin:0 auto 16px;color:#849399;font:11px/1.6 system-ui,sans-serif}
+.vv-role-methods{display:grid;gap:8px;max-width:390px;margin:0 auto}
+.vv-role-method{min-height:44px;border:1px solid rgba(255,255,255,.16);border-radius:11px;background:#f4f6f6;color:#111820;font:700 11px/1 system-ui,sans-serif;cursor:pointer}
+.vv-role-method:hover{background:#fff}
+.vv-role-security{display:block;margin-top:14px;color:#caa75b;font:750 9px/1.4 system-ui,sans-serif;letter-spacing:.08em}
+@media(max-width:1050px){#visionHome .vv-role-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:620px){#visionHome .vv-role-launcher{padding:13px}#visionHome .vv-role-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#visionHome .vv-role-card{min-height:104px}#visionHome .vv-role-launcher-head h2{font-size:21px}}
+
+
+/* Mobile Shell 14.0 — orbital VERTEX launcher and app navigation. */
+#visionHome .vv-orbit{margin:18px 0 20px;padding:18px;border:1px solid rgba(225,184,82,.18);border-radius:22px;background:radial-gradient(circle at 50% 50%,rgba(16,104,155,.16),transparent 34%),radial-gradient(circle at 50% 50%,rgba(226,171,43,.09),transparent 52%),linear-gradient(180deg,#071019,#060b10);overflow:hidden}
+#visionHome .vv-orbit-copy{text-align:center}
+#visionHome .vv-orbit-copy small{color:#dfb758;font:800 9px/1.3 system-ui,sans-serif;letter-spacing:.2em}
+#visionHome .vv-orbit-copy h2{margin:5px 0 2px;color:#fff;font:760 24px/1.2 system-ui,sans-serif}
+#visionHome .vv-orbit-copy p{margin:0;color:#778c96;font:10px/1.4 system-ui,sans-serif;letter-spacing:.08em}
+#visionHome .vv-orbit-stage{position:relative;width:min(100%,520px);aspect-ratio:1.6/1;margin:12px auto 0}
+#visionHome .vv-orbit-stage::before{content:"";position:absolute;left:50%;top:50%;width:72%;height:72%;transform:translate(-50%,-50%);border:1px solid rgba(48,145,199,.22);border-radius:50%;box-shadow:0 0 45px rgba(24,112,167,.08)}
+#visionHome .vv-orbit-center{position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);width:84px;height:84px;border:1px solid rgba(235,191,84,.7);border-radius:50%;background:radial-gradient(circle,#4a3513,#171308 60%,#080b0d);color:#f4ca64;font:800 39px/1 serif;box-shadow:0 0 0 8px rgba(229,176,49,.04),0 0 45px rgba(225,167,34,.18);cursor:pointer}
+#visionHome .vv-orbit-node{--a:calc(var(--vv-i) * 51.428deg - 90deg);position:absolute;z-index:2;left:50%;top:50%;width:76px;height:76px;transform:translate(-50%,-50%) rotate(var(--a)) translateX(190px) rotate(calc(-1 * var(--a)));border:1px solid rgba(49,150,208,.48);border-radius:50%;background:linear-gradient(180deg,#0d2230,#08131b);color:#e7edf0;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+#visionHome .vv-orbit-node span{display:block;color:#dfb85c}
+#visionHome .vv-orbit-node span svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6}
+#visionHome .vv-orbit-node strong{display:block;margin-top:3px;font:700 9px/1.1 system-ui,sans-serif}
+#visionHome .vv-mobile-nav{position:sticky;z-index:8;bottom:8px;display:none;grid-template-columns:repeat(4,1fr);gap:5px;margin:18px 0 0;padding:7px;border:1px solid rgba(225,184,82,.22);border-radius:16px;background:rgba(6,12,17,.94);backdrop-filter:blur(16px);box-shadow:0 14px 44px rgba(0,0,0,.35)}
+#visionHome .vv-mobile-nav-item{min-height:46px;border:0;border-radius:10px;background:transparent;color:#8d9ba1;font:700 9px/1.2 system-ui,sans-serif;cursor:pointer}
+#visionHome .vv-mobile-nav-item:hover,#visionHome .vv-mobile-nav-item:focus-visible{background:rgba(224,183,80,.10);color:#e6bd5d}
+@media(max-width:620px){#visionHome .vv-orbit{padding:14px 8px}#visionHome .vv-orbit-stage{width:100%;aspect-ratio:1/1}#visionHome .vv-orbit-node{width:66px;height:66px;transform:translate(-50%,-50%) rotate(var(--a)) translateX(min(35vw,142px)) rotate(calc(-1 * var(--a)))}#visionHome .vv-orbit-center{width:76px;height:76px;font-size:34px}#visionHome .vv-mobile-nav{display:grid}}
+@media(max-width:370px){#visionHome .vv-orbit-node{width:60px;height:60px;transform:translate(-50%,-50%) rotate(var(--a)) translateX(120px) rotate(calc(-1 * var(--a)))}#visionHome .vv-orbit-node strong{font-size:8px}}

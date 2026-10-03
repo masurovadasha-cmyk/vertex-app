@@ -5,6 +5,16 @@ const uid='11111111-1111-4111-8111-111111111111';
 const org='22222222-2222-4222-8222-222222222222';
 const env={VISION_ENV:'staging',SUPABASE_STAGING_REF:'abcdefghijklmnopqrst',SUPABASE_URL:'https://abcdefghijklmnopqrst.supabase.co',SUPABASE_PUBLISHABLE_KEY:'sb_publishable_test'};
 const request=(path,options={})=>new Request('https://vision.example'+path,{...options,headers:{authorization:'Bearer test.jwt.token',...options.headers}});
+test('health endpoint is GET/HEAD only and HEAD is bodyless',async()=>{
+  const healthEnv={...env,VISION_SOURCE_COMMIT:'0123456789abcdef0123456789abcdef01234567'};
+  const get=await handle(new Request('https://vision.example/health'),healthEnv);
+  assert.equal(get.status,200);
+  assert.equal((await get.json()).architectureVersion,'2.3');
+  const head=await handle(new Request('https://vision.example/health',{method:'HEAD'}),healthEnv);
+  assert.equal(head.status,200);assert.equal(await head.text(),'');
+  const post=await handle(new Request('https://vision.example/health',{method:'POST'}),healthEnv);
+  assert.equal(post.status,405);assert.equal((await post.json()).error,'method_not_allowed');
+});
 test('unconfigured or production environment fails closed',async()=>{
   for(const config of [{},{...env,VISION_ENV:'production'},{...env,SUPABASE_PUBLISHABLE_KEY:'service-role'},{...env,SUPABASE_URL:'https://production.example'}])
     assert.equal((await handle(request('/api/orders'),config)).status,503);

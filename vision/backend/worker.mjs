@@ -136,11 +136,16 @@ export async function handle(request,env,fetcher=fetch){
   const url=new URL(request.url),requestId=crypto.randomUUID();
   const reply=(body,status=200,extra={})=>json(body,status,{'x-request-id':requestId,...extra});
   if(env.VISION_ENV!=='staging')return reply({error:'staging_only'},503);
-  if(url.pathname==='/health')return reply({
-    service:'VERTEX VISION',environment:'staging',configured:configured(env),probe:'liveness-config-only',
-    architectureVersion:'2.3',requiredMigration:'0019_external_module_delegation.sql',
-    sourceCommit:/^[a-f0-9]{40}$/.test(env.VISION_SOURCE_COMMIT||'')?env.VISION_SOURCE_COMMIT:null
-  });
+  if(url.pathname==='/health'){
+    if(!['GET','HEAD'].includes(request.method))return reply({error:'method_not_allowed'},405);
+    const health={
+      service:'VERTEX VISION',environment:'staging',configured:configured(env),probe:'liveness-config-only',
+      architectureVersion:'2.3',requiredMigration:'0019_external_module_delegation.sql',
+      sourceCommit:/^[a-f0-9]{40}$/.test(env.VISION_SOURCE_COMMIT||'')?env.VISION_SOURCE_COMMIT:null
+    };
+    if(request.method==='HEAD')return new Response(null,{status:200,headers:{'cache-control':'no-store','x-content-type-options':'nosniff','x-request-id':requestId}});
+    return reply(health);
+  }
   if(url.pathname==='/auth-config'){
     if(!['GET','HEAD'].includes(request.method))return reply({error:'method_not_allowed'},405);
     const config=publicAuthConfig(env);
