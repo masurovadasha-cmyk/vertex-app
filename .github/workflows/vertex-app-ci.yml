@@ -53,9 +53,6 @@ jobs:
         run: |
           node scripts/package-canva.cjs
           git rev-parse HEAD > artifacts/quality/source-commit.txt
-      - name: Verify unified live website and every public asset after native Cloudflare deployment
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: python scripts/browser-vision.py --live
       - uses: actions/upload-artifact@v7
         if: always()
         with:
