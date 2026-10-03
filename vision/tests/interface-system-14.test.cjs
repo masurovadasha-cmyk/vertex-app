@@ -20,7 +20,7 @@ test('Interface System 14 contract matches the runtime shell and security bounda
   assert.deepEqual(design.modulePolicy.active,['views']);
   assert.equal(design.roleEntry.browserRoleAuthority,false);
   assert.equal(design.roleEntry.serverDerivedAuthority,true);
-  assert.equal(design.security.persistentPrivilegeStorage,false);
+  assert.equal(design.roleEntry.persistentPrivilegeStorage,false);
   assert.equal(design.security.exactSourceLiveVerification,true);
   assert.equal(design.navigation.orbitalModules.length,7);
   assert.equal(design.navigation.mobileTabs.length,4);
