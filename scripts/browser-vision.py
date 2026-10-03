@@ -131,7 +131,7 @@ def run(live=False):
                     page.wait_for_function("document.documentElement.dataset.visionReady==='true'")
                     check(str(width)+': VISION is the first section',page.locator('main > section').first.get_attribute('id')=='visionHome')
                     check(str(width)+': 19 visible child module cards',page.locator('[data-vv-open]').count()==19)
-                    check(str(width)+': Interface System 11 runtime',page.evaluate("document.documentElement.dataset.visionUi==='11.0'"))
+                    check(str(width)+': Interface System 14 runtime',page.evaluate("document.documentElement.dataset.visionUi==='14.0'"))
                     check(str(width)+': five grouped module categories',page.locator('[data-vv-category]').count()==5)
                     check(str(width)+': every module uses a line SVG icon',page.locator('.vv-card-icon svg').count()==19)
                     check(str(width)+': Today context rail is visible',page.locator('#visionHome .vv-today').is_visible())

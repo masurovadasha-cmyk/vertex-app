@@ -25,8 +25,8 @@ test('System Status runtime is built after shell and exposes a Hub action',()=>{
   assert.match(build,/system-status-center\.js','vision-system-status\.js'/);
   assert.match(build,/system-status-center\.css','vision-system-status\.css'/);
   assert.match(build,/UI_CACHE_SUFFIX='interface-11'/);
-  assert.match(shell,/visionUi='11\.0'/);
-  assert.match(shell,/Interface 11\.0/);
+  assert.match(shell,/visionUi='14\.0'/);
+  assert.match(shell,/Interface 14\.0/);
   assert.match(js,/fetch\('\/system-status'/);
   assert.match(js,/data-vv-system-status/);
   assert.match(js,/Secrets, tokens, and connection strings are never displayed here/);

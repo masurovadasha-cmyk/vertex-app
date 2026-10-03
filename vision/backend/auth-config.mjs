@@ -12,6 +12,9 @@ export function publicAuthConfig(env){
     url,
     publishableKey,
     passwordGrant:true,
-    persistence:'memory-only'
+    persistence:'memory-only',
+    authority:'server-derived',
+    privilegedRoleSelection:false,
+    mfaReady:true
   });
 }

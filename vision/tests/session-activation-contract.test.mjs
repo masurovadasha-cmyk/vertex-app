@@ -39,7 +39,8 @@ test('public auth config contains only client-safe Supabase staging metadata',()
   const value=publicAuthConfig(env);
   assert.deepEqual(value,{
     provider:'supabase',environment:'staging',url:env.SUPABASE_URL,
-    publishableKey:env.SUPABASE_PUBLISHABLE_KEY,passwordGrant:true,persistence:'memory-only'
+    publishableKey:env.SUPABASE_PUBLISHABLE_KEY,passwordGrant:true,persistence:'memory-only',
+    authority:'server-derived',privilegedRoleSelection:false,mfaReady:true
   });
   assert.equal(JSON.stringify(value).includes('password'),true);
   assert.equal(Object.hasOwn(value,'serviceRoleKey'),false);
@@ -57,6 +58,9 @@ test('auth-config fails closed unless staging Supabase public config is complete
   assert.equal(body.provider,'supabase');
   assert.equal(body.persistence,'memory-only');
   assert.equal(body.publishableKey,env.SUPABASE_PUBLISHABLE_KEY);
+  assert.equal(body.authority,'server-derived');
+  assert.equal(body.privilegedRoleSelection,false);
+  assert.equal(body.mfaReady,true);
 });
 
 test('session-scopes endpoint verifies bearer identity then projects RPC response',async()=>{
