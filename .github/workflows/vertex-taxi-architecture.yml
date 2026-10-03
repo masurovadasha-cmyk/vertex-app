@@ -56,5 +56,5 @@ jobs:
             console.error(JSON.stringify(violations,null,2));
             process.exit(1);
           }
-          console.log('Bounded-context import boundaries PASS');
+          console.log('Bounded-context import boundaries PASS — including trips context');
           NODE
