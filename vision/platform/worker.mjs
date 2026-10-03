@@ -1,6 +1,7 @@
 import core from './registry.cjs';
+import {sourceCommit} from './build-info.generated.mjs';
 const json=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer'}});
-const metadata=()=>({service:core.name,version:core.version,revision:core.revision,coreVersion:core.coreVersion,moduleCount:core.modules.length,...core.readiness()});
+const metadata=()=>({service:core.name,version:core.version,revision:core.revision,sourceCommit,coreVersion:core.coreVersion,moduleCount:core.modules.length,...core.readiness()});
 /** Public deployment deliberately contains NO profile impersonation or database credentials.
  * Supabase Auth/RLS integration stays in the separate staging worker until verified.
  * A metadata response is never evidence that Auth, migrations or a shared database work.

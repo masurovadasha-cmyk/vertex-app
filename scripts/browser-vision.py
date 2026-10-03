@@ -21,16 +21,20 @@ def run(live=False):
         if not value:raise AssertionError(name)
     try:
         if live:
+            expected_release=json.loads((SITE/'release.json').read_text())
+            expected_commit=expected_release.get('source_commit')
+            if not isinstance(expected_commit,str) or len(expected_commit)!=40:raise RuntimeError('Local release source commit is missing')
             max_attempts=max(1,min(120,int(os.environ.get('VERTEX_LIVE_MAX_ATTEMPTS','20'))))
             wait_seconds=max(1,min(30,int(os.environ.get('VERTEX_LIVE_WAIT_SECONDS','8'))))
             for attempt in range(max_attempts):
                 try:
                     data=json.loads(download(URL+'api/vision/v1/health?check='+str(time.time_ns())))
                     release=json.loads(download(URL+'release.json?check='+str(time.time_ns())))
-                    if data.get('revision')=='vision-views-active-rc1' and release.get('revision')=='vision-views-active-rc1':break
+                    if data.get('sourceCommit')==expected_commit and release.get('source_commit')==expected_commit:break
                 except (OSError,ValueError):pass
-                if attempt==max_attempts-1:raise RuntimeError('Unified Cloudflare deployment was not observed')
+                if attempt==max_attempts-1:raise RuntimeError('Exact Cloudflare source commit was not observed')
                 time.sleep(wait_seconds)
+            check('live source commit matches exact build',data.get('sourceCommit')==expected_commit and release.get('source_commit')==expected_commit)
             check('live core explicitly reports no cloud authentication',data.get('authenticated') is False and data.get('productionReady') is False)
             hashes={}
             for file in sorted(SITE.iterdir()):
