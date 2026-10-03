@@ -241,8 +241,8 @@
     ],
     "activeRuntimeModule": "views",
     "inactiveModules": "coming-soon",
-    "integratedAt": "2026-10-01",
-    "experienceIteration": "11.0",
+    "integratedAt": "2026-10-03",
+    "experienceIteration": "14.0",
     "experienceStyle": "Dark Premium Tech Sand",
     "visualReference": "VERTEX VISION dark control-center boards",
     "runtimeEnhancements": [
@@ -273,7 +273,13 @@
       "notification-actions",
       "escalation-ack",
       "system-status-center",
-      "staging-session-center"
+      "staging-session-center",
+      "orbital-mobile-launcher",
+      "direction-landing-pages",
+      "role-entry-previews",
+      "public-system-status",
+      "exact-source-live-verification",
+      "mobile-bottom-navigation"
     ],
     "navigationIntelligence": {
       "commandPalette": true,
