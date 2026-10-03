@@ -1,7 +1,14 @@
 'use strict';
-const fs=require('node:fs'),path=require('node:path');
+const fs=require('node:fs'),path=require('node:path'),childProcess=require('node:child_process');
 const core=require('./registry.cjs');
 const root=path.resolve(__dirname,'../..'),site=path.join(root,'vertex/dist');
+const sha=/^[a-f0-9]{40}$/;
+const sourceCommit=(()=>{
+  for(const value of [process.env.VISION_SOURCE_COMMIT,process.env.GITHUB_SHA])if(sha.test(value||''))return value;
+  try{const value=childProcess.execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();if(sha.test(value))return value;}catch{}
+  return null;
+})();
+fs.writeFileSync(path.join(__dirname,'build-info.generated.mjs'),'export const sourceCommit='+JSON.stringify(sourceCommit)+';\n');
 const read=name=>fs.readFileSync(path.join(site,name),'utf8');
 const put=(name,text)=>fs.writeFileSync(path.join(site,name),text);
 core.validate(core.modules);
@@ -25,7 +32,7 @@ if(!html.includes('src="vision-system-status.js"'))html=html.replace('</body>','
 if(!html.includes('src="vision-session.js"'))html=html.replace('</body>','<script src="vision-session.js"></script></body>');
 put('index.html',html);
 const release=JSON.parse(read('release.json'));
-Object.assign(release,{version:core.version,revision:core.revision,date:'2026-09-30',platform:core.id,core_version:core.coreVersion,modules:core.modules.map(m=>m.id),active_modules:core.modules.filter(m=>m.status==='active').map(m=>m.id),coming_soon_modules:core.modules.filter(m=>m.status==='coming-soon').map(m=>m.id),mode:'release-candidate',cloud_database_connected:false,unified_apk_hosted:false});
+Object.assign(release,{version:core.version,revision:core.revision,source_commit:sourceCommit,date:'2026-09-30',platform:core.id,core_version:core.coreVersion,modules:core.modules.map(m=>m.id),active_modules:core.modules.filter(m=>m.status==='active').map(m=>m.id),coming_soon_modules:core.modules.filter(m=>m.status==='coming-soon').map(m=>m.id),mode:'release-candidate',cloud_database_connected:false,unified_apk_hosted:false});
 for(const feature of ['VERTEX VISION primary platform','19 registered child modules','Versioned platform registry and API','Explicit adapters preserving existing module data','Vertex Taxi external integration contract','VERTEX Engineers external integration contract'])if(!release.features.includes(feature))release.features.push(feature);
 for(const boundary of ['Shared cloud database and real authentication are not connected','Views is the only active Hub module in RC1; every other division is Coming Soon','Registration does not enable a tenant module or imply completed workflows','JARVIS is a separate project','The existing hosted APK link remains the previous published Vertex build until this RC is separately released','Vertex Taxi private state remains outside VISION; integration is API/events only','VERTEX Engineers private state remains outside VISION; integration is API/events only'])if(!release.boundaries.includes(boundary))release.boundaries.push(boundary);
 put('release.json',JSON.stringify(release,null,2)+'\n');
