@@ -7,6 +7,8 @@ import { Pool } from "pg";
 import { createClient } from "redis";
 import { latLngToCell, gridDisk } from "h3-js";
 import { z } from "zod";
+import { createNotificationWorker } from "./contexts/notifications/application/notification-worker.mjs";
+import { stagingNotificationProvider } from "./contexts/notifications/adapters/staging-provider.mjs";
 import { quoteInputSchema } from "./contexts/pricing-quotes/http/schema.mjs";
 import { createQuoteService } from "./contexts/pricing-quotes/application/create-quote.mjs";
 import { postgresQuoteRepository } from "./contexts/pricing-quotes/adapters/postgres-quote-repository.mjs";
@@ -780,67 +782,7 @@ app.post("/v1/devices/unregister", { preHandler: auth }, async (req) => {
 });
 
 
-const notificationProvider = {
-  async deliver(row) {
-    if (row.notification_type === "DRIVER_OFFER") {
-      // Provider-neutral staging delivery. FCM/APNs adapter plugs in here later.
-      return { provider:"outbox", providerMessageId:`staging-${row.id}` };
-    }
-    return { provider:"outbox", providerMessageId:`staging-${row.id}` };
-  }
-};
-
-async function processNotificationBatch(limit=50) {
-  const client=await db.connect();
-  const summary={claimed:0,delivered:0,retried:0,dead:0};
-  try {
-    await client.query("begin");
-    const claimed=await client.query(
-      `select * from taxi_notification_outbox
-       where state in ('PENDING','RETRY') and next_attempt_at<=now()
-       order by created_at asc
-       for update skip locked limit $1`,[limit]
-    );
-    summary.claimed=claimed.rowCount;
-    for(const row of claimed.rows) {
-      await client.query(
-        "update taxi_notification_outbox set state='PROCESSING',attempt_count=attempt_count+1 where id=$1",
-        [row.id]
-      );
-      try {
-        await notificationProvider.deliver(row);
-        await client.query(
-          "update taxi_notification_outbox set state='DELIVERED',delivered_at=now(),last_error=null where id=$1",
-          [row.id]
-        );
-        summary.delivered++;
-      } catch(error) {
-        const attempts=Number(row.attempt_count)+1;
-        if(attempts>=5) {
-          await client.query(
-            "update taxi_notification_outbox set state='DEAD',last_error=$2 where id=$1",
-            [row.id,String(error).slice(0,500)]
-          );
-          summary.dead++;
-        } else {
-          const delaySeconds=Math.min(300,Math.pow(2,attempts)*5);
-          await client.query(
-            `update taxi_notification_outbox
-             set state='RETRY',last_error=$2,next_attempt_at=now()+($3::text||' seconds')::interval
-             where id=$1`,
-            [row.id,String(error).slice(0,500),delaySeconds]
-          );
-          summary.retried++;
-        }
-      }
-    }
-    await client.query("commit");
-    return summary;
-  } catch(error) {
-    try{await client.query("rollback");}catch{}
-    throw error;
-  } finally { client.release(); }
-}
+const processNotificationBatch=createNotificationWorker({db,provider:stagingNotificationProvider});
 
 app.post("/v1/notifications/process", { preHandler: auth }, async (req) => {
   const limit=Math.min(100,Math.max(1,Number(req.body?.limit||50)));
